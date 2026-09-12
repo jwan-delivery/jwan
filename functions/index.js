@@ -1,160 +1,304 @@
 const admin = require("firebase-admin");
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const {
+  onCall,
+  HttpsError
+} = require("firebase-functions/v2/https");
+
+const {
+  onDocumentCreated
+} = require("firebase-functions/v2/firestore");
 
 admin.initializeApp();
 
 const db = admin.firestore();
 
 /*
- * حذف مستخدم بواسطة الإدارة.
- *
- * يحذف:
- * 1) Firebase Authentication
- * 2) users/{uid}
- * 3) wallets/{uid} إذا كانت موجودة
- *
- * لا يحذف الطلبات أو السجلات التاريخية.
- *
- * الحماية:
- * - لا يمكن حذف حسابك الإداري الحالي.
- * - لا يمكن حذف super_admin.
- * - admin لا يستطيع حذف admin.
- * - super_admin يستطيع حذف admin/customer/driver.
+ * إرسال Push تلقائي عند إنشاء notifications/{notificationId}
  */
-exports.adminDeleteUser = onCall(async (request) => {
+exports.sendNotificationPush = onDocumentCreated(
+  "notifications/{notificationId}",
+  async (event) => {
+    const snap = event.data;
 
-  const callerUid = request.auth?.uid;
+    if (!snap) {
+      return;
+    }
 
-  if (!callerUid) {
-    throw new HttpsError(
-      "unauthenticated",
-      "يجب تسجيل الدخول كمسؤول."
-    );
-  }
+    const notification = snap.data();
 
-  const targetUid = String(request.data?.uid || "").trim();
-
-  if (!targetUid) {
-    throw new HttpsError(
-      "invalid-argument",
-      "لم يتم تحديد المستخدم."
-    );
-  }
-
-  if (targetUid === callerUid) {
-    throw new HttpsError(
-      "failed-precondition",
-      "لا يمكنك حذف حساب الإدارة الذي تستخدمه حاليًا."
-    );
-  }
-
-  const callerRef = db.collection("users").doc(callerUid);
-  const callerSnap = await callerRef.get();
-
-  if (!callerSnap.exists) {
-    throw new HttpsError(
-      "permission-denied",
-      "حساب المسؤول غير موجود."
-    );
-  }
-
-  const caller = callerSnap.data();
-
-  if (
-    !["admin", "super_admin"].includes(caller.role) ||
-    caller.status !== "active"
-  ) {
-    throw new HttpsError(
-      "permission-denied",
-      "ليس لديك صلاحية حذف المستخدمين."
-    );
-  }
-
-  const targetRef = db.collection("users").doc(targetUid);
-  const targetSnap = await targetRef.get();
-
-  if (!targetSnap.exists) {
-    throw new HttpsError(
-      "not-found",
-      "ملف المستخدم غير موجود في Firestore."
-    );
-  }
-
-  const target = targetSnap.data();
-
-  if (target.role === "super_admin") {
-    throw new HttpsError(
-      "permission-denied",
-      "لا يمكن حذف حساب super_admin."
-    );
-  }
-
-  if (
-    caller.role !== "super_admin" &&
-    target.role === "admin"
-  ) {
-    throw new HttpsError(
-      "permission-denied",
-      "لا يملك هذا المسؤول صلاحية حذف مدير آخر."
-    );
-  }
-
-  /*
-   * حذف Authentication.
-   */
-  try {
-    await admin.auth().deleteUser(targetUid);
-  } catch (error) {
+    if (!notification?.userId) {
+      console.warn(
+        "Jwan push: notification بدون userId"
+      );
+      return;
+    }
 
     /*
-     * إذا كان الملف موجودًا في Firestore
-     * لكن الحساب غير موجود في Authentication،
-     * نكمل تنظيف Firestore.
+     * حماية من إعادة الإرسال في حال إعادة تشغيل الحدث.
      */
-    if (error?.code !== "auth/user-not-found") {
-      console.error("Firebase Auth delete error:", error);
+    if (notification.pushSentAt) {
+      return;
+    }
 
+    const tokenSnap = await db
+      .collection("fcmTokens")
+      .where(
+        "uid",
+        "==",
+        String(notification.userId)
+      )
+      .get();
+
+    if (tokenSnap.empty) {
+      console.log(
+        "Jwan push: لا توجد أجهزة مسجلة للمستخدم",
+        notification.userId
+      );
+      return;
+    }
+
+    const tokens = tokenSnap.docs
+      .map((doc) => doc.get("token"))
+      .filter(Boolean);
+
+    if (!tokens.length) {
+      return;
+    }
+
+    const response =
+      await admin.messaging().sendEachForMulticast({
+        tokens,
+        notification: {
+          title:
+            String(notification.title || "جوان"),
+          body:
+            String(
+              notification.body ||
+              "لديك إشعار جديد من جوان."
+            )
+        },
+        data: {
+          notificationId: String(
+            event.params.notificationId
+          ),
+          type: String(
+            notification.type || "system"
+          ),
+          url: String(
+            notification.url || "/"
+          )
+        },
+        webpush: {
+          fcmOptions: {
+            link: String(
+              notification.url || "/"
+            )
+          }
+        }
+      });
+
+    const batch = db.batch();
+
+    response.responses.forEach((result, index) => {
+      if (!result.success) {
+        const tokenDoc = tokenSnap.docs[index];
+        const code = result.error?.code || "";
+
+        /*
+         * حذف التوكنات التي لم تعد صالحة.
+         */
+        if (
+          code.includes("registration-token-not-registered") ||
+          code.includes("invalid-registration-token")
+        ) {
+          batch.delete(tokenDoc.ref);
+        }
+      }
+    });
+
+    batch.update(
+      snap.ref,
+      {
+        pushSentAt:
+          admin.firestore.FieldValue.serverTimestamp(),
+        pushSuccessCount:
+          response.successCount,
+        pushFailureCount:
+          response.failureCount
+      }
+    );
+
+    await batch.commit();
+
+    console.log(
+      "Jwan push result:",
+      {
+        notificationId:
+          event.params.notificationId,
+        successCount:
+          response.successCount,
+        failureCount:
+          response.failureCount
+      }
+    );
+  }
+);
+
+
+/*
+ * حذف مستخدم بواسطة الإدارة.
+ */
+exports.adminDeleteUser = onCall(
+  async (request) => {
+
+    const callerUid =
+      request.auth?.uid;
+
+    if (!callerUid) {
       throw new HttpsError(
-        "internal",
-        "تعذر حذف حساب المستخدم من Firebase Authentication."
+        "unauthenticated",
+        "يجب تسجيل الدخول كمسؤول."
       );
     }
+
+    const targetUid =
+      String(
+        request.data?.uid || ""
+      ).trim();
+
+    if (!targetUid) {
+      throw new HttpsError(
+        "invalid-argument",
+        "لم يتم تحديد المستخدم."
+      );
+    }
+
+    if (targetUid === callerUid) {
+      throw new HttpsError(
+        "failed-precondition",
+        "لا يمكنك حذف حساب الإدارة الذي تستخدمه حاليًا."
+      );
+    }
+
+    const callerRef =
+      db.collection("users")
+        .doc(callerUid);
+
+    const callerSnap =
+      await callerRef.get();
+
+    if (!callerSnap.exists) {
+      throw new HttpsError(
+        "permission-denied",
+        "حساب المسؤول غير موجود."
+      );
+    }
+
+    const caller =
+      callerSnap.data();
+
+    if (
+      !["admin", "super_admin"].includes(
+        caller.role
+      ) ||
+      caller.status !== "active"
+    ) {
+      throw new HttpsError(
+        "permission-denied",
+        "ليس لديك صلاحية حذف المستخدمين."
+      );
+    }
+
+    const targetRef =
+      db.collection("users")
+        .doc(targetUid);
+
+    const targetSnap =
+      await targetRef.get();
+
+    if (!targetSnap.exists) {
+      throw new HttpsError(
+        "not-found",
+        "ملف المستخدم غير موجود في Firestore."
+      );
+    }
+
+    const target =
+      targetSnap.data();
+
+    if (
+      target.role === "super_admin"
+    ) {
+      throw new HttpsError(
+        "permission-denied",
+        "لا يمكن حذف حساب super_admin."
+      );
+    }
+
+    if (
+      caller.role !== "super_admin" &&
+      target.role === "admin"
+    ) {
+      throw new HttpsError(
+        "permission-denied",
+        "لا يملك هذا المسؤول صلاحية حذف مدير آخر."
+      );
+    }
+
+    try {
+      await admin
+        .auth()
+        .deleteUser(targetUid);
+
+    } catch (error) {
+
+      if (
+        error?.code !==
+        "auth/user-not-found"
+      ) {
+        console.error(
+          "Firebase Auth delete error:",
+          error
+        );
+
+        throw new HttpsError(
+          "internal",
+          "تعذر حذف حساب المستخدم من Firebase Authentication."
+        );
+      }
+    }
+
+    await targetRef.delete();
+
+    await db
+      .collection("wallets")
+      .doc(targetUid)
+      .delete()
+      .catch(() => {});
+
+    await db
+      .collection("auditLogs")
+      .add({
+        actorUid: callerUid,
+        actorRole: caller.role,
+        action: "delete_user",
+        targetType: "user",
+        targetId: targetUid,
+        metadata: {
+          deletedRole:
+            target.role || null,
+          deletedName:
+            target.name || null,
+          deletedPhone:
+            target.phone || null
+        },
+        createdAt:
+          admin.firestore.FieldValue.serverTimestamp()
+      });
+
+    return {
+      success: true,
+      uid: targetUid
+    };
   }
-
-  /*
-   * حذف ملف المستخدم.
-   */
-  await targetRef.delete();
-
-  /*
-   * حذف محفظة المستخدم إن كانت موجودة.
-   * هذا ينطبق خصوصًا على السائق.
-   */
-  await db
-    .collection("wallets")
-    .doc(targetUid)
-    .delete()
-    .catch(() => {});
-
-  /*
-   * الاحتفاظ بسجل العملية.
-   */
-  await db.collection("auditLogs").add({
-    actorUid: callerUid,
-    actorRole: caller.role,
-    action: "delete_user",
-    targetType: "user",
-    targetId: targetUid,
-    metadata: {
-      deletedRole: target.role || null,
-      deletedName: target.name || null,
-      deletedPhone: target.phone || null
-    },
-    createdAt: admin.firestore.FieldValue.serverTimestamp()
-  });
-
-  return {
-    success: true,
-    uid: targetUid
-  };
-});
+);

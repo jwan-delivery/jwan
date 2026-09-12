@@ -30,16 +30,91 @@ export const NOTIFICATION_TYPES = [
   "system"
 ];
 
-/*
- * Firebase Console:
- * Project settings
- * -> Cloud Messaging
- * -> Web Push certificates
- */
 const FCM_VAPID_KEY =
   "BJi2lxS0joWxpmBthsYEpRBxOtc3T1scWdQzACWZQFEE1Pr_QqI2YwUWrL2lvG8D3AS6seU3mPWxS2wYOYGybNo";
 
 let messagingInstance = null;
+let foregroundListenerBound = false;
+
+async function getMessagingInstance() {
+  if (!messagingInstance) {
+    messagingInstance = getMessaging();
+  }
+  return messagingInstance;
+}
+
+export async function initPushNotifications() {
+  try {
+    if (!("Notification" in window)) {
+      return {
+        success: false,
+        supported: false
+      };
+    }
+
+    const supported = await isSupported();
+
+    if (!supported) {
+      console.warn("Jwan: Firebase Messaging غير مدعوم.");
+      return {
+        success: false,
+        supported: false
+      };
+    }
+
+    const messaging = await getMessagingInstance();
+
+    if (!foregroundListenerBound) {
+      onMessage(messaging, (payload) => {
+        console.log("Jwan foreground notification:", payload);
+
+        const notification = payload?.notification || {};
+        const data = payload?.data || {};
+
+        if (Notification.permission !== "granted") {
+          return;
+        }
+
+        try {
+          new Notification(
+            notification.title || "جوان",
+            {
+              body:
+                notification.body ||
+                "لديك إشعار جديد من جوان.",
+              icon: "/assets/branding/logo-external.png",
+              badge: "/assets/branding/logo-external.png",
+              data
+            }
+          );
+        } catch (error) {
+          console.warn(
+            "Jwan foreground notification display failed:",
+            error
+          );
+        }
+      });
+
+      foregroundListenerBound = true;
+    }
+
+    return {
+      success: true,
+      supported: true
+    };
+
+  } catch (error) {
+    console.warn(
+      "Jwan push initialization skipped:",
+      error
+    );
+
+    return {
+      success: false,
+      error
+    };
+  }
+}
 
 export async function enablePushNotifications() {
   try {
@@ -48,7 +123,7 @@ export async function enablePushNotifications() {
     }
 
     if (!("Notification" in window)) {
-      throw new Error("المتصفح لا يدعم إشعارات النظام.");
+      throw new Error("الجهاز لا يدعم إشعارات النظام.");
     }
 
     if (!window.isSecureContext) {
@@ -57,49 +132,56 @@ export async function enablePushNotifications() {
       );
     }
 
-    // مهم جدًا:
-    // نطلب إذن الإشعارات أولًا قبل فحص Firebase Messaging.
     let permission = Notification.permission;
 
     if (permission !== "granted") {
       permission = await Notification.requestPermission();
     }
 
-    console.log("JW​AN notification permission:", permission);
+    console.log(
+      "JWAN notification permission:",
+      permission
+    );
 
     if (permission !== "granted") {
       throw new Error(
-        "لم يتم السماح بالإشعارات. حالة الإذن: " + permission
+        "لم يتم السماح بالإشعارات. حالة الإذن: " +
+        permission
       );
     }
 
-    // بعد الموافقة فقط نبدأ فحص Firebase Messaging.
     const supported = await isSupported();
-
-    console.log("JW​AN FCM supported:", supported);
-    console.log("JW​AN secure context:", window.isSecureContext);
-    console.log("JW​AN service worker:", "serviceWorker" in navigator);
 
     if (!supported) {
       throw new Error(
-        "تم السماح بالإشعارات، لكن Firebase Messaging غير مدعوم في هذا المتصفح."
+        "Firebase Messaging غير مدعوم في هذا المتصفح."
       );
     }
 
-    if (!messagingInstance) {
-      messagingInstance = getMessaging();
+    await initPushNotifications();
+
+    const messaging = await getMessagingInstance();
+
+    if (!("serviceWorker" in navigator)) {
+      throw new Error(
+        "Service Worker غير مدعوم في هذا الجهاز."
+      );
     }
 
     const registration =
       await navigator.serviceWorker.register("/sw.js");
 
-    const token = await getToken(messagingInstance, {
+    await navigator.serviceWorker.ready;
+
+    const token = await getToken(messaging, {
       vapidKey: FCM_VAPID_KEY,
       serviceWorkerRegistration: registration
     });
 
     if (!token) {
-      throw new Error("تم السماح بالإشعارات لكن تعذر الحصول على FCM token.");
+      throw new Error(
+        "تم السماح بالإشعارات لكن تعذر الحصول على FCM token."
+      );
     }
 
     const uid = auth.currentUser.uid;
@@ -113,10 +195,15 @@ export async function enablePushNotifications() {
         userAgent: navigator.userAgent,
         updatedAt: serverTimestamp()
       },
-      { merge: true }
+      {
+        merge: true
+      }
     );
 
-    console.log("Jwan FCM token registered");
+    console.log(
+      "Jwan FCM token registered:",
+      token.slice(0, 18) + "..."
+    );
 
     return {
       success: true,
@@ -124,51 +211,15 @@ export async function enablePushNotifications() {
     };
 
   } catch (error) {
-    console.error("Jwan FCM error:", error);
+    console.error(
+      "Jwan FCM error:",
+      error
+    );
 
     return {
       success: false,
       error
     };
-  }
-}
-
-export async function initPushNotifications() {
-  try {
-    if (!auth.currentUser) return;
-
-    const supported = await isSupported();
-
-    if (!supported) return;
-
-    if (!messagingInstance) {
-      messagingInstance = getMessaging();
-    }
-
-    onMessage(messagingInstance, (payload) => {
-      console.log("Jwan foreground notification:", payload);
-
-      const notification = payload.notification || {};
-
-      if (Notification.permission === "granted") {
-        new Notification(
-          notification.title || "Jwan",
-          {
-            body:
-              notification.body ||
-              "لديك إشعار جديد من جوان.",
-            icon: "/assets/icons/icon-192.svg",
-            data: payload.data || {}
-          }
-        );
-      }
-    });
-
-  } catch (error) {
-    console.warn(
-      "Jwan push initialization skipped:",
-      error
-    );
   }
 }
 
@@ -179,15 +230,26 @@ export async function createNotification(
   body,
   createdBy
 ) {
-  await addDoc(collection(db, "notifications"), {
-    userId,
-    type,
-    title,
-    body,
-    read: false,
-    createdAt: serverTimestamp(),
-    createdBy: createdBy || null
-  });
+  if (!userId) {
+    throw new Error("userId مطلوب.");
+  }
+
+  if (!NOTIFICATION_TYPES.includes(type)) {
+    throw new Error("نوع الإشعار غير معروف.");
+  }
+
+  return addDoc(
+    collection(db, "notifications"),
+    {
+      userId,
+      type,
+      title,
+      body,
+      read: false,
+      createdAt: serverTimestamp(),
+      createdBy: createdBy || null
+    }
+  );
 }
 
 export function listenNotifications(
@@ -202,19 +264,32 @@ export function listenNotifications(
     limit(max)
   );
 
-  return onSnapshot(q, (snap) =>
-    callback(
-      snap.docs.map((d) => ({
-        id: d.id,
-        ...d.data()
-      }))
-    )
+  return onSnapshot(
+    q,
+    (snap) => {
+      callback(
+        snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data()
+        }))
+      );
+    },
+    (error) => {
+      console.error(
+        "Jwan notifications listener error:",
+        error
+      );
+    }
   );
 }
 
 export async function markNotificationRead(id) {
+  if (!id) return;
+
   await updateDoc(
     doc(db, "notifications", id),
-    { read: true }
+    {
+      read: true
+    }
   );
 }
