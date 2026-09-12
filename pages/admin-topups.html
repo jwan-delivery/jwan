@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>شحن المحافظ | إدارة جوان</title>  <link rel="icon" href="../assets/branding/logo-external.png">
+</head>
+<body>
+<header class="mobilebar"><strong>جوان — الإدارة</strong><a href="../index.html">الرئيسية</a></header>
+<div class="app-shell">
+<aside class="sidebar">
+ <div class="brand" style="margin-bottom:20px"><div class="brand-mark"><img src="/assets/branding/logo-external.png" alt="جوان للتوصيل"></div><div><div class="brand-name" style="color:#fff">جوان</div><small>الإدارة</small></div></div>
+ <a href="admin.html">الرئيسية</a><a href="admin-orders.html">الطلبات</a><a href="admin-users.html">المستخدمون</a><a class="active" href="admin-topups.html">شحن المحافظ</a><a href="admin-withdrawals.html">السحوبات</a><a href="admin-analytics.html">التحليلات</a><a id="managersLink" href="admin-managers.html" style="display:none">المدراء</a><a href="support.html">الدعم</a>
+ <a href="#" id="logoutLink">تسجيل الخروج</a>
+</aside>
+<main class="content">
+<h1 class="page-title">طلبات شحن المحفظة</h1>
+<p class="muted">
+  من هنا تراجع طلبات شحن محافظ السائقين. بعد التأكد من إشعار التحويل والمبلغ عبر واتساب، اضغط «موافقة» لإضافة المبلغ إلى محفظة السائق.
+</p>
+<div class="card" style="margin-bottom:20px;border:2px solid #f0b400;background:#fffaf0">
+  <strong>تفعيل السائق لأول مرة:</strong>
+  <span>يتم اعتماد السائق بعد مراجعة مستندات المركبة وإشعار تحويل 10,000 ج.س، ثم تفعيل الحساب وإضافة 10,000 ج.س إلى محفظته.</span>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <h3>شحن محفظة سائق مباشرة</h3>
+
+  <form id="manualTopupForm">
+    <div class="form-group">
+      <label>السائق</label>
+      <select id="manualDriver" required>
+        <option value="">اختر السائق</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>مبلغ الشحن</label>
+      <input id="manualAmount" type="number" min="1" step="1" required placeholder="مثال: 10000">
+    </div>
+
+    <div class="form-group">
+      <label>ملاحظة</label>
+      <input id="manualNote" type="text" placeholder="سبب الشحن أو مرجع العملية">
+    </div>
+
+    <button class="btn btn-primary" type="submit">
+      شحن المحفظة
+    </button>
+  </form>
+</div>
+
+<div class="card">
+  <div id="list" class="empty">جارٍ التحميل...</div>
+</div>
+
+</main></div>
+<script type="module" src="../js/app.js"></script>
+<script type="module">
+import { guardPage, logoutUser } from "../js/auth.js";
+import { listenAllTopupRequests, reviewTopupRequest, listenUsersByRole, manualTopupDriver } from "../js/admin.js";
+import { escapeHtml, formatMoney, formatDate, statusBadgeClass, showToast } from "../js/common.js";
+
+const { user, data } = await guardPage(["admin", "super_admin"]);
+const admin = { uid: user.uid, role: data.role };
+if (data.role === "super_admin") document.getElementById("managersLink").style.display = "block";
+document.getElementById("logoutLink").addEventListener("click", async (e) => { e.preventDefault(); await logoutUser(); location.href = "login.html"; });
+
+
+const driverSelect = document.getElementById("manualDriver");
+const manualTopupForm = document.getElementById("manualTopupForm");
+
+let drivers = [];
+listenUsersByRole("driver", (list) => {
+  drivers = list;
+
+  const current = driverSelect.value;
+  driverSelect.innerHTML =
+    '<option value="">اختر السائق</option>' +
+    list
+      .filter(d => d.status === "active")
+      .sort((a, b) => String(a.name || a.phone || "").localeCompare(String(b.name || b.phone || ""), "ar"))
+      .map(d => `<option value="${d.id}">${escapeHtml(d.name || "بدون اسم")} — ${escapeHtml(d.phone || d.id)}</option>`)
+      .join("");
+
+  if (list.some(d => d.id === current && d.status === "active")) {
+    driverSelect.value = current;
+  }
+});
+
+
+manualTopupForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const driverId = driverSelect.value;
+  const amount = Number(document.getElementById("manualAmount").value);
+  const note = document.getElementById("manualNote").value.trim();
+  const btn = manualTopupForm.querySelector("button");
+
+  if (!driverId) {
+    showToast("اختر السائق أولًا.");
+    return;
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    showToast("أدخل مبلغًا صحيحًا.");
+    return;
+  }
+
+  if (!confirm(`تأكيد شحن ${formatMoney(amount)} للسائق المحدد؟`)) {
+    return;
+  }
+
+  btn.disabled = true;
+
+  try {
+    await manualTopupDriver(admin, driverId, amount, note);
+    showToast("تم شحن محفظة السائق بنجاح.");
+    manualTopupForm.reset();
+  } catch (err) {
+    showToast(err?.message || "تعذر شحن المحفظة.");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+listenAllTopupRequests((requests) => {
+  const list = document.getElementById("list");
+  if (!requests.length) { list.className = "empty"; list.textContent = "لا توجد طلبات شحن."; return; }
+
+  list.className = "";
+  list.innerHTML = requests.map(r => {
+    const driver = drivers.find(d => d.id === r.driverId);
+    return `
+    <div class="order-row" data-id="${r.id}">
+      <div>
+        <strong>${escapeHtml(driver?.name || r.driverId)}</strong> — ${escapeHtml(driver?.phone || "")}
+        <div class="muted" style="font-size:13px">طريقة التحويل: ${escapeHtml(r.paymentMethod)}</div>
+        <div class="muted" style="font-size:12px">${formatDate(r.submittedAt)}</div>
+      </div>
+      <div style="text-align:left">
+        <div><strong>${formatMoney(r.amount)}</strong></div>
+        <span class="${statusBadgeClass(r.status)}">${r.status === "pending" ? "بانتظار المراجعة" : r.status === "approved" ? "تمت الموافقة" : "مرفوض"}</span><br>
+        ${r.status === "pending" ? `<button class="btn btn-primary btn-sm approve-btn">موافقة</button><button class="btn btn-dark btn-sm reject-btn">رفض</button>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+
+  list.querySelectorAll(".approve-btn").forEach(btn => btn.addEventListener("click", () => act(btn, true)));
+  list.querySelectorAll(".reject-btn").forEach(btn => btn.addEventListener("click", () => act(btn, false)));
+
+  async function act(btn, approve) {
+    const id = btn.closest(".order-row").dataset.id;
+    const note = approve ? null : (prompt("سبب الرفض:", "") || "مرفوض");
+    btn.closest(".order-row").querySelectorAll("button").forEach(b => b.disabled = true);
+    try { await reviewTopupRequest(admin, id, approve, note); }
+    catch (err) { showToast(err?.message || "حدث خطأ."); }
+  }
+});
+</script>
+<script type="module">
+try {
+  const { firebaseConfig } = await import("../js/firebase-config.js");
+  if (firebaseConfig) window.__JW_FBASE_CONFIG__ = firebaseConfig;
+} catch (e) {
+  console.warn("Jawan Firebase config bridge:", e);
+}
+</script>
+<script type="module" src="../js/jawan-ai.js"></script>
+</body></html>

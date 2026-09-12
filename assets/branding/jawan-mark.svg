@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="جوان للتوصيل">
+  <rect width="128" height="128" rx="30" fill="#0a0a0a"/>
+  <circle cx="34" cy="92" r="16" fill="none" stroke="#f5c400" stroke-width="10"/>
+  <circle cx="90" cy="92" r="16" fill="none" stroke="#f5c400" stroke-width="10"/>
+  <path d="M34 92C36 64 56 48 78 52C86 53.5 90 60 90 76" fill="none" stroke="#f5c400" stroke-width="10" stroke-linecap="round"/>
+  <path d="M80 50L94 34" fill="none" stroke="#f5c400" stroke-width="10" stroke-linecap="round"/>
+</svg>

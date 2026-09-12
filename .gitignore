@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+**/build/
+.gradle/
+**/.gradle/
+
+# Capacitor generated files
+mobile-app/android/.cxx/
+mobile-app/android/app/build/
+mobile-app/android/capacitor-cordova-android-plugins/build/
+
+# Local Firebase / emulator data
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.keystore
+*.jks
+service-account*.json
+*-service-account*.json
+google-services.json
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Logs
+*.log
+
+# Local backups
+*.backup
+*.backup-*
+backup*/
+backups-*/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+
+# APK/AAB generated artifacts
+*.apk
+*.aab
+
+# npm debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

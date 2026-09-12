@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>المستخدمون | إدارة جوان</title>  <link rel="icon" href="../assets/branding/logo-external.png">
+
+<style>
+.delete-user-btn{
+  border:1px solid rgba(255,255,255,.15)!important;
+  border-radius:10px!important;
+  font-weight:700!important;
+  cursor:pointer!important;
+}
+.delete-user-btn:hover{
+  filter:brightness(1.12);
+}
+.delete-user-btn:disabled{
+  opacity:.6;
+  cursor:not-allowed!important;
+}
+</style>
+
+</head>
+<body>
+<header class="mobilebar"><strong>جوان — الإدارة</strong><a href="../index.html">الرئيسية</a></header>
+<div class="app-shell">
+<aside class="sidebar">
+ <div class="brand" style="margin-bottom:20px"><div class="brand-mark"><img src="/assets/branding/logo-external.png" alt="جوان للتوصيل"></div><div><div class="brand-name" style="color:#fff">جوان</div><small>الإدارة</small></div></div>
+ <a href="admin.html">الرئيسية</a><a href="admin-orders.html">الطلبات</a><a class="active" href="admin-users.html">المستخدمون</a><a href="admin-topups.html">شحن المحافظ</a><a href="admin-withdrawals.html">السحوبات</a><a href="admin-analytics.html">التحليلات</a><a id="managersLink" href="admin-managers.html" style="display:none">المدراء</a><a href="support.html">الدعم</a>
+ <a href="#" id="logoutLink">تسجيل الخروج</a>
+</aside>
+<main class="content">
+<h1 class="page-title">المستخدمون</h1>
+<div class="grid-2" style="max-width:340px;margin-bottom:14px">
+  <button class="btn btn-primary" id="tabDrivers">السائقون</button>
+  <button class="btn btn-dark" id="tabCustomers">العملاء</button>
+</div>
+<div class="card"><div id="usersList" class="empty">جارٍ التحميل...</div></div>
+</main></div>
+<script type="module" src="../js/app.js"></script>
+<script type="module">
+import { guardPage, logoutUser } from "../js/auth.js";
+import {
+  listenUsersByRole,
+  approveUser,
+  setUserStatus,
+  deleteUserByAdmin
+} from "../js/admin.js";
+import { escapeHtml, formatDate, accountStatusLabel, statusBadgeClass, showToast } from "../js/common.js";
+
+const { user, data } = await guardPage(["admin", "super_admin"]);
+const admin = { uid: user.uid, role: data.role };
+if (data.role === "super_admin") document.getElementById("managersLink").style.display = "block";
+document.getElementById("logoutLink").addEventListener("click", async (e) => { e.preventDefault(); await logoutUser(); location.href = "login.html"; });
+
+let currentRole = "driver";
+let drivers = [], customers = [];
+
+function render() {
+  const list = document.getElementById("usersList");
+  const users = (currentRole === "driver" ? drivers : customers).slice().sort((a, b) => (a.status === "pending" ? -1 : 1) - (b.status === "pending" ? -1 : 1));
+
+  if (!users.length) { list.className = "empty"; list.textContent = "لا يوجد مستخدمون بعد."; return; }
+
+  list.className = "";
+  list.innerHTML = users.map(u => `
+    <div class="order-row" data-id="${u.id}">
+      <div>
+        <strong>${escapeHtml(u.name)}</strong> — ${escapeHtml(u.phone)}
+        <div class="muted" style="font-size:13px">${escapeHtml(u.address || "—")}</div>
+        <div class="muted" style="font-size:12px">انضم: ${formatDate(u.createdAt)}</div>
+      </div>
+      <div style="text-align:left">
+        <span class="${statusBadgeClass(u.status)}">${accountStatusLabel(u.status)}</span><br>
+        ${u.status !== "active" ? `<button class="btn btn-primary btn-sm approve-btn">تفعيل</button>` : ""}
+        ${u.status !== "suspended" ? `<button class="btn btn-dark btn-sm suspend-btn">إيقاف</button>` : ""}
+        ${u.status === "pending" ? `<button class="btn btn-sm reject-btn" style="background:#f2f2f2">رفض</button>` : ""}
+        ${u.role !== "super_admin" ? `<button class="btn btn-sm delete-user-btn" style="background:#b42318;color:#fff;margin-top:5px">حذف</button>` : ""}
+        ${u.role !== "super_admin" ? `<button class="btn btn-sm password-change-btn" style="background:#6b4eff;color:#fff;margin-top:5px">طلب تغيير كلمة المرور</button>` : ""}
+
+        ${u.role !== "super_admin" ? `<button class="btn btn-sm password-change-btn" style="background:#6b4eff;color:#fff;margin-top:5px">طلب تغيير كلمة المرور</button>` : ""}
+
+      </div>
+    </div>`).join("");
+
+  list.querySelectorAll(".approve-btn").forEach(btn => btn.addEventListener("click", () => act(btn, u => approveUser(admin, u))));
+  list.querySelectorAll(".suspend-btn").forEach(btn => btn.addEventListener("click", () => act(btn, u => setUserStatus(admin, u, "suspended"))));
+  list.querySelectorAll(".reject-btn").forEach(btn => btn.addEventListener("click", () => act(btn, u => setUserStatus(admin, u, "rejected"))));
+
+  list.querySelectorAll(".delete-user-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.closest(".order-row").dataset.id;
+      const target = users.find(x => x.id === id);
+      if (!target) return;
+
+      const ok = confirm(
+        "⚠️ تأكيد حذف المستخدم\n\n" +
+        `الاسم: ${target.name || "—"}\n` +
+        `الهاتف: ${target.phone || "—"}\n\n` +
+        "سيتم حذف ملف المستخدم ومحفظته من Firestore فقط.\n" +
+        "حساب Firebase Authentication لن يتم حذفه.\n" +
+        "الطلبات والسجلات التاريخية لن يتم حذفها.\n\n" +
+        "هل تريد المتابعة؟"
+      );
+
+      if (!ok) return;
+
+      btn.disabled = true;
+      btn.textContent = "جاري الحذف...";
+
+      try {
+        await deleteUserByAdmin(admin, target);
+
+        if (currentRole === "driver") {
+          drivers = drivers.filter(x => x.id !== id);
+        } else {
+          customers = customers.filter(x => x.id !== id);
+        }
+
+        render();
+        showToast("تم حذف المستخدم من نظام جوان.");
+      } catch (err) {
+        console.error("Jawan delete user:", err);
+        showToast(err?.message || "تعذر حذف المستخدم.");
+        btn.disabled = false;
+        btn.textContent = "حذف";
+      }
+    });
+  });
+
+  list.querySelectorAll(".password-change-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.closest(".order-row").dataset.id;
+      const target = users.find(x => x.id === id);
+      if (!target) return;
+
+      const ok = confirm(
+        `سيتم طلب تغيير كلمة مرور المستخدم:\n\n${target.name || "—"}\n${target.phone || "—"}\n\n` +
+        "عند تنفيذ نظام تغيير كلمة المرور، سيُطلب من المستخدم تعيين كلمة مرور جديدة.\n\n" +
+        "هل تريد تسجيل الطلب؟"
+      );
+
+      if (!ok) return;
+
+      btn.disabled = true;
+      btn.textContent = "جاري الطلب...";
+
+      try {
+        await requestPasswordChange(admin, target);
+        target.mustChangePassword = true;
+        showToast("تم تسجيل طلب تغيير كلمة المرور.");
+        render();
+      } catch (err) {
+        console.error("Jawan password change request:", err);
+        showToast(err?.message || "تعذر تسجيل طلب تغيير كلمة المرور.");
+        btn.disabled = false;
+        btn.textContent = "طلب تغيير كلمة المرور";
+      }
+    });
+  });
+
+  async function act(btn, fn) {
+    const id = btn.closest(".order-row").dataset.id;
+    const target = users.find(x => x.id === id);
+    btn.disabled = true;
+    try { await fn({ id: target.id, role: currentRole }); }
+    catch (err) { showToast(err?.message || "حدث خطأ."); btn.disabled = false; }
+  }
+}
+
+document.getElementById("tabDrivers").addEventListener("click", () => { currentRole = "driver"; setTab(); });
+document.getElementById("tabCustomers").addEventListener("click", () => { currentRole = "customer"; setTab(); });
+function setTab() {
+  document.getElementById("tabDrivers").className = currentRole === "driver" ? "btn btn-primary" : "btn btn-dark";
+  document.getElementById("tabCustomers").className = currentRole === "customer" ? "btn btn-primary" : "btn btn-dark";
+  render();
+}
+
+listenUsersByRole("driver", (list) => { drivers = list; if (currentRole === "driver") render(); });
+listenUsersByRole("customer", (list) => { customers = list; if (currentRole === "customer") render(); });
+</script>
+<script type="module">
+try {
+  const { firebaseConfig } = await import("../js/firebase-config.js");
+  if (firebaseConfig) window.__JW_FBASE_CONFIG__ = firebaseConfig;
+} catch (e) {
+  console.warn("Jawan Firebase config bridge:", e);
+}
+</script>
+<script type="module" src="../js/jawan-ai.js"></script>
+</body></html>

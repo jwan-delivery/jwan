@@ -1,0 +1,2630 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta name="theme-color" content="#f5c400">
+  <meta name="description"
+        content="جوان للتوصيل — منصة توصيل وخدمات نقل داخل السودان.">
+
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/home.css">
+  <link rel="icon" href="/assets/branding/logo-external.png">
+
+  <!-- خط عربي جميل -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <title>جوان للتوصيل | توصيلك يبدأ من هنا</title>
+
+  <style>
+    :root {
+      --yellow: #f5c400;
+      --yellow-light: #ffd83d;
+      --black: #080808;
+      --black-2: #101010;
+      --black-3: #181818;
+      --white: #ffffff;
+      --gray: #b8b8b8;
+      --gray-dark: #858585;
+      --border: rgba(255,255,255,.09);
+      --glass: rgba(255,255,255,.045);
+      --green: #25d366;
+
+      --radius: 24px;
+      --shadow: 0 25px 70px rgba(0,0,0,.4);
+      --max: 1200px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: "Cairo", sans-serif;
+      background:
+        radial-gradient(
+          circle at 10% 5%,
+          rgba(245,196,0,.12),
+          transparent 25%
+        ),
+        radial-gradient(
+          circle at 90% 25%,
+          rgba(245,196,0,.07),
+          transparent 25%
+        ),
+        var(--black);
+
+      color: var(--white);
+      line-height: 1.8;
+      overflow-x: hidden;
+    }
+
+    body.menu-open {
+      overflow: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font-family: inherit;
+    }
+
+    svg {
+      display: block;
+    }
+
+    .container {
+      width: min(92%, var(--max));
+      margin: auto;
+    }
+
+    /* =========================
+       HEADER
+    ========================= */
+
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+
+      background: rgba(8,8,8,.82);
+      backdrop-filter: blur(18px);
+
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-inner {
+      height: 78px;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      font-weight: 900;
+    }
+
+    .brand-logo {
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 46px;
+      height: 46px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 15px;
+
+      background: var(--yellow);
+      color: var(--black);
+
+      font-size: 1.5rem;
+      font-weight: 900;
+
+      box-shadow:
+        0 10px 30px rgba(245,196,0,.2);
+    }
+
+    .brand-logo img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+    }
+
+    .brand-name {
+      font-size: 1.08rem;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .login-btn {
+      min-height: 44px;
+      padding: 0 18px;
+
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      border: 1px solid rgba(245,196,0,.35);
+      border-radius: 13px;
+
+      color: var(--yellow);
+      font-weight: 800;
+
+      transition: .2s;
+    }
+
+    .login-btn:hover {
+      background: rgba(245,196,0,.08);
+    }
+
+    .menu-btn {
+      width: 46px;
+      height: 46px;
+
+      display: grid;
+      place-items: center;
+
+      border: 1px solid var(--border);
+      border-radius: 14px;
+
+      background: var(--black-2);
+      color: white;
+
+      cursor: pointer;
+
+      transition: .2s;
+    }
+
+    .menu-btn:hover {
+      color: var(--yellow);
+      border-color: rgba(245,196,0,.3);
+    }
+
+    .menu-btn svg {
+      width: 23px;
+      height: 23px;
+    }
+
+    /* =========================
+       SIDE MENU
+    ========================= */
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+
+      background: rgba(0,0,0,.72);
+
+      z-index: 1100;
+
+      opacity: 0;
+      visibility: hidden;
+
+      transition: .25s;
+    }
+
+    .overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .drawer {
+      position: fixed;
+
+      top: 0;
+      right: 0;
+
+      width: min(90vw,390px);
+      height: 100vh;
+
+      z-index: 1200;
+
+      background:
+        linear-gradient(
+          180deg,
+          #121212,
+          #090909
+        );
+
+      border-left: 1px solid var(--border);
+
+      transform: translateX(100%);
+
+      transition: transform .3s ease;
+
+      box-shadow: var(--shadow);
+    }
+
+    .drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-head {
+      height: 82px;
+
+      padding: 15px 18px;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      border-bottom: 1px solid var(--border);
+    }
+
+    .close-btn {
+      width: 43px;
+      height: 43px;
+
+      display: grid;
+      place-items: center;
+
+      border: 1px solid var(--border);
+      border-radius: 13px;
+
+      background: var(--black-2);
+      color: white;
+
+      cursor: pointer;
+    }
+
+    .close-btn svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .drawer-nav {
+      padding: 20px;
+
+      display: grid;
+      gap: 7px;
+    }
+
+    .drawer-nav a {
+      padding: 13px 15px;
+
+      border-radius: 13px;
+
+      color: #e7e7e7;
+
+      font-weight: 600;
+
+      transition: .2s;
+    }
+
+    .drawer-nav a:hover {
+      background: rgba(245,196,0,.08);
+      color: var(--yellow);
+    }
+
+    .drawer-nav .main-link {
+      background: var(--yellow);
+      color: var(--black);
+
+      text-align: center;
+      font-weight: 900;
+    }
+
+    /* =========================
+       HERO
+    ========================= */
+
+    .hero {
+      position: relative;
+
+      padding: 100px 0 80px;
+
+      overflow: hidden;
+    }
+
+    .hero-grid {
+      display: grid;
+
+      grid-template-columns: 1.08fr .92fr;
+
+      gap: 55px;
+
+      align-items: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+
+      margin-bottom: 20px;
+
+      padding: 7px 13px;
+
+      border-radius: 999px;
+
+      border: 1px solid rgba(245,196,0,.25);
+
+      background: rgba(245,196,0,.07);
+
+      color: var(--yellow);
+
+      font-size: .88rem;
+      font-weight: 800;
+    }
+
+    .hero-badge span {
+      width: 7px;
+      height: 7px;
+
+      border-radius: 50%;
+
+      background: var(--yellow);
+
+      box-shadow:
+        0 0 0 7px rgba(245,196,0,.08);
+    }
+
+    .hero h1 {
+      font-size: clamp(2.8rem,7vw,6rem);
+
+      line-height: 1.02;
+
+      letter-spacing: -2px;
+
+      margin-bottom: 25px;
+    }
+
+    .hero h1 span {
+      color: var(--yellow);
+    }
+
+    .hero-description {
+      max-width: 700px;
+
+      color: var(--gray);
+
+      font-size: 1.08rem;
+
+      margin-bottom: 31px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      flex-wrap: wrap;
+
+      gap: 12px;
+    }
+
+    .btn {
+      min-height: 53px;
+
+      padding: 0 21px;
+
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      gap: 9px;
+
+      border-radius: 14px;
+
+      font-weight: 900;
+
+      transition: .2s;
+    }
+
+    .btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .btn-primary {
+      background: var(--yellow);
+      color: var(--black);
+
+      box-shadow:
+        0 14px 35px rgba(245,196,0,.14);
+    }
+
+    .btn-primary:hover {
+      background: var(--yellow-light);
+      transform: translateY(-3px);
+    }
+
+    .btn-secondary {
+      border: 1px solid var(--border);
+
+      background: var(--glass);
+
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      color: var(--yellow);
+
+      border-color:
+        rgba(245,196,0,.35);
+    }
+
+    .hero-features {
+      display: flex;
+      flex-wrap: wrap;
+
+      gap: 20px;
+
+      margin-top: 27px;
+
+      color: var(--gray-dark);
+
+      font-size: .85rem;
+    }
+
+    .hero-feature {
+      display: flex;
+      align-items: center;
+
+      gap: 8px;
+    }
+
+    .hero-feature svg {
+      width: 18px;
+      height: 18px;
+
+      color: var(--yellow);
+    }
+
+    /* Hero visual */
+
+    .hero-visual {
+      position: relative;
+
+      min-height: 500px;
+
+      display: grid;
+      place-items: center;
+
+      overflow: hidden;
+
+      border-radius: 34px;
+
+      border: 1px solid var(--border);
+
+      background:
+        radial-gradient(
+          circle at 50% 35%,
+          rgba(245,196,0,.19),
+          transparent 29%
+        ),
+        linear-gradient(
+          145deg,
+          #1b1b1b,
+          #0c0c0c
+        );
+
+      box-shadow: var(--shadow);
+    }
+
+    .hero-visual::before {
+      content: "";
+
+      position: absolute;
+
+      width: 270px;
+      height: 270px;
+
+      border-radius: 50%;
+
+      border: 1px solid
+        rgba(245,196,0,.18);
+
+      box-shadow:
+        0 0 0 35px
+          rgba(245,196,0,.035),
+        0 0 0 70px
+          rgba(245,196,0,.02);
+    }
+
+    .bike {
+      position: relative;
+      z-index: 2;
+
+      width: 210px;
+      height: 210px;
+
+      color: var(--yellow);
+
+      filter:
+        drop-shadow(
+          0 20px 25px rgba(0,0,0,.45)
+        );
+    }
+
+    .floating {
+      position: absolute;
+      z-index: 5;
+
+      padding: 12px 16px;
+
+      border-radius: 17px;
+
+      background: rgba(8,8,8,.78);
+
+      backdrop-filter: blur(12px);
+
+      border: 1px solid var(--border);
+
+      box-shadow:
+        0 12px 35px rgba(0,0,0,.3);
+    }
+
+    .floating strong {
+      display: block;
+
+      color: var(--yellow);
+
+      font-size: 1rem;
+    }
+
+    .floating small {
+      color: var(--gray);
+
+      font-size: .76rem;
+    }
+
+    .floating-top {
+      top: 30px;
+      right: 27px;
+    }
+
+    .floating-bottom {
+      bottom: 32px;
+      left: 27px;
+    }
+
+    /* =========================
+       QUICK FEATURES
+    ========================= */
+
+    .quick-strip {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+
+      background: rgba(255,255,255,.018);
+    }
+
+    .quick-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(4,1fr);
+    }
+
+    .quick-item {
+      min-height: 100px;
+
+      display: flex;
+      align-items: center;
+
+      gap: 12px;
+
+      padding: 20px;
+
+      border-left: 1px solid var(--border);
+    }
+
+    .quick-item:last-child {
+      border-left: 0;
+    }
+
+    .quick-icon {
+      width: 45px;
+      height: 45px;
+
+      flex: none;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 14px;
+
+      background: rgba(245,196,0,.09);
+
+      color: var(--yellow);
+    }
+
+    .quick-icon svg {
+      width: 23px;
+      height: 23px;
+    }
+
+    .quick-item strong {
+      display: block;
+
+      font-size: .95rem;
+    }
+
+    .quick-item small {
+      color: var(--gray-dark);
+
+      font-size: .77rem;
+    }
+
+    /* =========================
+       SECTIONS
+    ========================= */
+
+    .section {
+      padding: 95px 0;
+    }
+
+    .section-heading {
+      max-width: 780px;
+
+      margin-bottom: 38px;
+    }
+
+    .section-label {
+      color: var(--yellow);
+
+      font-weight: 900;
+
+      margin-bottom: 8px;
+    }
+
+    .section-heading h2 {
+      font-size:
+        clamp(2rem,4vw,3.3rem);
+
+      line-height: 1.2;
+
+      margin-bottom: 13px;
+    }
+
+    .section-heading p {
+      color: var(--gray);
+    }
+
+    /* =========================
+       SERVICES
+    ========================= */
+
+    .service-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(4,1fr);
+
+      gap: 17px;
+    }
+
+    .service-card {
+      position: relative;
+
+      overflow: hidden;
+
+      padding: 26px;
+
+      border-radius: var(--radius);
+
+      border: 1px solid var(--border);
+
+      background:
+        linear-gradient(
+          180deg,
+          rgba(255,255,255,.04),
+          rgba(255,255,255,.015)
+        );
+
+      transition: .25s;
+    }
+
+    .service-card:hover {
+      transform: translateY(-6px);
+
+      border-color:
+        rgba(245,196,0,.3);
+    }
+
+    .service-icon {
+      width: 57px;
+      height: 57px;
+
+      display: grid;
+      place-items: center;
+
+      margin-bottom: 18px;
+
+      border-radius: 17px;
+
+      background:
+        rgba(245,196,0,.1);
+
+      color: var(--yellow);
+    }
+
+    .service-icon svg {
+      width: 29px;
+      height: 29px;
+    }
+
+    .service-card h3 {
+      margin-bottom: 8px;
+
+      font-size: 1.15rem;
+    }
+
+    .service-card p {
+      color: var(--gray);
+
+      font-size: .88rem;
+    }
+
+    /* =========================
+       HOW IT WORKS
+    ========================= */
+
+    .steps {
+      display: grid;
+
+      grid-template-columns:
+        repeat(3,1fr);
+
+      gap: 17px;
+    }
+
+    .step {
+      padding: 28px;
+
+      border: 1px solid var(--border);
+
+      border-radius: var(--radius);
+
+      background:
+        rgba(255,255,255,.025);
+    }
+
+    .step-number {
+      width: 43px;
+      height: 43px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 50%;
+
+      background: var(--yellow);
+
+      color: var(--black);
+
+      font-weight: 900;
+
+      margin-bottom: 16px;
+    }
+
+    .step h3 {
+      margin-bottom: 7px;
+    }
+
+    .step p {
+      color: var(--gray);
+
+      font-size: .9rem;
+    }
+
+    /* =========================
+       ABOUT
+    ========================= */
+
+    .about-grid {
+      display: grid;
+
+      grid-template-columns:
+        1fr 1fr;
+
+      gap: 18px;
+    }
+
+    .about-box {
+      padding: 32px;
+
+      border-radius: 28px;
+
+      border: 1px solid var(--border);
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(245,196,0,.09),
+          rgba(255,255,255,.02)
+        );
+    }
+
+    .about-box.dark {
+      background:
+        rgba(255,255,255,.025);
+    }
+
+    .about-box h3 {
+      font-size: 1.45rem;
+
+      margin-bottom: 11px;
+    }
+
+    .about-box p {
+      color: var(--gray);
+    }
+
+    .check-list {
+      display: grid;
+
+      gap: 12px;
+
+      margin-top: 20px;
+    }
+
+    .check {
+      display: flex;
+
+      align-items: flex-start;
+
+      gap: 10px;
+    }
+
+    .check svg {
+      width: 19px;
+      height: 19px;
+
+      color: var(--yellow);
+
+      flex: none;
+
+      margin-top: 5px;
+    }
+
+    /* =========================
+       VISION
+    ========================= */
+
+    .vision-section {
+      background:
+        linear-gradient(
+          135deg,
+          rgba(245,196,0,.09),
+          transparent 45%
+        );
+
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .vision-grid {
+      display: grid;
+
+      grid-template-columns:
+        1fr 1fr;
+
+      gap: 18px;
+    }
+
+    .vision-card {
+      padding: 32px;
+
+      border-radius: 27px;
+
+      border: 1px solid var(--border);
+
+      background:
+        rgba(0,0,0,.2);
+    }
+
+    .vision-card strong {
+      display: block;
+
+      color: var(--yellow);
+
+      font-size: 1.35rem;
+
+      margin-bottom: 10px;
+    }
+
+    .vision-card p {
+      color: var(--gray);
+    }
+
+    /* =========================
+       CTA
+    ========================= */
+
+    .cta {
+      padding: 45px;
+
+      border-radius: 32px;
+
+      border: 1px solid
+        rgba(245,196,0,.2);
+
+      background:
+        radial-gradient(
+          circle at 90% 20%,
+          rgba(245,196,0,.16),
+          transparent 28%
+        ),
+        linear-gradient(
+          140deg,
+          #191919,
+          #0c0c0c
+        );
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      gap: 30px;
+    }
+
+    .cta h2 {
+      margin-bottom: 6px;
+    }
+
+    .cta p {
+      color: var(--gray);
+    }
+
+    .cta-actions {
+      display: flex;
+
+      flex-wrap: wrap;
+
+      gap: 10px;
+    }
+
+    /* =========================
+       JOBS
+    ========================= */
+
+    .jobs {
+      display: grid;
+
+      grid-template-columns:
+        1.1fr .9fr;
+
+      gap: 18px;
+    }
+
+    .job-card {
+      padding: 32px;
+
+      border-radius: 27px;
+
+      border: 1px solid var(--border);
+    }
+
+    .job-main {
+      background:
+        linear-gradient(
+          145deg,
+          rgba(245,196,0,.1),
+          rgba(255,255,255,.02)
+        );
+    }
+
+    .job-side {
+      background:
+        rgba(255,255,255,.025);
+    }
+
+    .job-card h3 {
+      font-size: 1.4rem;
+
+      margin-bottom: 9px;
+    }
+
+    .job-card p {
+      color: var(--gray);
+    }
+
+    /* =========================
+       CONTACT
+    ========================= */
+
+    .contact-grid {
+      display: grid;
+
+      grid-template-columns:
+        1fr 1fr;
+
+      gap: 16px;
+    }
+
+    .contact-card {
+      display: flex;
+
+      align-items: center;
+
+      gap: 15px;
+
+      padding: 21px;
+
+      border: 1px solid var(--border);
+
+      border-radius: 19px;
+
+      background:
+        rgba(255,255,255,.025);
+
+      transition: .2s;
+    }
+
+    .contact-card:hover {
+      border-color:
+        rgba(245,196,0,.28);
+    }
+
+    .contact-icon {
+      width: 50px;
+      height: 50px;
+
+      flex: none;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 15px;
+
+      background:
+        rgba(245,196,0,.1);
+
+      color: var(--yellow);
+    }
+
+    .contact-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .contact-card small {
+      display: block;
+
+      color: var(--gray-dark);
+    }
+
+    .contact-card strong {
+      font-size: .95rem;
+    }
+
+    /* =========================
+       WHATSAPP
+    ========================= */
+
+    .whatsapp {
+      position: fixed;
+
+      left: 18px;
+      bottom: 18px;
+
+      z-index: 1500;
+
+      display: flex;
+
+      align-items: center;
+
+      gap: 9px;
+
+      padding: 12px 17px;
+
+      border-radius: 999px;
+
+      background: var(--green);
+
+      color: white;
+
+      font-weight: 900;
+
+      box-shadow:
+        0 12px 35px rgba(0,0,0,.35);
+
+      transition: .2s;
+    }
+
+    .whatsapp:hover {
+      transform: translateY(-4px);
+
+      box-shadow:
+        0 17px 42px rgba(0,0,0,.45);
+    }
+
+    .whatsapp svg {
+      width: 21px;
+      height: 21px;
+    }
+
+    /* =========================
+       FOOTER
+    ========================= */
+
+    .footer {
+      padding: 32px 0 45px;
+
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-inner {
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      gap: 20px;
+
+      flex-wrap: wrap;
+    }
+
+    .footer-brand {
+      font-weight: 900;
+    }
+
+    .footer-note {
+      color: var(--gray-dark);
+
+      font-size: .84rem;
+    }
+
+    .footer-links {
+      display: flex;
+
+      flex-wrap: wrap;
+
+      gap: 17px;
+
+      color: var(--gray);
+    }
+
+    .footer-links a:hover {
+      color: var(--yellow);
+    }
+
+    /* =========================
+       RESPONSIVE
+    ========================= */
+
+    @media(max-width:1050px) {
+
+      .hero-grid,
+      .jobs {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-visual {
+        min-height: 400px;
+      }
+
+      .service-grid {
+        grid-template-columns:
+          repeat(2,1fr);
+      }
+    }
+
+    @media(max-width:760px) {
+
+      .section {
+        padding: 72px 0;
+      }
+
+      .quick-grid {
+        grid-template-columns:
+          1fr 1fr;
+      }
+
+      .quick-item {
+        border-top: 1px solid var(--border);
+      }
+
+      .quick-item:nth-child(2) {
+        border-left: 0;
+      }
+
+      .quick-item:nth-child(-n+2) {
+        border-top: 0;
+      }
+
+      .steps,
+      .about-grid,
+      .vision-grid,
+      .contact-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .cta {
+        flex-direction: column;
+
+        align-items: stretch;
+
+        padding: 30px;
+      }
+    }
+
+    @media(max-width:560px) {
+
+      .header-inner {
+        height: 70px;
+      }
+
+      .login-btn {
+        display: none;
+      }
+
+      .brand-logo {
+        width: 43px;
+        height: 43px;
+      }
+
+      .brand-name {
+        font-size: 1rem;
+      }
+
+      .hero {
+        padding-top: 65px;
+      }
+
+      .hero h1 {
+        letter-spacing: -1px;
+      }
+
+      .hero-visual {
+        min-height: 300px;
+
+        border-radius: 25px;
+      }
+
+      .bike {
+        width: 145px;
+        height: 145px;
+      }
+
+      .floating-top {
+        top: 17px;
+        right: 15px;
+      }
+
+      .floating-bottom {
+        bottom: 17px;
+        left: 15px;
+      }
+
+      .service-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .quick-item {
+        padding: 17px 11px;
+      }
+
+      .quick-item strong {
+        font-size: .85rem;
+      }
+
+      .quick-item small {
+        font-size: .7rem;
+      }
+
+      .whatsapp {
+        left: 12px;
+        bottom: 12px;
+
+        padding: 11px 15px;
+
+        font-size: .88rem;
+      }
+    }
+  </style>
+
+<style>
+/* Final landing spacing + glass polish */
+.hero-description,.section-heading p,.service-card p,.about-box p{line-height:2.15;}
+.service-card h3,.about-box h3{line-height:1.55;margin-bottom:8px;}
+.hero-buttons,.hero-features,.service-grid,.steps,.about-grid,.contact-grid{row-gap:18px;}
+.drawer-nav{gap:7px;}
+.drawer-nav a{padding:14px 15px;}
+</style>
+</head>
+
+<body>
+
+  <!-- ================= HEADER ================= -->
+
+  <header class="header">
+    <div class="container header-inner">
+
+      <a href="#home" class="brand">
+        <span class="brand-logo"><img src="/assets/branding/logo-external.png" alt="جوان للتوصيل"></span>
+        <span class="brand-name">جوان للتوصيل</span>
+      </a>
+
+      <div class="header-actions">
+
+        <a
+          id="authLink"
+          class="login-btn"
+          href="/pages/login.html">
+          تسجيل الدخول
+        </a>
+
+        <button
+          id="menuBtn"
+          class="menu-btn"
+          type="button"
+          aria-label="فتح القائمة"
+          aria-expanded="false">
+
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round">
+
+            <path d="M4 6h16"/>
+            <path d="M4 12h16"/>
+            <path d="M4 18h16"/>
+
+          </svg>
+
+        </button>
+
+      </div>
+
+    </div>
+  </header>
+
+
+  <!-- ================= MENU ================= -->
+
+  <div id="overlay" class="overlay"></div>
+
+  <aside id="drawer" class="drawer">
+
+    <div class="drawer-head">
+
+      <div class="brand">
+        <span class="brand-logo"><img src="/assets/branding/logo-external.png" alt="جوان للتوصيل"></span>
+        <span class="brand-name">جوان</span>
+      </div>
+
+      <button
+        id="closeBtn"
+        class="close-btn"
+        type="button"
+        aria-label="إغلاق">
+
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round">
+
+          <path d="M6 6l12 12"/>
+          <path d="M18 6L6 18"/>
+
+        </svg>
+
+      </button>
+
+    </div>
+
+    <nav class="drawer-nav">
+
+      <a href="#home">الرئيسية</a>
+
+      <a href="#services">خدماتنا</a>
+
+      <a href="#how">كيف تعمل جوان؟</a>
+
+      <a href="#about">عن جوان</a>
+
+
+      <a href="#contact">تواصل معنا</a>
+
+      <a
+        class="main-link"
+        href="/pages/login.html">
+        تسجيل الدخول
+      </a>
+
+      <a href="/pages/register.html">
+        إنشاء حساب
+      </a>
+
+    </nav>
+
+  </aside>
+
+
+  <main>
+
+    <!-- ================= HERO ================= -->
+
+    <section id="home" class="hero">
+
+      <div class="container hero-grid">
+
+        <div>
+
+          <div class="hero-badge">
+            <span></span>
+            منصة توصيل وخدمات نقل داخل السودان
+          </div>
+
+          <h1>
+            وصّلها بسهولة
+            <span>مع جوان.</span>
+          </h1>
+
+          <p class="hero-description">
+            من الباب إلى الباب، بطريقة أبسط.
+            جوان تربط العملاء بمقدمي خدمات النقل المناسبين
+            داخل الولاية، في تجربة رقمية واضحة من إنشاء الطلب
+            حتى إتمام الاتفاق والتسليم.
+          </p>
+
+          <div class="hero-buttons">
+
+            <a
+              class="btn btn-primary"
+              href="/pages/register.html">
+
+              ابدأ الآن
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round">
+
+                <path d="M5 12h14"/>
+                <path d="m13 6 6 6-6 6"/>
+
+              </svg>
+
+            </a>
+
+            <a
+              class="btn btn-secondary"
+              href="#services">
+
+              اكتشف خدماتنا
+
+            </a>
+
+          </div>
+
+          <div class="hero-features">
+
+            <div class="hero-feature">
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round">
+
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+                <path d="m9 12 2 2 4-4"/>
+
+              </svg>
+
+              خطوات واضحة
+
+            </div>
+
+            <div class="hero-feature">
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round">
+
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 7v5l3 2"/>
+
+              </svg>
+
+              متابعة حالة طلبك
+
+            </div>
+
+            <div class="hero-feature">
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round">
+
+                <path d="M12 3v18"/>
+                <path d="M3 12h18"/>
+
+              </svg>
+
+              خدمة توصيل واضح للوجهة
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="hero-visual">
+          <div class="hero-logo-wrap">
+            <img
+              class="hero-logo"
+              src="/assets/branding/logo-external.png"
+              alt="جوان للتوصيل"
+              loading="eager">
+          </div>
+
+
+          <div class="floating floating-top">
+
+            <strong>جوان</strong>
+
+            <small>
+              جوان — توصيل داخل السودان
+            </small>
+
+          </div>
+
+
+          <div class="floating floating-bottom">
+
+            <strong>السعر بالتفاوض</strong>
+
+            <small>
+              السائق يقدم العرض الأول
+            </small>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= QUICK STRIP ================= -->
+
+    <div class="quick-strip">
+
+      <div class="container quick-grid">
+
+        <div class="quick-item">
+
+          <div class="quick-icon">
+
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round">
+
+              <path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/>
+              <path d="M3 7.5 12 12l9-4.5"/>
+              <path d="M12 12v9"/>
+
+            </svg>
+
+          </div>
+
+          <div>
+            <strong>الطرود والأغراض</strong>
+            <small>استلام وتسليم منظم</small>
+          </div>
+
+        </div>
+
+
+        <div class="quick-item">
+
+          <div class="quick-icon">
+
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round">
+
+              <path d="M5 11V8h14v3"/>
+              <path d="M4 15h16"/>
+              <path d="M6 15v4M18 15v4"/>
+              <path d="M8 8V5h8v3"/>
+
+            </svg>
+
+          </div>
+
+          <div>
+            <strong>المشتريات والطلبات</strong>
+            <small>عندما تحتاج توصيلًا سريعًا</small>
+          </div>
+
+        </div>
+
+
+        <div class="quick-item">
+
+          <div class="quick-icon">
+
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round">
+
+              <path d="M6 3h12v18H6z"/>
+              <path d="M9 7h6"/>
+              <path d="M9 11h6"/>
+              <path d="M9 15h4"/>
+
+            </svg>
+
+          </div>
+
+          <div>
+            <strong>المستندات</strong>
+            <small>توصيل واضح للوجهة</small>
+          </div>
+
+        </div>
+
+
+        <div class="quick-item">
+
+          <div class="quick-icon">
+
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round">
+
+              <circle cx="7" cy="17" r="3"/>
+              <circle cx="18" cy="17" r="3"/>
+              <path d="M10 17h5l3-7h-6l-2-3H7"/>
+
+            </svg>
+
+          </div>
+
+          <div>
+            <strong>سائقو جوان</strong>
+            <small>طلبات متاحة حسب الخدمة</small>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ================= SERVICES ================= -->
+
+    <section id="services" class="section">
+
+      <div class="container">
+
+        <div class="section-heading">
+
+          <div class="section-label">
+            خدماتنا
+          </div>
+
+          <h2>
+            التوصيل أسهل عندما تكون كل خطوة واضحة.
+          </h2>
+
+          <p>
+            بسيطة للعميل، واضحة للسائق،
+            ومصممة لتسهيل حركة الطلبات
+            داخل السودان.
+          </p>
+
+        </div>
+
+
+        <div class="service-grid">
+
+          <article class="service-card">
+
+            <div class="service-icon">
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round">
+
+                <path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/>
+                <path d="M3 7.5 12 12l9-4.5"/>
+                <path d="M12 12v9"/>
+
+              </svg>
+
+            </div>
+
+            <h3>توصيل الطرود والأغراض</h3>
+
+            <p>
+              أرسل طردك أو غرضك من نقطة الاستلام
+              إلى الوجهة المطلوبة مع خطوات واضحة
+              ومتابعة لحالة الطلب.
+            </p>
+
+          </article>
+
+
+          <article class="service-card">
+
+            <div class="service-icon">
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round">
+
+                <path d="M5 11V8h14v3"/>
+                <path d="M4 15h16"/>
+                <path d="M6 15v4M18 15v4"/>
+                <path d="M8 8V5h8v3"/>
+
+              </svg>
+
+            </div>
+
+            <h3>توصيل المشتريات والطلبات</h3>
+
+            <p>
+              للمشتريات والاحتياجات اليومية التي
+              تحتاج أن تصل إلى المكان المطلوب
+              داخل المدينة.
+            </p>
+
+          </article>
+
+
+          <article class="service-card">
+
+            <div class="service-icon">
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round">
+
+                <path d="M6 3h12v18H6z"/>
+                <path d="M9 7h6"/>
+                <path d="M9 11h6"/>
+                <path d="M9 15h4"/>
+
+              </svg>
+
+            </div>
+
+            <h3>توصيل الالمستندات</h3>
+
+            <p>
+              حل عملي لنقل الالمستندات
+              والأوراق بين المواقع داخل
+              السودان.
+            </p>
+
+          </article>
+
+
+          <article class="service-card">
+
+            <div class="service-icon">
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round">
+
+                <circle cx="7" cy="17" r="3"/>
+                <circle cx="18" cy="17" r="3"/>
+                <path d="M10 17h5l3-7h-6l-2-3H7"/>
+                <path d="M15 10l2-3h3"/>
+
+              </svg>
+
+            </div>
+
+            <h3>كن سائقًا مع جوان</h3>
+
+            <p>
+              انضم كمقدم خدمة، فعّل حسابك،
+              وابدأ في استقبال الطلبات
+              المتاحة.
+            </p>
+
+          </article>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= HOW ================= -->
+
+    <section id="how" class="section">
+
+      <div class="container">
+
+        <div class="section-heading">
+
+          <div class="section-label">
+            كيف تعمل جوان؟
+          </div>
+
+          <h2>
+            ثلاث خطوات بسيطة،
+            وكل شيء واضح.
+          </h2>
+
+          <p>
+            أنشئ طلبك، يتولى السائق التوصيل،
+            ثم أكّد الاستلام عند الوصول.
+          </p>
+
+        </div>
+
+
+        <div class="steps">
+
+          <article class="step">
+
+            <div class="step-number">1</div>
+
+            <h3>أنشئ طلبك</h3>
+
+            <p>
+              حدد نقطة الانطلاق والوجهة
+              ونوع الطلب، وشاهد تكلفة
+              التوصيل حسب مسافة المسار.
+            </p>
+
+          </article>
+
+
+          <article class="step">
+
+            <div class="step-number">2</div>
+
+            <h3>يتم اختيار سائق</h3>
+
+            <p>
+              يظهر الطلب للسائقين المؤهلين،
+              ويبدأ السائق المختار إجراءات
+              التوصيل من خلال المنصة.
+            </p>
+
+          </article>
+
+
+          <article class="step">
+
+            <div class="step-number">3</div>
+
+            <h3>تأكيد التسليم</h3>
+
+            <p>
+              تابع حالة الطلب، وعند الوصول
+              أكّد استلام الطلب من خلال
+              المنصة.
+            </p>
+
+          </article>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= ABOUT ================= -->
+
+    <section id="about" class="section">
+
+      <div class="container">
+
+        <div class="section-heading">
+
+          <div class="section-label">
+            عن جوان
+          </div>
+
+          <h2>
+            نبني خدمة توصيل محلية تستحق الثقة.
+            واضحة في خطواتها، بسيطة في استخدامها،
+        وقريبة من احتياجات المدينة.
+          </h2>
+
+          <p>
+            جوان خدمة محلية صُممت من أجل احتياجات
+            مستخدمي بورتسودان، وتركّز على الوضوح
+            والبساطة والتنظيم في كل خطوة.
+          </p>
+
+        </div>
+
+
+        <div class="about-grid">
+
+          <div class="about-box">
+
+            <h3>لماذا جوان؟</h3>
+
+            <p>
+              لأن التوصيل لا يحتاج إلى تعقيد.
+              معقدة. نريد أن تعرف أين وصل طلبك،
+              وما الخطوة التالية،
+              وما التفاصيل الأساسية قبل الإرسال.
+            </p>
+
+            <div class="check-list">
+
+              <div class="check">
+
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round">
+
+                  <path d="m5 12 4 4L19 6"/>
+
+                </svg>
+
+                حسابات مستقلة للعميل والسائق.
+
+              </div>
+
+
+              <div class="check">
+
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round">
+
+                  <path d="m5 12 4 4L19 6"/>
+
+                </svg>
+
+                متابعة واضحة لحالة الطلب.
+
+              </div>
+
+
+              <div class="check">
+
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round">
+
+                  <path d="m5 12 4 4L19 6"/>
+
+                </svg>
+
+                محفظة للسائق لإدارة رصيده وعملياته.
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="about-box dark">
+
+            <h3>السودان أولاً</h3>
+
+            <p>
+              نبني الخدمة للسودان لأن أفضل تجربة
+              هي التي تفهم المدينة واحتياجات
+              مستخدميها. نريد بناء أساس قوي هنا،
+              ثم تطوير التجربة خطوة بخطوة.
+            </p>
+
+            <div class="check-list">
+
+              <div class="check">
+
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round">
+
+                  <path d="m5 12 4 4L19 6"/>
+
+                </svg>
+
+                خدمة توصيل واضح للوجهة توصيل واضح للوجهة.
+
+              </div>
+
+
+              <div class="check">
+
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round">
+
+                  <path d="m5 12 4 4L19 6"/>
+
+                </svg>
+
+                منصة قابلة للتطوير والتوسع.
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= CTA ================= -->
+
+    <section class="section">
+
+      <div class="container">
+
+        <div class="cta">
+
+          <div>
+
+            <div class="section-label">
+              جاهز تبدأ؟
+            </div>
+
+            <h2>
+              خلّي جوان تتولى التوصيل.
+            </h2>
+
+            <p>
+              أنشئ حسابك وابدأ طلبك الأول
+              بخطوات واضحة.
+            </p>
+
+          </div>
+
+
+          <div class="cta-actions">
+
+            <a
+              class="btn btn-primary"
+              href="/pages/register.html">
+              إنشاء حساب
+            </a>
+
+            <a
+              class="btn btn-secondary"
+              href="/pages/login.html">
+              تسجيل الدخول
+            </a>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= CONTACT ================= -->
+
+    
+
+
+
+<section id="jwan-vehicles" class="jwan-vehicles-section">
+  <div class="container">
+    <div class="section-heading">
+      <div class="section-label">المركبات المتاحة</div>
+      <h2>أنواع المركبات في جوان</h2>
+      <p>اختر نوع المركبة المناسب حسب نوع طلبك.</p>
+    </div>
+
+    <div class="jwan-vehicle-groups">
+
+      <div class="jwan-vehicle-group">
+        <h3>نقل الركاب</h3>
+        <div class="jwan-vehicle-list">
+          <span>سيارة</span>
+          <span>ركشة</span>
+          <span>بص</span>
+          <span>أمجاد</span>
+          <span>تاكسي</span>
+          <span>ليموزين</span>
+        </div>
+      </div>
+
+      <div class="jwan-vehicle-group">
+        <h3>نقل البضائع</h3>
+        <div class="jwan-vehicle-list">
+          <span>موتر</span>
+          <span>توك توك</span>
+          <span>دفار</span>
+          <span>كريز</span>
+          <span>تانكر</span>
+          <span>رافعة</span>
+          <span>سطحة</span>
+          <span>لوري</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="section">
+
+      <div class="container">
+
+        <div class="section-heading">
+
+          <div class="section-label">
+            تواصل معنا
+          </div>
+
+          <h2>
+            نحن هنا عندما تحتاج إلى جوان.
+          </h2>
+
+          <p>
+            للاستفسارات والدعم ومتابعة
+            الطلبات، استخدم قناة التواصل المعتمدة.
+          </p>
+
+        </div>
+
+
+        <div class="contact-grid">
+
+          <a
+            class="contact-card"
+            href="https://wa.me/249964499266"
+            target="_blank"
+            rel="noopener noreferrer">
+
+            <div class="contact-icon">
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="currentColor">
+
+                <path d="M20.5 3.5A11.9 11.9 0 0 0 12.04 0C5.47 0 .12 5.35.12 11.92c0 2.1.55 4.15 1.6 5.97L0 24l6.25-1.64a11.9 11.9 0 0 0 5.78 1.48h.01c6.57 0 11.91-5.35 11.91-11.92 0-3.18-1.23-6.17-3.45-8.42Zm-8.46 18.36h-.01a9.9 9.9 0 0 1-5.04-1.38l-.36-.21-3.71.98.99-3.62-.23-.37a9.9 9.9 0 1 1 8.36 4.6Zm5.43-7.42c-.3-.15-1.77-.87-2.05-.97-.28-.1-.48-.15-.68.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.24-.46-2.36-1.46-.87-.78-1.46-1.74-1.63-2.04-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.68-1.64-.93-2.24-.25-.6-.5-.52-.68-.53h-.58c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.21 5.09 4.5.71.31 1.27.49 1.7.63.72.23 1.38.2 1.9.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35Z"/>
+
+              </svg>
+
+            </div>
+
+            <div>
+              <small>الدعم</small>
+              <strong>واتساب جوان</strong>
+            </div>
+
+          </a>
+
+
+          <div class="contact-card">
+
+            <div class="contact-icon">
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round">
+
+                <path d="M12 21s7-6 7-12a7 7 0 1 0-14 0c0 6 7 12 7 12Z"/>
+                <circle cx="12" cy="9" r="2.5"/>
+
+              </svg>
+
+            </div>
+
+            <div>
+              <small>النطاق</small>
+              <strong>السودان</strong>
+            </div>
+
+          </div>
+
+
+          <div class="contact-card">
+
+            <div class="contact-icon">
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round">
+
+                <circle cx="7" cy="17" r="3"/>
+                <circle cx="18" cy="17" r="3"/>
+                <path d="M10 17h5l3-7h-6l-2-3H7"/>
+
+              </svg>
+
+            </div>
+
+            <div>
+              <small>الخدمة</small>
+              <strong>سيارات ومركبات متعددة</strong>
+            </div>
+
+          </div>
+
+
+          <div class="contact-card">
+
+            <div class="contact-icon">
+
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round">
+
+                <path d="M4 4h16v16H4z"/>
+                <path d="M8 9h8"/>
+                <path d="M8 13h6"/>
+                <path d="M8 17h4"/>
+
+              </svg>
+
+            </div>
+
+            <div>
+              <small>الدعم داخل المنصة</small>
+              <strong>الحسابات والطلبات والمحفظة</strong>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ================= FOOTER ================= -->
+
+  <footer class="footer">
+
+    <div class="container footer-inner">
+
+      <div>
+
+        <div class="footer-brand">
+          جوان للتوصيل
+        </div>
+
+        <div class="footer-note">
+          توصيل محلي داخل السودان.
+        </div>
+
+      </div>
+
+
+      <div class="footer-links">
+
+        <a href="/pages/privacy.html">
+          الخصوصية
+        </a>
+
+        <a href="/pages/terms.html">
+          شروط العمل
+        </a>
+
+        <a href="#contact">
+          تواصل معنا
+        </a>
+
+      </div>
+
+    </div>
+
+  </footer>
+
+
+  <!-- ================= AUTH ================= -->
+
+  <script type="module">
+
+    import {
+      watchAuth,
+      getCurrentUserData,
+      roleHome
+    } from "./js/auth.js";
+
+    const authLink =
+      document.getElementById("authLink");
+
+    watchAuth(async (user) => {
+
+      try {
+
+        if (!user) {
+
+          authLink.textContent =
+            "تسجيل الدخول";
+
+          authLink.href =
+            "/pages/login.html";
+
+          return;
+        }
+
+        const data =
+          await getCurrentUserData(user.uid);
+
+        if (!data) return;
+
+        authLink.textContent =
+          "لوحتي";
+
+        authLink.href =
+          roleHome(data.role) ||
+          "/pages/login.html";
+
+      } catch {
+
+        authLink.textContent =
+          "تسجيل الدخول";
+
+        authLink.href =
+          "/pages/login.html";
+      }
+
+    });
+
+  </script>
+
+
+  <!-- ================= MENU JS ================= -->
+
+  <script>
+
+    const menuBtn =
+      document.getElementById("menuBtn");
+
+    const closeBtn =
+      document.getElementById("closeBtn");
+
+    const drawer =
+      document.getElementById("drawer");
+
+    const overlay =
+      document.getElementById("overlay");
+
+
+    function openMenu() {
+
+      drawer.classList.add("open");
+
+      overlay.classList.add("show");
+
+      document.body.classList.add(
+        "menu-open"
+      );
+
+      menuBtn.setAttribute(
+        "aria-expanded",
+        "true"
+      );
+
+    }
+
+
+    function closeMenu() {
+
+      drawer.classList.remove("open");
+
+      overlay.classList.remove("show");
+
+      document.body.classList.remove(
+        "menu-open"
+      );
+
+      menuBtn.setAttribute(
+        "aria-expanded",
+        "false"
+      );
+
+    }
+
+
+    menuBtn.addEventListener(
+      "click",
+      () => {
+        const isOpen =
+          menuBtn.getAttribute("aria-expanded") === "true";
+
+        if (isOpen) {
+          closeMenu();
+        } else {
+          openMenu();
+        }
+      }
+    );
+
+
+    closeBtn.addEventListener(
+      "click",
+      closeMenu
+    );
+
+
+    overlay.addEventListener(
+      "click",
+      closeMenu
+    );
+
+
+    document
+      .querySelectorAll(".drawer-nav a")
+      .forEach(link => {
+
+        link.addEventListener(
+          "click",
+          closeMenu
+        );
+
+      });
+
+
+    document.addEventListener(
+      "keydown",
+      event => {
+
+        if (event.key === "Escape") {
+          closeMenu();
+        }
+
+      }
+    );
+
+  </script>
+
+
+  <!-- ================= SERVICE WORKER ================= -->
+
+  <script>
+
+    if ("serviceWorker" in navigator) {
+
+      navigator.serviceWorker
+        .register("/sw.js")
+        .catch(() => {});
+
+    }
+
+  </script>
+
+  <!-- ================= SCROLL REVEAL (progressive enhancement, purely visual) ================= -->
+  <script>
+    (function initJawanScrollReveal(){
+      try {
+        var targets = document.querySelectorAll(".section, .quick-strip, .cta");
+        if (!("IntersectionObserver" in window) || !targets.length) return;
+        targets.forEach(function(el){ el.classList.add("reveal"); });
+        var io = new IntersectionObserver(function(entries){
+          entries.forEach(function(entry){
+            if (entry.isIntersecting) {
+              entry.target.classList.add("in-view");
+              io.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+        targets.forEach(function(el){ io.observe(el); });
+        /* safety net: content must never stay permanently hidden, even if the
+           observer misbehaves in some unusual embedding/webview context */
+        setTimeout(function(){
+          targets.forEach(function(el){ el.classList.add("in-view"); });
+        }, 2500);
+      } catch (e) {}
+    })();
+  </script>
+
+<script type="module">
+try {
+  const { firebaseConfig } = await import("../js/firebase-config.js");
+  if (firebaseConfig) window.__JW_FBASE_CONFIG__ = firebaseConfig;
+} catch (e) {
+  console.warn("Jawan Firebase config bridge:", e);
+}
+</script>
+<script type="module" src="js/app.js"></script>
+<script type="module" src="../js/jawan-ai.js"></script>
+</body>
+</html>

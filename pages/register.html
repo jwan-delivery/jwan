@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  >
+  <link
+    rel="stylesheet"
+    href="../css/style.css"
+  >
+  <title>التسجيل | جوان</title>
+  <link rel="icon" href="../assets/branding/logo-external.png">
+</head>
+
+<body class="auth-shell">
+
+<main class="auth">
+
+  <div class="brand-center">
+    <div class="brand-mark">
+      <img
+        src="/assets/branding/logo-external.png"
+        alt="جوان للتوصيل"
+      >
+    </div>
+
+    <h2>إنشاء حساب</h2>
+
+    <p class="muted">
+      جوان للتوصيل • السودان
+    </p>
+  </div>
+
+  <div class="card">
+
+    <form id="registerForm">
+
+      <div class="form-group">
+        <label for="role">نوع الحساب</label>
+
+        <select
+          id="role"
+          name="role"
+          required
+        >
+          <option value="">اختر نوع الحساب</option>
+          <option value="customer">عميل</option>
+          <option value="driver">سائق</option>
+        </select>
+      </div>
+
+      <div
+        id="driverFields"
+        hidden
+      >
+
+        <div class="form-group">
+
+          <label for="vehicleType">
+            ما نوع المركبة التي ستعمل بها؟
+          </label>
+
+          <select
+            id="vehicleType"
+            name="vehicleType"
+          >
+            <option value="">
+              اختر نوع المركبة
+            </option>
+
+            <option value="car">
+              سيارة
+            </option>
+
+            <option value="rickshaw">
+              ركشة
+            </option>
+
+            <option value="motorcycle">
+              موتر
+            </option>
+
+            <option value="tuk_tuk">
+              تكتك
+            </option>
+
+            <option value="truck">
+              دفار
+            </option>
+
+            <option value="bus">
+              حافلة
+            </option>
+
+            <option value="amjad">
+              أمجاد
+            </option>
+
+            <option value="kreez">
+              كريز
+            </option>
+
+            <option value="taxi">
+              تاكسي
+            </option>
+
+            <option value="tanker">
+              تنكر
+            </option>
+
+            <option value="crane">
+              كرين
+            </option>
+
+            <option value="tow_truck">
+              رافعة
+            </option>
+
+            <option value="lorry">
+              لوري
+            </option>
+
+            <option value="limousine">
+              ليموزين
+            </option>
+          </select>
+
+        </div>
+
+        <div class="form-group">
+
+          <label for="age">
+            العمر
+          </label>
+
+          <input
+            id="age"
+            name="age"
+            type="number"
+            min="18"
+            max="100"
+            inputmode="numeric"
+            placeholder="18 أو أكثر"
+          >
+
+        </div>
+
+      </div>
+
+      <div class="form-group">
+
+        <label for="name">
+          الاسم الكامل
+        </label>
+
+        <input
+          id="name"
+          name="name"
+          autocomplete="name"
+          required
+        >
+
+      </div>
+
+      <div class="form-group">
+
+        <label for="phone">
+          رقم الهاتف (10 أرقام)
+        </label>
+
+        <input
+          id="phone"
+          data-phone
+          name="phone"
+          maxlength="10"
+          inputmode="numeric"
+          autocomplete="tel"
+          required
+        >
+
+      </div>
+
+      <div class="form-group">
+
+        <label for="password">
+          كلمة المرور
+        </label>
+
+        <input
+          id="password"
+          name="password"
+          type="password"
+          minlength="6"
+          autocomplete="new-password"
+          required
+        >
+
+      </div>
+
+      <div class="form-group">
+
+        <label for="state">
+          الولاية
+        </label>
+
+        <select
+          id="state"
+          name="state"
+          required
+        >
+          <option value="">
+            اختر الولاية
+          </option>
+
+          <option>الخرطوم</option>
+          <option>الجزيرة</option>
+          <option>القضارف</option>
+          <option>كسلا</option>
+          <option>البحر الأحمر</option>
+          <option>نهر النيل</option>
+          <option>الشمالية</option>
+          <option>النيل الأبيض</option>
+          <option>النيل الأزرق</option>
+          <option>سنار</option>
+          <option>شمال كردفان</option>
+          <option>جنوب كردفان</option>
+          <option>غرب كردفان</option>
+          <option>شمال دارفور</option>
+          <option>جنوب دارفور</option>
+          <option>غرب دارفور</option>
+          <option>وسط دارفور</option>
+          <option>شرق دارفور</option>
+        </select>
+
+      </div>
+
+      <div class="form-group">
+
+        <label for="address">
+          مكان السكن
+        </label>
+
+        <input
+          id="address"
+          name="address"
+          placeholder="الحي / المنطقة"
+          autocomplete="street-address"
+          required
+        >
+
+      </div>
+
+      <label class="check">
+
+        <input
+          type="checkbox"
+          name="privacy"
+          required
+        >
+
+        <span>
+          أوافق على
+          <a href="privacy.html">
+            <u>سياسة الخصوصية</u>
+          </a>
+          و
+          <a href="terms.html">
+            <u>الشروط والأحكام</u>
+          </a>.
+        </span>
+
+      </label>
+
+
+      <div id="googleRegisterWrap" class="google-register-wrap" hidden>
+        <div class="google-register-sep"><span>أو</span></div>
+        <button id="googleRegisterBtn" class="btn btn-dark" type="button" style="width:100%">إنشاء الحساب بحساب Google</button>
+        <p class="muted" style="font-size:12px;margin-top:8px">أكمل بياناتك الأساسية أولًا، ثم استخدم Google لإكمال الدخول.</p>
+      </div>
+
+      <button
+        id="submitBtn"
+        class="btn btn-primary"
+        style="width:100%;margin-top:16px"
+        type="submit"
+      >
+        إنشاء الحساب
+      </button>
+
+    </form>
+
+    <p
+      id="driverNotice"
+      class="muted"
+      style="font-size:13px;margin-bottom:0"
+    >
+      لا يتم تفعيل الحساب حتى تراجع الإدارة البيانات المطلوبة.
+    </p>
+
+    <div class="auth-links">
+
+      <span>
+        لديك حساب بالفعل؟
+      </span>
+
+      <a href="login.html">
+        تسجيل الدخول
+      </a>
+
+    </div>
+
+    <a
+      class="auth-back"
+      href="../index.html"
+      aria-label="العودة للرئيسية"
+      title="العودة للرئيسية"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
+    </a>
+
+  </div>
+
+</main>
+
+<script
+  type="module"
+  src="../js/app.js"
+></script>
+
+<script type="module">
+
+import {
+  registerUser,
+  roleHome,
+  linkGoogleAccount
+} from "../js/auth.js";
+
+import {
+  showToast
+} from "../js/common.js";
+
+const form =
+  document.getElementById("registerForm");
+
+const roleSelect =
+  document.getElementById("role");
+
+const driverFields =
+  document.getElementById("driverFields");
+
+const vehicleType =
+  document.getElementById("vehicleType");
+
+const age =
+  document.getElementById("age");
+
+const submitBtn =
+  document.getElementById("submitBtn");
+
+const googleRegisterWrap = document.getElementById("googleRegisterWrap");
+const googleRegisterBtn = document.getElementById("googleRegisterBtn");
+
+function basicsReady() {
+  const basic = [form.name, form.phone, form.address, form.state, form.password];
+  const ok = basic.every((el) => String(el?.value || "").trim());
+  const roleOk = !!form.role.value;
+  const driverOk = form.role.value !== "driver" || (form.age.value && form.vehicleType.value);
+  googleRegisterWrap.hidden = !(ok && roleOk && driverOk && form.privacy.checked);
+}
+[form.name, form.phone, form.address, form.state, form.password, form.role, form.age, form.vehicleType, form.privacy].forEach((el) => el?.addEventListener("input", basicsReady));
+[form.role, form.state, form.vehicleType].forEach((el) => el?.addEventListener("change", basicsReady));
+
+googleRegisterBtn?.addEventListener("click", async () => {
+  googleRegisterBtn.disabled = true;
+  try {
+    await registerUser(
+      form.name.value.trim(),
+      form.phone.value,
+      form.password.value,
+      form.role.value,
+      form.address.value.trim(),
+      form.privacy.checked,
+      form.state.value,
+      form.age.value,
+      form.vehicleType.value
+    );
+    await linkGoogleAccount();
+    location.href = roleHome(form.role.value);
+  } catch (err) {
+    const message = registerErrorMessage(err, true);
+
+    if (err?.code !== "auth/popup-closed-by-user") {
+      showToast(message);
+    }
+  } finally {
+    googleRegisterBtn.disabled = false;
+  }
+});
+basicsReady();
+
+function renderRoleFields() {
+
+  const isDriver =
+    roleSelect.value === "driver";
+
+  driverFields.hidden =
+    !isDriver;
+
+  vehicleType.required =
+    isDriver;
+
+  age.required =
+    isDriver;
+
+}
+
+roleSelect.addEventListener(
+  "change",
+  renderRoleFields
+);
+
+renderRoleFields();
+
+form.addEventListener(
+  "submit",
+  async (e) => {
+
+    e.preventDefault();
+
+    submitBtn.disabled = true;
+
+    try {
+
+      const user =
+        await registerUser(
+          form.name.value.trim(),
+          form.phone.value,
+          form.password.value,
+          form.role.value,
+          form.address.value.trim(),
+          form.privacy.checked,
+          form.state.value,
+          form.age.value,
+          form.vehicleType.value
+        );
+
+      showToast(
+        "تم إنشاء الحساب، بانتظار مراجعة الإدارة."
+      );
+
+      const home =
+        roleHome(form.role.value);
+
+      location.href =
+        home || "login.html";
+
+    } catch (err) {
+
+      showToast(
+        registerErrorMessage(err)
+      );
+
+    } finally {
+
+      submitBtn.disabled = false;
+
+    }
+
+  }
+);
+
+function registerErrorMessage(err, fromGoogle = false) {
+
+  const code = String(err?.code || "");
+
+  /*
+   * مهم أمنيًا:
+   * لا نعرض err.message القادم من Firebase للمستخدم
+   * عندما يكون الخطأ auth/*.
+   */
+  if (code.startsWith("auth/")) {
+
+    if (
+      code.includes("email-already-in-use") ||
+      code.includes("account-exists-with-different-credential")
+    ) {
+      return fromGoogle
+        ? "هذا الرقم أو حساب Google مرتبط بحساب موجود بالفعل. استخدم تسجيل الدخول بدل إنشاء حساب جديد."
+        : "رقم الهاتف مسجّل بالفعل. استخدم تسجيل الدخول بدل إنشاء حساب جديد.";
+    }
+
+    if (
+      code.includes("credential-already-in-use")
+    ) {
+      return "حساب Google مستخدم بالفعل مع حساب آخر. استخدم تسجيل الدخول.";
+    }
+
+    if (
+      code.includes("popup-blocked")
+    ) {
+      return "تعذر فتح نافذة Google. اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى.";
+    }
+
+    if (
+      code.includes("network-request-failed") ||
+      code.includes("unavailable")
+    ) {
+      return "يبدو أن الاتصال بالشبكة غير مستقر. حاول مرة أخرى.";
+    }
+
+    if (
+      code.includes("too-many-requests")
+    ) {
+      return "تمت محاولات كثيرة. حاول مرة أخرى لاحقًا.";
+    }
+
+    if (
+      code.includes("operation-not-allowed")
+    ) {
+      return "طريقة التسجيل هذه غير متاحة حاليًا.";
+    }
+
+    return fromGoogle
+      ? "تعذر إنشاء الحساب بحساب Google. حاول مرة أخرى."
+      : "تعذر إنشاء الحساب. حاول مرة أخرى.";
+  }
+
+  /*
+   * أخطاء التحقق المحلية التي ينشئها التطبيق نفسه
+   * مسموح عرضها للمستخدم.
+   */
+  if (err?.message) {
+    return err.message;
+  }
+
+  return fromGoogle
+    ? "تعذر إنشاء الحساب بحساب Google. حاول مرة أخرى."
+    : "تعذر إنشاء الحساب. حاول مرة أخرى.";
+}
+
+</script>
+
+<script type="module">
+try {
+  const { firebaseConfig } = await import("../js/firebase-config.js");
+  if (firebaseConfig) window.__JW_FBASE_CONFIG__ = firebaseConfig;
+} catch (e) {
+  console.warn("Jawan Firebase config bridge:", e);
+}
+</script>
+<script type="module" src="../js/jawan-ai.js"></script>
+</body>
+</html>

@@ -1,0 +1,782 @@
+/* =========================================================
+   JAWAN HOME — iPhone-inspired clean UI
+   Clean glass / soft cards / smooth mobile experience
+   IMPORTANT: no transform on body, so fixed drawer works.
+   ========================================================= */
+
+/* ---------- Base ---------- */
+:root{
+  --j-yellow:#f5c400;
+  --j-yellow-soft:#ffd84a;
+  --j-bg:#050506;
+  --j-bg-2:#0b0b0d;
+  --j-surface:rgba(255,255,255,.055);
+  --j-surface-2:rgba(255,255,255,.075);
+  --j-line:rgba(255,255,255,.105);
+  --j-line-soft:rgba(255,255,255,.075);
+  --j-white:#fff;
+  --j-text:rgba(255,255,255,.94);
+  --j-muted:rgba(255,255,255,.66);
+  --j-shadow:0 20px 60px rgba(0,0,0,.30);
+  --j-shadow-soft:0 12px 35px rgba(0,0,0,.22);
+  --j-radius:22px;
+  --j-radius-sm:16px;
+  --j-ease:cubic-bezier(.22,.61,.36,1);
+}
+
+/* CRITICAL: prevent body from creating a transform containing block */
+html{
+  scroll-behavior:smooth;
+  scroll-padding-top:80px;
+  overflow-x:hidden;
+}
+
+body{
+  margin:0;
+  overflow-x:hidden;
+  background:
+    radial-gradient(circle at 8% 5%,rgba(245,196,0,.12),transparent 25%),
+    radial-gradient(circle at 95% 8%,rgba(255,255,255,.035),transparent 22%),
+    linear-gradient(180deg,#050506 0%,#09090b 48%,#050506 100%);
+  color:var(--j-text);
+  line-height:1.9;
+
+  /* Prevent style.css body animation from breaking fixed elements */
+  animation:none !important;
+  transform:none !important;
+  filter:none !important;
+  perspective:none !important;
+}
+
+/* ---------- Header ---------- */
+/* Header must scroll normally with the page */
+.header{
+  position:relative !important;
+  top:auto !important;
+  right:auto !important;
+  left:auto !important;
+  width:100%;
+  z-index:100;
+  background:rgba(8,8,9,.78)!important;
+  border-bottom:1px solid var(--j-line)!important;
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+
+.header-inner{
+  min-height:80px;
+}
+
+.brand{
+  gap:11px;
+}
+
+.brand-logo{
+  width:46px!important;
+  height:46px!important;
+  min-width:46px;
+  border-radius:15px!important;
+  background:rgba(255,255,255,.055)!important;
+  border:1px solid rgba(245,196,0,.30);
+  box-shadow:0 8px 26px rgba(245,196,0,.12)!important;
+  overflow:hidden;
+}
+
+.brand-logo img{
+  width:100%;
+  height:100%;
+  object-fit:cover!important;
+  display:block;
+}
+
+.brand-name{
+  color:#fff!important;
+  font-weight:800;
+  letter-spacing:-.025em;
+}
+
+/* ---------- Header buttons ---------- */
+.login-btn,
+.menu-btn{
+  border:1px solid var(--j-line)!important;
+  background:rgba(255,255,255,.055)!important;
+  color:#fff!important;
+  border-radius:15px!important;
+  box-shadow:none!important;
+  transition:
+    background .2s ease,
+    border-color .2s ease,
+    transform .2s ease,
+    color .2s ease;
+}
+
+.login-btn{
+  padding-inline:16px!important;
+}
+
+.login-btn:hover{
+  color:var(--j-yellow)!important;
+  border-color:rgba(245,196,0,.35)!important;
+  transform:translateY(-1px);
+}
+
+.menu-btn{
+  position:relative;
+  overflow:hidden;
+}
+
+.menu-btn:hover{
+  background:rgba(255,255,255,.08)!important;
+}
+
+.menu-btn:active{
+  transform:scale(.94)!important;
+}
+
+.menu-btn svg{
+  width:23px;
+  height:23px;
+}
+
+.menu-btn svg path{
+  transform-box:fill-box;
+  transform-origin:center;
+  transition:
+    transform .25s var(--j-ease),
+    opacity .2s ease;
+}
+
+#menuBtn[aria-expanded="true"] svg path:nth-child(1){
+  transform:translateY(6px) rotate(45deg);
+}
+
+#menuBtn[aria-expanded="true"] svg path:nth-child(2){
+  opacity:0;
+}
+
+#menuBtn[aria-expanded="true"] svg path:nth-child(3){
+  transform:translateY(-6px) rotate(-45deg);
+}
+
+/* ---------- Hero ---------- */
+.hero{
+  position:relative;
+  display:flex;
+  align-items:center;
+  min-height:650px;
+  padding:92px 0 78px;
+}
+
+.hero:before,
+.hero:after{
+  content:"";
+  position:absolute;
+  border-radius:50%;
+  pointer-events:none;
+}
+
+.hero:before{
+  width:240px;
+  height:240px;
+  right:5%;
+  top:8%;
+  background:rgba(245,196,0,.07);
+  filter:blur(28px);
+}
+
+.hero:after{
+  width:180px;
+  height:180px;
+  left:5%;
+  bottom:5%;
+  background:rgba(255,255,255,.025);
+  filter:blur(24px);
+}
+
+.hero-grid{
+  position:relative;
+  z-index:1;
+  gap:42px;
+}
+
+.hero-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  padding:8px 13px;
+  border-radius:999px;
+  background:rgba(255,255,255,.045);
+  border:1px solid var(--j-line);
+  color:rgba(255,255,255,.82);
+}
+
+.hero-badge span{
+  display:inline-block;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--j-yellow);
+  box-shadow:0 0 0 5px rgba(245,196,0,.08);
+}
+
+.hero h1{
+  margin:20px 0 18px;
+  font-size:clamp(2.7rem,6vw,5.2rem);
+  line-height:1.16;
+  letter-spacing:-.045em;
+  color:#fff;
+}
+
+.hero h1 span{
+  display:inline-block;
+  color:var(--j-yellow);
+}
+
+.hero-description{
+  max-width:700px;
+  margin-bottom:28px;
+  color:var(--j-muted);
+  font-size:1.05rem;
+  line-height:2.1;
+}
+
+.hero-buttons{
+  gap:11px;
+}
+
+.hero-buttons .btn{
+  min-height:52px;
+  border-radius:17px;
+  box-shadow:none;
+}
+
+.hero-features{
+  gap:11px;
+  margin-top:25px;
+}
+
+.hero-feature{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:13px 15px;
+  border:1px solid var(--j-line-soft);
+  border-radius:17px;
+  background:rgba(255,255,255,.045);
+}
+
+.hero-feature svg{
+  width:20px;
+  height:20px;
+  flex:none;
+  color:var(--j-yellow);
+}
+
+/* ---------- Hero visual ---------- */
+.hero-visual{
+  position:relative;
+  filter:none!important;
+}
+
+.hero-visual .bike{
+  display:block;
+  width:min(100%,430px);
+  height:auto;
+  margin:auto;
+  color:var(--j-yellow);
+  opacity:.92;
+}
+
+/* Floating information cards */
+.floating{
+  background:rgba(18,18,20,.78)!important;
+  border:1px solid var(--j-line)!important;
+  border-radius:20px!important;
+  box-shadow:var(--j-shadow-soft)!important;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+
+.floating strong{
+  color:#fff;
+}
+
+.floating small{
+  color:var(--j-muted);
+}
+
+/* ---------- Quick strip ---------- */
+.quick-strip,
+.section,
+.cta{
+  scroll-margin-top:80px;
+}
+
+.quick-strip{
+  position:relative;
+  z-index:3;
+  margin-top:-28px;
+}
+
+.quick-grid{
+  gap:12px;
+}
+
+.quick-item{
+  min-height:110px;
+  padding:18px!important;
+  border-radius:20px!important;
+  border:1px solid var(--j-line-soft)!important;
+  background:var(--j-surface)!important;
+  box-shadow:var(--j-shadow-soft)!important;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+
+/* ---------- Sections ---------- */
+.section{
+  padding:96px 0 30px;
+}
+
+.section-heading{
+  margin-bottom:32px;
+}
+
+.section-heading h2{
+  margin-top:8px;
+  color:#fff;
+  font-size:clamp(2rem,4vw,3rem);
+  line-height:1.25;
+  letter-spacing:-.04em;
+}
+
+.section-heading p{
+  color:var(--j-muted);
+  line-height:2;
+}
+
+/* ---------- Services ---------- */
+.service-grid{
+  gap:16px;
+}
+
+.service-card{
+  min-height:200px;
+  padding:24px!important;
+  border-radius:22px!important;
+  border:1px solid var(--j-line-soft)!important;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.065),
+      rgba(255,255,255,.035)
+    )!important;
+  box-shadow:var(--j-shadow-soft)!important;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  transition:
+    transform .22s var(--j-ease),
+    border-color .22s ease,
+    background .22s ease;
+}
+
+.service-card:hover{
+  transform:translateY(-4px);
+  border-color:rgba(245,196,0,.24)!important;
+}
+
+.service-icon,
+.contact-icon{
+  background:rgba(245,196,0,.08)!important;
+  border:1px solid rgba(245,196,0,.15)!important;
+  color:var(--j-yellow)!important;
+  border-radius:17px!important;
+}
+
+.service-icon svg,
+.contact-icon svg{
+  width:24px;
+  height:24px;
+}
+
+.service-card h3,
+.about-box h3{
+  color:#fff;
+  line-height:1.5;
+}
+
+.service-card p,
+.about-box p,
+.contact-card small{
+  color:var(--j-muted)!important;
+  line-height:2;
+}
+
+/* ---------- Steps / about / contact ---------- */
+.steps{
+  gap:16px;
+}
+
+.steps .step,
+.about-box,
+.contact-card,
+.vision-section,
+.jobs,
+.cta{
+  border-radius:22px!important;
+  border:1px solid var(--j-line-soft)!important;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.065),
+      rgba(255,255,255,.035)
+    )!important;
+  box-shadow:var(--j-shadow-soft)!important;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+
+.steps .step{
+  padding:22px;
+}
+
+.about-grid,
+.contact-grid{
+  gap:16px;
+}
+
+.cta{
+  padding:32px!important;
+  margin-top:24px;
+}
+
+/* ---------- Homepage drawer ---------- */
+/*
+   IMPORTANT:
+   drawer and overlay are direct children of body in index.html.
+   body has no transform now, so fixed positioning remains fixed
+   relative to the viewport even after scrolling.
+*/
+
+.overlay{
+  position:fixed !important;
+  inset:0 !important;
+  width:100vw !important;
+  height:100dvh !important;
+  margin:0 !important;
+  z-index:1000 !important;
+
+  background:rgba(0,0,0,.52)!important;
+
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+
+  transition:
+    opacity .22s ease,
+    visibility .22s ease;
+}
+
+.overlay.show{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+}
+
+.drawer{
+  position:fixed !important;
+  top:0 !important;
+  right:0 !important;
+  bottom:0 !important;
+
+  width:min(365px,88vw)!important;
+  height:100dvh!important;
+  max-height:100dvh!important;
+
+  z-index:1001 !important;
+
+  margin:0!important;
+
+  background:rgba(16,16,18,.97)!important;
+  color:#fff;
+
+  border-left:1px solid var(--j-line)!important;
+  border-radius:24px 0 0 24px!important;
+
+  transform:translate3d(100%,0,0);
+  transition:transform .28s var(--j-ease);
+
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch;
+
+  box-shadow:-20px 0 60px rgba(0,0,0,.40)!important;
+
+  /* Never inherit accidental page effects */
+  filter:none!important;
+  perspective:none!important;
+}
+
+.drawer.open{
+  transform:translate3d(0,0,0);
+}
+
+.drawer-head{
+  padding:20px 20px 16px;
+  border-bottom:1px solid var(--j-line-soft);
+}
+
+.drawer-nav{
+  display:flex;
+  flex-direction:column;
+  gap:7px!important;
+  padding:16px;
+}
+
+.drawer-nav a{
+  display:flex;
+  align-items:center;
+  min-height:50px;
+  padding:13px 15px!important;
+  border:1px solid transparent;
+  border-radius:16px!important;
+  color:#fff;
+  background:rgba(255,255,255,.035);
+  transition:
+    background .18s ease,
+    border-color .18s ease,
+    transform .18s ease;
+}
+
+.drawer-nav a:hover{
+  background:rgba(255,255,255,.075)!important;
+  border-color:var(--j-line);
+  transform:translateX(-3px);
+}
+
+.close-btn{
+  border-radius:14px!important;
+  transition:
+    transform .25s var(--j-ease),
+    background .2s ease!important;
+}
+
+.close-btn:hover{
+  transform:rotate(90deg);
+  background:rgba(255,255,255,.08)!important;
+}
+
+/* Prevent page scrolling while menu is open */
+body.menu-open{
+  overflow:hidden!important;
+}
+
+/* ---------- Scroll reveal ----------
+   Do NOT let reveal transforms affect the drawer or menu.
+*/
+.reveal{
+  opacity:1;
+  transform:none;
+}
+
+.reveal.in-view{
+  opacity:1;
+  transform:none;
+}
+
+/* ---------- Remove unwanted legacy sections ---------- */
+#vision,
+#jobs,
+.whatsapp{
+  display:none!important;
+}
+
+/* ---------- Accessibility / touch ---------- */
+a,
+button{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+
+button:focus-visible,
+a:focus-visible{
+  outline:2px solid var(--j-yellow);
+  outline-offset:3px;
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width:800px){
+
+  .header-inner{
+    min-height:70px;
+  }
+
+  .header{
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+  }
+
+  .hero{
+    min-height:auto;
+    padding:68px 0 66px;
+  }
+
+  .hero-grid{
+    gap:28px;
+  }
+
+  .hero h1{
+    font-size:clamp(2.35rem,12vw,4rem);
+    line-height:1.18;
+  }
+
+  .hero-description{
+    font-size:.96rem;
+    line-height:2.05;
+  }
+
+  .hero-features{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+
+  .hero-visual{
+    margin-top:6px;
+  }
+
+  .hero-visual .bike{
+    width:min(82vw,330px);
+  }
+
+  .quick-strip{
+    margin-top:-18px;
+  }
+
+  .quick-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .section{
+    padding-top:72px;
+  }
+
+  .service-grid,
+  .about-grid,
+  .contact-grid{
+    grid-template-columns:1fr;
+  }
+
+  /* iPhone-like bottom-safe spacing */
+  .drawer{
+    width:min(88vw,360px)!important;
+    border-radius:26px 0 0 26px!important;
+    padding-bottom:calc(16px + env(safe-area-inset-bottom))!important;
+  }
+
+  /*
+    Reduce heavy compositing on phones.
+    The drawer remains a solid premium panel, not a giant blur layer.
+  */
+  .hero-feature,
+  .quick-item,
+  .service-card,
+  .steps .step,
+  .about-box,
+  .contact-card,
+  .cta,
+  .floating{
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+  }
+
+  .drawer{
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+
+  .overlay{
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    background:rgba(0,0,0,.55)!important;
+  }
+}
+
+/* ---------- Small phones ---------- */
+@media (max-width:460px){
+
+  .login-btn{
+    padding-inline:12px!important;
+    min-width:auto!important;
+  }
+
+  .brand-logo{
+    width:43px!important;
+    height:43px!important;
+    min-width:43px;
+    border-radius:14px!important;
+  }
+
+  .brand-name{
+    font-size:1rem!important;
+  }
+
+  .quick-grid{
+    grid-template-columns:1fr;
+  }
+
+  .hero-buttons{
+    flex-direction:column;
+  }
+
+  .hero-buttons .btn{
+    width:100%;
+  }
+
+  .drawer{
+    width:89vw!important;
+    border-radius:24px 0 0 24px!important;
+  }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion:reduce){
+
+  html{
+    scroll-behavior:auto;
+  }
+
+  *,
+  *::before,
+  *::after{
+    transition-duration:.01ms!important;
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+  }
+}
+/* =========================================================
+   JAWAN HOME HEADER — FIXED WHILE SCROLLING
+   ========================================================= */
+
+body {
+  padding-top: 82px;
+}
+
+.header {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  z-index: 10000 !important;
+}
+
+@media (max-width: 800px) {
+  body {
+    padding-top: 72px;
+  }
+
+  .header {
+    position: fixed !important;
+    top: 0 !important;
+  }
+}

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>لوحة العميل | جوان</title></head>
+<body>
+
+<button type="button" data-logout
+style="padding:9px 15px;border:0;border-radius:10px;cursor:pointer;font-weight:700;">
+تسجيل الخروج
+</button>
+
+<header class="mobilebar"><strong>جوان</strong><a href="../index.html">الرئيسية</a></header>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand" style="margin-bottom:20px"><div class="brand-mark">ج</div><div><div class="brand-name" style="color:#fff">جوان</div><small id="userName">العميل</small></div></div>
+    <a class="active" href="customer.html">لوحتي</a><a href="create-order.html">طلب توصيل</a><a href="support.html">تواصل مع الإدارة</a><a href="privacy.html">الخصوصية</a><a href="terms.html">الشروط</a>
+    <a href="#" id="logoutLink">تسجيل الخروج</a>
+  </aside>
+  <main class="content">
+    <h1 class="page-title">مرحبًا بك</h1><p class="muted">تابع طلباتك من مكان واحد.</p>
+    <div id="pendingBanner" class="alert alert-danger" style="display:none">حسابك بانتظار مراجعة الإدارة، سيمكنك إنشاء طلبات بعد التفعيل.</div>
+    <div class="grid-3" style="margin:20px 0">
+      <div class="card kpi"><small>الطلبات</small><strong id="kpiTotal">0</strong></div>
+      <div class="card kpi"><small>المكتملة</small><strong id="kpiCompleted">0</strong></div>
+      <div class="card kpi"><small>الحالية</small><strong id="kpiActive">0</strong></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h3>طلباتي الأخيرة</h3><a class="btn btn-primary" href="create-order.html">+ طلب جديد</a></div>
+      <div id="ordersList" class="empty">جارٍ التحميل...</div>
+    </div>
+  </main>
+</div>
+<script type="module" src="../js/app.js"></script>
+<script type="module">
+  setupLogoutButtons();
+
+import { guardPage, logoutUser, setupLogoutButtons } from "../js/auth.js";
+import { listenMyOrders, customerConfirmDelivery } from "../js/orders.js";
+import { fetchRatedOrderIds, submitRating } from "../js/ratings.js";
+import { escapeHtml, formatMoney, formatDate, statusLabel, statusBadgeClass, showToast } from "../js/common.js";
+
+const { user, data } = await guardPage(["customer"]);
+document.getElementById("userName").textContent = data.name || "العميل";
+
+if (data.status === "pending") {
+  document.getElementById("pendingBanner").style.display = "block";
+}
+
+document.getElementById("logoutLink").addEventListener("click", async (e) => {
+  e.preventDefault();
+  await logoutUser();
+  location.href = "login.html";
+});
+
+let ratedOrderIds = await fetchRatedOrderIds(user.uid).catch(() => new Set());
+
+listenMyOrders("customer", user.uid, (orders) => {
+  document.getElementById("kpiTotal").textContent = orders.length;
+  document.getElementById("kpiCompleted").textContent = orders.filter(o => o.status === "completed").length;
+  document.getElementById("kpiActive").textContent = orders.filter(o => !["completed", "cancelled", "rejected"].includes(o.status)).length;
+
+  const list = document.getElementById("ordersList");
+  if (!orders.length) {
+    list.className = "empty";
+    list.textContent = "لا توجد طلبات بعد.";
+    return;
+  }
+
+  list.className = "";
+  list.innerHTML = orders.slice(0, 20).map(o => {
+    const canConfirm = o.status === "awaiting_confirmation" && !o.customerConfirmedAt;
+    const canRate = o.status === "completed" && !ratedOrderIds.has(o.id);
+    return `
+      <div class="order-row" data-id="${o.id}">
+        <div>
+          <strong>${escapeHtml(o.type)}</strong> — ${escapeHtml(o.description)}
+          <div class="muted" style="font-size:13px">${escapeHtml(o.destination)}</div>
+          <div class="muted" style="font-size:12px">${formatDate(o.createdAt)}</div>
+        </div>
+        <div style="text-align:left">
+          <div>${formatMoney(o.deliveryFee)}</div>
+          <span class="${statusBadgeClass(o.status)}">${statusLabel(o.status)}</span>
+          ${canConfirm ? `<button class="btn btn-primary btn-sm confirm-btn">تأكيد الاستلام</button>` : ""}
+          ${canRate ? `<button class="btn btn-dark btn-sm rate-btn">تقييم</button>` : ""}
+        </div>
+      </div>`;
+  }).join("");
+
+  list.querySelectorAll(".confirm-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.closest(".order-row").dataset.id;
+      btn.disabled = true;
+      try {
+        await customerConfirmDelivery(id);
+        showToast("تم تأكيد الاستلام.");
+      } catch (err) {
+        showToast(err?.message || "تعذر التأكيد.");
+        btn.disabled = false;
+      }
+    });
+  });
+
+  list.querySelectorAll(".rate-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const row = btn.closest(".order-row");
+      const id = row.dataset.id;
+      const order = orders.find(o => o.id === id);
+      const stars = prompt("قيّم الخدمة من 1 إلى 5:", "5");
+      if (!stars) return;
+      const comment = prompt("تعليق (اختياري):", "") || "";
+      try {
+        await submitRating(id, user.uid, order.driverId, stars, comment);
+        ratedOrderIds.add(id);
+        showToast("شكرًا لتقييمك!");
+        btn.remove();
+      } catch (err) {
+        showToast(err?.message || "تعذر إرسال التقييم.");
+      }
+    });
+  });
+});
+</script>
+</body>
+</html>

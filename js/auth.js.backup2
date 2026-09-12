@@ -1,0 +1,156 @@
+import { auth, db } from "./firebase-config.js";
+
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+
+import {
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+// Firebase Auth القياسي لا يدعم "هاتف + كلمة مرور" كطريقة أصلية،
+// لذلك نحوّل رقم الهاتف إلى بريد داخلي وهمي فقط لاستخدامه كمعرّف دخول.
+function phoneToEmail(phone) {
+  return `${phone}@jawan.app`;
+}
+
+export function validatePhone(phone) {
+  return /^\d{10}$/.test(String(phone || ""));
+}
+
+export function validatePassword(password) {
+  return String(password || "").length >= 6;
+}
+
+// الصفحة التي يجب أن يصل إليها المستخدم بعد الدخول، حسب دوره.
+// لا يوجد fallback إلى customer: الدور المفقود/غير الصحيح يجب أن يظهر كخطأ.
+export function roleHome(role) {
+  if (role === "admin" || role === "super_admin") return "/pages/admin";
+  if (role === "driver") return "/pages/driver";
+  if (role === "customer") return "/pages/customer";
+  return null;
+}
+
+export async function registerUser(name, phone, password, role, address, acceptedPolicies) {
+  if (!validatePhone(phone)) {
+    throw new Error("رقم الهاتف يجب أن يكون 10 أرقام فقط");
+  }
+
+  if (!validatePassword(password)) {
+    throw new Error("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+  }
+
+  if (!["customer", "driver"].includes(role)) {
+    throw new Error("نوع الحساب غير صحيح");
+  }
+
+  if (!address || !String(address).trim()) {
+    throw new Error("مكان السكن مطلوب");
+  }
+
+  if (!acceptedPolicies) {
+    throw new Error("يجب الموافقة على سياسة الخصوصية والشروط والأحكام");
+  }
+
+  const email = phoneToEmail(phone);
+
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  const user = userCredential.user;
+
+  await setDoc(doc(db, "users", user.uid), {
+    role,
+    name,
+    phone,
+    address,
+    status: "pending",
+    privacyAccepted: true,
+    termsAccepted: true,
+    createdAt: serverTimestamp(),
+    lastActiveAt: serverTimestamp()
+  });
+
+  return user;
+}
+
+export async function loginUser(phone, password) {
+  if (!validatePhone(phone)) {
+    throw new Error("رقم الهاتف يجب أن يكون 10 أرقام فقط");
+  }
+
+  const credential = await signInWithEmailAndPassword(auth, phoneToEmail(phone), password);
+
+  // لا تمنع الدخول إذا فشل تحديث آخر نشاط، فهو ليس أمرًا حرجًا.
+  updateDoc(doc(db, "users", credential.user.uid), {
+    lastActiveAt: serverTimestamp()
+  }).catch(() => {});
+
+  return credential;
+}
+
+export async function getCurrentUserData(uid) {
+  const snapshot = await getDoc(doc(db, "users", uid));
+  if (!snapshot.exists()) return null;
+  return snapshot.data();
+}
+
+export async function logoutUser() {
+  return signOut(auth);
+}
+
+export function watchAuth(callback) {
+  return onAuthStateChanged(auth, callback);
+}
+
+// حارس صفحات: يتحقق من تسجيل الدخول ومن الدور، ويعيد التوجيه عند اللزوم.
+// allowedRoles: مثل ["customer"] أو ["admin","super_admin"].
+export function guardPage(allowedRoles) {
+  return new Promise((resolve) => {
+    const stop = watchAuth(async (user) => {
+      stop();
+
+      if (!user) {
+        location.href = "/pages/login";
+        return;
+      }
+
+      try {
+        const data = await getCurrentUserData(user.uid);
+
+        if (!data) {
+          console.error("Jawan: no Firestore user profile found for UID", user.uid);
+          await logoutUser();
+          location.href = "/pages/login?profile=missing";
+          return;
+        }
+
+        if (!allowedRoles.includes(data.role)) {
+          console.error("Jawan: role not allowed on this page", {
+            role: data.role,
+            allowedRoles
+          });
+          location.href = "/pages/login?role=denied";
+          return;
+        }
+
+        if (data.status === "suspended" || data.status === "rejected") {
+          await logoutUser();
+          location.href = "/pages/login?blocked=1";
+          return;
+        }
+
+        resolve({ user, data });
+      } catch (error) {
+        console.error("Jawan: failed to load user profile", error);
+        await logoutUser().catch(() => {});
+        location.href = "/pages/login?profile=error";
+      }
+    });
+  });
+}

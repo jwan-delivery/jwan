@@ -1,0 +1,107 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "firestore.rules",
+      "firestore.indexes.json",
+      "README.md",
+      "DATA_MODEL.md",
+      ".firebaserc.example",
+      ".github/**",
+      "mobile-app/**",
+      "**/.*",
+      "**/node_modules/**",
+      "functions/**"
+    ],
+    "cleanUrls": false,
+    "trailingSlash": false,
+    "rewrites": [
+      {
+        "source": "/pages/login",
+        "destination": "/pages/login.html"
+      },
+      {
+        "source": "/pages/register",
+        "destination": "/pages/register.html"
+      },
+      {
+        "source": "/pages/customer",
+        "destination": "/pages/customer.html"
+      },
+      {
+        "source": "/pages/driver",
+        "destination": "/pages/driver.html"
+      },
+      {
+        "source": "/pages/admin",
+        "destination": "/pages/admin.html"
+      },
+      {
+        "source": "/pages/admin-users",
+        "destination": "/pages/admin-users.html"
+      },
+      {
+        "source": "/pages/admin-topups",
+        "destination": "/pages/admin-topups.html"
+      },
+      {
+        "source": "/pages/admin-withdrawals",
+        "destination": "/pages/admin-withdrawals.html"
+      },
+      {
+        "source": "/pages/admin-orders",
+        "destination": "/pages/admin-orders.html"
+      },
+      {
+        "source": "/pages/admin-analytics",
+        "destination": "/pages/admin-analytics.html"
+      },
+      {
+        "source": "/pages/admin-managers",
+        "destination": "/pages/admin-managers.html"
+      },
+      {
+        "source": "/pages/create-order",
+        "destination": "/pages/create-order.html"
+      },
+      {
+        "source": "/pages/wallet",
+        "destination": "/pages/wallet.html"
+      },
+      {
+        "source": "/pages/support",
+        "destination": "/pages/support.html"
+      },
+      {
+        "source": "/pages/privacy",
+        "destination": "/pages/privacy.html"
+      },
+      {
+        "source": "/pages/terms",
+        "destination": "/pages/terms.html"
+      }
+    ]
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "singleProjectMode": true
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs22"
+  }
+}

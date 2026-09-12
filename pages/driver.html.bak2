@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>لوحة السائق | جوان</title></head>
+<body>
+
+<button type="button" data-logout
+style="padding:9px 15px;border:0;border-radius:10px;cursor:pointer;font-weight:700;">
+تسجيل الخروج
+</button>
+
+<header class="mobilebar"><strong>جوان</strong><a href="../index.html">الرئيسية</a></header>
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand" style="margin-bottom:20px"><div class="brand-mark">ج</div><div><div class="brand-name" style="color:#fff">جوان</div><small id="userName">السائق</small></div></div>
+  <a class="active" href="driver.html">لوحتي</a><a href="wallet.html">محفظتي</a><a href="support.html">تواصل مع الإدارة</a><a href="terms.html">الشروط</a>
+  <a href="#" id="logoutLink">تسجيل الخروج</a>
+</aside>
+<main class="content">
+<h1 class="page-title">لوحة السائق</h1><p class="muted">الطلبات، المحفظة، والنشاط.</p>
+<div id="pendingBanner" class="card" style="display:none;border:2px solid #f0b400;background:#fffaf0;margin-bottom:20px">
+  <h3 style="margin-top:0">تفعيل حساب السائق</h3>
+  <p>
+    حسابك بانتظار التفعيل. حتى يتم اعتمادك لقبول الطلبيات، تواصل مع الإدارة عبر واتساب وأرسل:
+  </p>
+  <div class="alert alert-danger">
+    <strong>المطلوب:</strong>
+    <br>• استيكر أو شهادة وارد المركبة.
+    <br>• إثبات من المالك أو المشتري.
+    <br>• إشعار تحويل بقيمة <strong>10,000 ج.س</strong>.
+  </div>
+  <p class="muted">
+    بعد مراجعة المستندات وإثبات التحويل، تقوم الإدارة بتفعيل الحساب وإضافة مبلغ 10,000 ج.س إلى محفظتك لبدء قبول الطلبات.
+  </p>
+  <a class="btn btn-success" href="https://wa.me/249964499266?text=السلام%20عليكم%20-%20أرغب%20في%20تفعيل%20حساب%20السائق%20في%20جوان.%20سأرسل%20استيكر%20أو%20شهادة%20وارد%20المركبة،%20إثبات%20من%20المالك%20أو%20المشتري،%20وإشعار%20تحويل%20بقيمة%2010%2C000%20ج.س." target="_blank" rel="noopener">
+    تواصل مع الإدارة عبر واتساب
+  </a>
+</div>
+<div class="grid-4" style="margin:20px 0">
+  <div class="card kpi"><small>رصيد المحفظة</small><strong id="kpiBalance">—</strong></div>
+  <div class="card kpi"><small>طلبات مكتملة</small><strong id="kpiCompleted">0</strong></div>
+  <div class="card kpi"><small>طلبات نشطة</small><strong id="kpiActive">0</strong></div>
+  <div class="card kpi"><small>أيام النشاط</small><strong id="kpiActiveDays">0</strong></div>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h3>طلباتي الحالية</h3></div>
+  <div id="myOrders" class="empty">جارٍ التحميل...</div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h3>طلبات متاحة</h3><span class="badge badge-info">تحديث مباشر</span></div>
+  <div id="availableOrders" class="empty">جارٍ التحميل...</div>
+</div>
+</main></div>
+<script type="module" src="../js/app.js"></script>
+<script type="module">
+  setupLogoutButtons();
+
+import { guardPage, logoutUser, setupLogoutButtons } from "../js/auth.js";
+import {
+  listenAvailableOrders, listenMyOrders,
+  acceptOrder, startDelivering, markDelivered, driverFinalizeOrder,
+  driverNet
+} from "../js/orders.js";
+import { listenWallet, canAcceptOrder, driverCommission } from "../js/wallet.js";
+import { escapeHtml, formatMoney, formatDate, statusLabel, statusBadgeClass, showToast } from "../js/common.js";
+
+const { user, data } = await guardPage(["driver"]);
+document.getElementById("userName").textContent = data.name || "السائق";
+
+if (data.status === "pending") {
+  document.getElementById("pendingBanner").style.display = "block";
+}
+
+document.getElementById("logoutLink").addEventListener("click", async (e) => {
+  e.preventDefault();
+  await logoutUser();
+  location.href = "login.html";
+});
+
+let walletBalance = 0;
+listenWallet(user.uid, (wallet) => {
+  walletBalance = wallet ? Number(wallet.balance || 0) : 0;
+  document.getElementById("kpiBalance").textContent = formatMoney(walletBalance);
+});
+
+listenMyOrders("driver", user.uid, (orders) => {
+  document.getElementById("kpiCompleted").textContent = orders.filter(o => o.status === "completed").length;
+  const active = orders.filter(o => ["accepted", "delivering", "awaiting_confirmation"].includes(o.status));
+  document.getElementById("kpiActive").textContent = active.length;
+
+  const days = new Set(
+    orders.filter(o => o.status === "completed" && o.completedAt?.toDate)
+      .map(o => o.completedAt.toDate().toISOString().slice(0, 10))
+  );
+  document.getElementById("kpiActiveDays").textContent = days.size;
+
+  const container = document.getElementById("myOrders");
+  const shown = orders.filter(o => ["accepted", "delivering", "awaiting_confirmation"].includes(o.status));
+
+  if (!shown.length) {
+    container.className = "empty";
+    container.textContent = "لا توجد طلبات جارية.";
+    return;
+  }
+
+  container.className = "";
+  container.innerHTML = shown.map(o => {
+    let actionBtn = "";
+    if (o.status === "accepted") actionBtn = `<button class="btn btn-primary btn-sm start-btn">بدء التوصيل</button>`;
+    else if (o.status === "delivering") actionBtn = `<button class="btn btn-primary btn-sm deliver-btn">تم التسليم</button>`;
+    else if (o.status === "awaiting_confirmation") {
+      actionBtn = o.customerConfirmedAt
+        ? `<button class="btn btn-primary btn-sm finalize-btn">تأكيد وإغلاق الطلب</button>`
+        : `<span class="muted" style="font-size:12px">بانتظار تأكيد العميل</span>`;
+    }
+    return `
+      <div class="order-row" data-id="${o.id}">
+        <div>
+          <strong>${escapeHtml(o.type)}</strong> — ${escapeHtml(o.description)}
+          <div class="muted" style="font-size:13px">${escapeHtml(o.destination)}</div>
+        </div>
+        <div style="text-align:left">
+          <div>لك: ${formatMoney(driverNet(o.deliveryFee))}</div>
+          <span class="${statusBadgeClass(o.status)}">${statusLabel(o.status)}</span><br>
+          ${actionBtn}
+        </div>
+      </div>`;
+  }).join("");
+
+  container.querySelectorAll(".start-btn").forEach(btn => btn.addEventListener("click", () => runAction(btn, () => startDelivering(btn.closest(".order-row").dataset.id))));
+  container.querySelectorAll(".deliver-btn").forEach(btn => btn.addEventListener("click", () => runAction(btn, () => markDelivered(btn.closest(".order-row").dataset.id))));
+  container.querySelectorAll(".finalize-btn").forEach(btn => btn.addEventListener("click", () => runAction(btn, () => driverFinalizeOrder(btn.closest(".order-row").dataset.id, user.uid))));
+});
+
+listenAvailableOrders((orders) => {
+  const container = document.getElementById("availableOrders");
+  if (!orders.length) {
+    container.className = "empty";
+    container.textContent = "لا توجد طلبات متاحة حاليًا.";
+    return;
+  }
+
+  container.className = "";
+  container.innerHTML = orders.map(o => {
+    const commission = driverCommission(o.deliveryFee);
+    const affordable = data.status === "active" && canAcceptOrder(walletBalance, o.deliveryFee);
+    return `
+      <div class="order-row" data-id="${o.id}">
+        <div>
+          <strong>${escapeHtml(o.type)}</strong> — ${escapeHtml(o.description)}
+          <div class="muted" style="font-size:13px">${escapeHtml(o.destination)}</div>
+        </div>
+        <div style="text-align:left">
+          <div>الأجرة: ${formatMoney(o.deliveryFee)}</div>
+          <div class="muted" style="font-size:12px">عمولة: ${formatMoney(commission)}</div>
+          <button class="btn btn-primary btn-sm accept-btn" ${affordable ? "" : "disabled"}>قبول الطلب</button>
+        </div>
+      </div>`;
+  }).join("");
+
+  container.querySelectorAll(".accept-btn").forEach(btn => {
+    btn.addEventListener("click", () => runAction(btn, () => acceptOrder(btn.closest(".order-row").dataset.id, user.uid)));
+  });
+});
+
+async function runAction(btn, action) {
+  btn.disabled = true;
+  try {
+    await action();
+  } catch (err) {
+    showToast(err?.message || "حدث خطأ، حاول مرة أخرى.");
+    btn.disabled = false;
+  }
+}
+</script>
+</body></html>

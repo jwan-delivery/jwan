@@ -1,0 +1,12 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>طلباتي السابقة | جوان</title>  <link rel="icon" href="../assets/branding/logo-external.png">
+</head><body><main class="content" style="max-width:1000px;margin:auto;padding:20px 14px"><div class="card"><h1 class="page-title">طلباتي السابقة</h1><p class="muted">سجل آخر الطلبات المكتملة أو الملغاة.</p><div id="history" class="empty">جارٍ التحميل...</div></div></main><script type="module">import { guardPage } from "../js/auth.js"; import { listenMyOrders } from "../js/orders.js"; import { escapeHtml, formatDate, formatMoney, statusLabel, statusBadgeClass } from "../js/common.js"; const {user}=await guardPage(["driver"]); listenMyOrders("driver",user.uid,(orders)=>{ const box=document.getElementById("history"); const old=orders.filter(o=>["completed","cancelled","rejected"].includes(o.status)); if(!old.length){box.className="empty";box.textContent="لا توجد طلبات سابقة بعد.";return;} box.className=""; box.innerHTML=old.slice(0,100).map(o=>`<div class="order-row"><div><strong>${escapeHtml(o.origin||"—")} ← ${escapeHtml(o.destination||"—")}</strong><div class="muted">${formatDate(o.completedAt||o.updatedAt||o.createdAt)}</div></div><div><span class="${statusBadgeClass(o.status)}">${statusLabel(o.status)}</span><div class="muted">${formatMoney(o.agreedFee||o.deliveryFee||0)}</div></div></div>`).join(""); });</script><script src="../js/driver-menu.js"></script>
+<script type="module">
+try {
+  const { firebaseConfig } = await import("../js/firebase-config.js");
+  if (firebaseConfig) window.__JW_FBASE_CONFIG__ = firebaseConfig;
+} catch (e) {
+  console.warn("Jawan Firebase config bridge:", e);
+}
+</script>
+<script type="module" src="../js/jawan-ai.js"></script>
+</body></html>

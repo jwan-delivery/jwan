@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+  <title>تسجيل الدخول | جوان</title>
+  <link rel="icon" href="../assets/branding/logo-external.png">
+<style id="google-login-fix">
+#googleLoginBtn{
+  display:flex !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  width:100% !important;
+  min-height:52px !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:10px !important;
+  margin-top:14px !important;
+  cursor:pointer !important;
+}
+#googleLoginBtn:disabled{
+  opacity:.65 !important;
+  cursor:not-allowed !important;
+}
+</style>
+</head>
+
+<body class="auth-shell">
+
+<main class="auth">
+
+  <div class="brand-center">
+    <div class="brand-mark">
+      <img src="/assets/branding/logo-external.png" alt="جوان للتوصيل">
+    </div>
+
+    <h2>جوان للتوصيل</h2>
+    <p class="muted">تسجيل الدخول</p>
+  </div>
+
+  <div class="card">
+
+    <div
+      id="blockedMsg"
+      class="card"
+      style="display:none;border:2px solid #a82018;margin-bottom:15px"
+    >
+      <h3 style="margin-top:0">الحساب غير متاح</h3>
+      <p>تم إيقاف هذا الحساب. تواصل مع الإدارة لمعرفة السبب.</p>
+
+      <a
+        class="btn btn-success"
+        data-whatsapp="contact"
+        href="#"
+        style="width:100%"
+      >
+        تواصل مع الإدارة عبر واتساب
+      </a>
+    </div>
+
+    <form id="loginForm">
+
+      <div class="form-group">
+        <label>رقم الهاتف</label>
+        <input
+          data-phone
+          name="phone"
+          maxlength="10"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label>كلمة المرور</label>
+        <input
+          type="password"
+          name="password"
+          minlength="6"
+          required
+        >
+      </div>
+
+      <button
+        id="phoneLoginBtn"
+        class="btn btn-primary"
+        style="width:100%"
+        type="submit"
+      >
+        دخول
+      </button>
+
+      <div
+        style="
+          display:flex;
+          align-items:center;
+          gap:10px;
+          margin:16px 0;
+          color:var(--muted,#888);
+          font-size:13px;
+        "
+      >
+        <span style="flex:1;height:1px;background:rgba(255,255,255,.12)"></span>
+        <span>أو</span>
+        <span style="flex:1;height:1px;background:rgba(255,255,255,.12)"></span>
+      </div>
+
+      <button
+        id="googleLoginBtn"
+        class="btn btn-dark google-auth-ui"
+        style="width:100%;margin-top:0"
+        type="button"
+      >
+        الدخول بحساب Google
+      </button>
+
+    </form>
+
+    <div class="auth-links">
+      <span>
+        ليس لديك حساب؟
+        <a href="register.html">إنشاء حساب</a>
+      </span>
+
+      <a
+        data-whatsapp="forgot_password"
+        href="#"
+      >
+        نسيت كلمة المرور؟
+      </a>
+    </div>
+
+    <a
+      class="auth-back"
+      href="../index.html"
+      aria-label="العودة للرئيسية"
+      title="العودة للرئيسية"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
+    </a>
+
+    <div
+      id="msg"
+      style="margin-top:12px"
+    ></div>
+
+  </div>
+
+</main>
+
+<script type="module" src="../js/app.js"></script>
+
+<script type="module">
+
+import {
+  loginUser,
+  getCurrentUserData,
+  roleHome,
+  logoutUser,
+  signInWithGoogle
+} from "../js/auth.js";
+
+import { showToast } from "../js/common.js";
+
+
+/* =========================================
+   عناصر الصفحة
+========================================= */
+
+const loginForm = document.getElementById("loginForm");
+const phoneLoginBtn = document.getElementById("phoneLoginBtn");
+const googleLoginBtn = document.getElementById("googleLoginBtn");
+const msg = document.getElementById("msg");
+const blockedMsg = document.getElementById("blockedMsg");
+
+
+/* =========================================
+   رسائل الرابط
+========================================= */
+
+const params = new URLSearchParams(location.search);
+
+if (params.get("blocked") === "1") {
+  blockedMsg.style.display = "block";
+}
+
+if (params.get("profile") === "missing") {
+
+  msg.textContent =
+    "أكمل بيانات حساب Google للمتابعة.";
+
+}
+
+if (params.get("profile") === "error") {
+
+  msg.textContent =
+    "تعذر قراءة بيانات الحساب من Firestore.";
+
+}
+
+if (params.get("role") === "denied") {
+
+  msg.textContent =
+    "صلاحية الحساب لا تسمح بفتح هذه الصفحة.";
+
+}
+
+
+/* =========================================
+   نسيت كلمة المرور
+========================================= */
+
+const forgotPassword =
+  document.querySelector('[data-whatsapp="forgot_password"]');
+
+if (forgotPassword) {
+
+  forgotPassword.href =
+    "https://wa.me/249964499266?text=" +
+    encodeURIComponent(
+      "السلام عليكم، نسيت كلمة مرور حساب جوان. رقم الهاتف: "
+    );
+
+}
+
+
+/* =========================================
+   تسجيل الدخول بواسطة Google
+========================================= */
+
+googleLoginBtn.addEventListener("click", async () => {
+
+  googleLoginBtn.disabled = true;
+  phoneLoginBtn.disabled = true;
+
+  const originalText =
+    googleLoginBtn.textContent;
+
+  googleLoginBtn.textContent =
+    "جاري الدخول باستخدام Google...";
+
+  try {
+
+    /*
+     * فتح Google
+     */
+    const credential =
+      await signInWithGoogle();
+
+    const uid =
+      credential.user.uid;
+
+    /*
+     * البحث عن ملف المستخدم
+     */
+    const data =
+      await getCurrentUserData(uid);
+
+
+    /*
+     * مستخدم جديد
+     *
+     * لا يوجد users/{uid}
+     *
+     * نرسله إلى صفحة إكمال بيانات Google
+     */
+    if (!data) {
+
+      location.href =
+        "google-complete.html";
+
+      return;
+    }
+
+
+    /*
+     * مستخدم موجود
+     *
+     * نتحقق من الدور
+     */
+    const home =
+      roleHome(data.role);
+
+
+    if (!home) {
+
+      await logoutUser();
+
+      throw new Error(
+        "بيانات الحساب غير مكتملة أو دور الحساب غير صالح."
+      );
+
+    }
+
+
+    /*
+     * الدخول مباشرة إلى الصفحة المناسبة
+     */
+    location.href =
+      home;
+
+
+  } catch (err) {
+
+    console.error(
+      "Google Login Error:",
+      err
+    );
+
+
+    /*
+     * المستخدم أغلق نافذة Google
+     */
+    if (
+      err?.code ===
+      "auth/popup-closed-by-user"
+    ) {
+
+      return;
+    }
+
+
+    showToast(
+      err?.message ||
+      "تعذر تسجيل الدخول باستخدام Google. حاول مرة أخرى."
+    );
+
+
+  } finally {
+
+    googleLoginBtn.disabled = false;
+    phoneLoginBtn.disabled = false;
+
+    googleLoginBtn.textContent =
+      originalText;
+
+  }
+
+});
+
+
+/* =========================================
+   تسجيل الدخول برقم الهاتف
+========================================= */
+
+loginForm.addEventListener(
+  "submit",
+  async (e) => {
+
+    e.preventDefault();
+
+    const phone =
+      e.target.phone.value.trim();
+
+    const password =
+      e.target.password.value;
+
+    phoneLoginBtn.disabled = true;
+    googleLoginBtn.disabled = true;
+
+    phoneLoginBtn.textContent =
+      "جاري الدخول...";
+
+
+    try {
+
+      /*
+       * تسجيل الدخول في Firebase
+       */
+      const credential =
+        await loginUser(
+          phone,
+          password
+        );
+
+
+      /*
+       * قراءة بيانات المستخدم
+       */
+      const data =
+        await getCurrentUserData(
+          credential.user.uid
+        );
+
+
+      if (!data) {
+
+        await logoutUser();
+
+        throw new Error(
+          "تم تسجيل الدخول في Firebase، لكن لا يوجد ملف لهذا الحساب داخل users."
+        );
+
+      }
+
+
+      /*
+       * تحديد الصفحة حسب الدور
+       */
+      const home =
+        roleHome(data.role);
+
+
+      if (!home) {
+
+        await logoutUser();
+
+        throw new Error(
+          "دور الحساب غير صالح: " +
+          String(
+            data.role || "غير محدد"
+          )
+        );
+
+      }
+
+
+      /*
+       * دخول المستخدم
+       */
+      location.href =
+        home;
+
+
+    } catch (err) {
+
+      console.error(
+        "Phone Login Error:",
+        err
+      );
+
+      showToast(
+        loginErrorMessage(err)
+      );
+
+
+    } finally {
+
+      phoneLoginBtn.disabled = false;
+      googleLoginBtn.disabled = false;
+
+      phoneLoginBtn.textContent =
+        "دخول";
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   رسائل أخطاء تسجيل الدخول
+========================================= */
+
+function loginErrorMessage(err) {
+
+  const code =
+    err?.code || "";
+
+
+  if (
+    code.includes(
+      "network-request-failed"
+    ) ||
+    code.includes(
+      "unavailable"
+    )
+  ) {
+
+    return (
+      "يبدو أن الاتصال بالشبكة غير مستقر. " +
+      "حاول مرة أخرى."
+    );
+
+  }
+
+
+  if (
+    code.includes(
+      "invalid-credential"
+    ) ||
+    code.includes(
+      "wrong-password"
+    ) ||
+    code.includes(
+      "user-not-found"
+    )
+  ) {
+
+    return (
+      "رقم الهاتف أو كلمة المرور غير صحيحة."
+    );
+
+  }
+
+
+  if (
+    code.includes(
+      "too-many-requests"
+    )
+  ) {
+
+    return (
+      "محاولات كثيرة، حاول لاحقًا."
+    );
+
+  }
+
+
+  return (
+    "تعذر تسجيل الدخول حاليًا. " +
+    "تأكد من اتصالك بالإنترنت وحاول مرة أخرى."
+  );
+
+}
+
+</script>
+
+<script type="module">
+try {
+  const { firebaseConfig } = await import("../js/firebase-config.js");
+  if (firebaseConfig) window.__JW_FBASE_CONFIG__ = firebaseConfig;
+} catch (e) {
+  console.warn("Jawan Firebase config bridge:", e);
+}
+</script>
+<script type="module" src="../js/jawan-ai.js"></script>
+</body>
+</html>

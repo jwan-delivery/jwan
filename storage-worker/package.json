@@ -1,0 +1,15 @@
+{
+  "name": "jwan-storage-worker",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "jose": "^6.1.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.35.0"
+  },
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  }
+}

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>المحفظة | جوان</title>  <link rel="icon" href="../assets/branding/logo-external.png">
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand" style="margin-bottom:20px"><div class="brand-mark"><img src="/assets/branding/logo-external.png" alt="جوان للتوصيل"></div><div><div class="brand-name" style="color:#fff">جوان</div><small>السائق</small></div></div>
+  <a href="driver.html">لوحتي</a><a class="active" href="wallet.html">محفظتي</a><a href="support.html">تواصل مع الإدارة</a><a href="terms.html">الشروط</a>
+  
+</aside>
+<main class="content">
+<h2>محفظة السائق</h2>
+<p class="muted">تظهر هذه الصفحة للسائق فقط. العميل لا يحتاج إلى محفظة.</p>
+<div class="grid-3" style="margin:18px 0">
+  <div class="card kpi"><small>الرصيد</small><strong id="kpiBalance">—</strong></div>
+  <div class="card kpi"><small>عمولات مستقطعة</small><strong id="kpiCommission">—</strong></div>
+  <div class="card kpi"><small>إجمالي الشحن</small><strong id="kpiTopups">—</strong></div>
+</div>
+
+<div class="grid-2" style="align-items:start">
+  <div class="card">
+    <h3>طلب شحن المحفظة</h3>
+    <form id="topupForm">
+      <div class="form-group"><label>المبلغ</label><input name="amount" type="number" min="1" required></div>
+      <div class="form-group"><label>طريقة التحويل</label>
+        <select name="method" required><option>بنكك</option><option>فوري</option><option>أوكاش</option><option>ماي كاشي</option></select>
+      </div>
+      <p class="alert alert-success">
+        بعد التحويل، أرسل إشعار التحويل إلى
+        <a
+          id="topupWhatsapp"
+          href="https://wa.me/249964499266?text=السلام%20عليكم%20إدارة%20جوان،%20أنا%20سائق%20وأرغب%20في%20إرسال%20إشعار%20تحويل%20شحن%20المحفظة."
+          target="_blank"
+          rel="noopener noreferrer"
+          style="text-decoration:underline;font-weight:800"
+        >واتساب الإدارة</a>.
+        ستراجع الإدارة العملية ثم يتحدث رصيدك بعد الموافقة.
+      </p>
+      <button class="btn btn-primary" style="width:100%">إرسال طلب الشحن</button>
+</form>
+  </div>
+</div>
+
+<div class="card" style="margin-top:20px">
+  <h3>سجل المعاملات</h3>
+  <div id="txList" class="empty">جارٍ التحميل...</div>
+</div>
+</main></div>
+<script type="module" src="../js/app.js"></script>
+<script type="module">
+import { guardPage, logoutUser } from "../js/auth.js";
+import { listenWallet, listenWalletTransactions, createTopupRequest } from "../js/wallet.js";
+import { formatMoney, formatDate, showToast } from "../js/common.js";
+
+const { user } = await guardPage(["driver"]);
+
+
+listenWallet(user.uid, (wallet) => {
+  document.getElementById("kpiBalance").textContent = formatMoney(wallet?.balance || 0);
+  document.getElementById("kpiCommission").textContent = formatMoney(wallet?.totalCommission || 0);
+  document.getElementById("kpiTopups").textContent = formatMoney(wallet?.totalTopups || 0);
+});
+
+const TX_LABELS = { commission: "عمولة طلب", topup: "شحن رصيد" };
+
+listenWalletTransactions(user.uid, (txs) => {
+  const list = document.getElementById("txList");
+  if (!txs.length) { list.className = "empty"; list.textContent = "لا توجد معاملات بعد."; return; }
+  list.className = "";
+  list.innerHTML = txs.map(t => `
+    <div class="order-row">
+      <div><strong>${TX_LABELS[t.type] || t.type}</strong><div class="muted" style="font-size:12px">${formatDate(t.createdAt)}</div></div>
+      <div style="color:${t.amount < 0 ? '#a82018' : '#146d3e'};font-weight:700">${t.amount < 0 ? "-" : "+"}${formatMoney(Math.abs(t.amount))}</div>
+    </div>`).join("");
+});
+document.getElementById("topupForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector("button");
+  btn.disabled = true;
+  try {
+    await createTopupRequest(user.uid, form.amount.value, form.method.value);
+    showToast("تم إرسال طلب الشحن، بانتظار مراجعة الإدارة.");
+    form.reset();
+  } catch (err) {
+    showToast(err?.message || "تعذر إرسال الطلب.");
+  } finally {
+    btn.disabled = false;
+  }
+});</script>
+<script src="../js/driver-menu.js"></script>
+<script type="module">
+try {
+  const { firebaseConfig } = await import("../js/firebase-config.js");
+  if (firebaseConfig) window.__JW_FBASE_CONFIG__ = firebaseConfig;
+} catch (e) {
+  console.warn("Jawan Firebase config bridge:", e);
+}
+</script>
+<script type="module" src="../js/jawan-ai.js"></script>
+</body></html>

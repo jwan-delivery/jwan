@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>التحليلات | إدارة جوان</title>  <link rel="icon" href="../assets/branding/logo-external.png">
+</head>
+<body>
+<header class="mobilebar"><strong>جوان — الإدارة</strong><a href="../index.html">الرئيسية</a></header>
+<div class="app-shell">
+<aside class="sidebar">
+ <div class="brand" style="margin-bottom:20px"><div class="brand-mark"><img src="/assets/branding/logo-external.png" alt="جوان للتوصيل"></div><div><div class="brand-name" style="color:#fff">جوان</div><small>الإدارة</small></div></div>
+ <a href="admin.html">الرئيسية</a><a href="admin-orders.html">الطلبات</a><a href="admin-users.html">المستخدمون</a><a href="admin-topups.html">شحن المحافظ</a><a href="admin-withdrawals.html">السحوبات</a><a class="active" href="admin-analytics.html">التحليلات</a><a id="managersLink" href="admin-managers.html" style="display:none">المدراء</a><a href="support.html">الدعم</a>
+ <a href="#" id="logoutLink">تسجيل الخروج</a>
+</aside>
+<main class="content">
+<h1 class="page-title">التحليلات</h1>
+<p class="muted">مبنية على الطلبات المكتملة حتى الآن.</p>
+<div class="grid-3" style="margin:20px 0">
+ <div class="card kpi"><small>أفضل سائق (عدد طلبات)</small><strong id="topDriver">—</strong></div>
+ <div class="card kpi"><small>أسرع سائق (متوسط الوقت)</small><strong id="fastestDriver">—</strong></div>
+ <div class="card kpi"><small>متوسط زمن التوصيل</small><strong id="avgTime">—</strong></div>
+ <div class="card kpi"><small>أكثر عميل طلبًا</small><strong id="topCustomerOrders">—</strong></div>
+ <div class="card kpi"><small>أكثر عميل إنفاقًا</small><strong id="topCustomerSpend">—</strong></div>
+</div>
+<div class="card"><h3>أيام نشاط السائقين (طلبات مكتملة)</h3><div id="activeDays" class="empty">جارٍ التحميل...</div></div>
+</main></div>
+<script type="module" src="../js/app.js"></script>
+<script type="module">
+import { guardPage, logoutUser } from "../js/auth.js";
+import { listenAllOrders } from "../js/orders.js";
+import { listenUsersByRole, computeAnalytics } from "../js/admin.js";
+import { escapeHtml, formatMoney } from "../js/common.js";
+
+const { data } = await guardPage(["admin", "super_admin"]);
+if (data.role === "super_admin") document.getElementById("managersLink").style.display = "block";
+document.getElementById("logoutLink").addEventListener("click", async (e) => {
+  e.preventDefault();
+  await logoutUser();
+  location.href = "login.html";
+});
+
+let orders = [], drivers = [], customers = [];
+
+function render() {
+  if (!orders.length) return;
+  const a = computeAnalytics(orders, [...drivers, ...customers]);
+
+  document.getElementById("topDriver").textContent = a.topDriver ? `${a.topDriver.name} (${a.topDriver.count})` : "لا توجد بيانات";
+  document.getElementById("fastestDriver").textContent = a.fastestDriver ? `${a.fastestDriver.name} (${a.fastestDriver.minutes} د)` : "لا توجد بيانات";
+  document.getElementById("avgTime").textContent = a.avgDeliveryMinutes !== null ? `${a.avgDeliveryMinutes} دقيقة` : "لا توجد بيانات";
+  document.getElementById("topCustomerOrders").textContent = a.topCustomerByOrders ? `${a.topCustomerByOrders.name} (${a.topCustomerByOrders.count})` : "لا توجد بيانات";
+  document.getElementById("topCustomerSpend").textContent = a.topCustomerBySpend ? `${a.topCustomerBySpend.name} (${formatMoney(a.topCustomerBySpend.spent)})` : "لا توجد بيانات";
+
+  const el = document.getElementById("activeDays");
+  const entries = Object.entries(a.driverActiveDays);
+  if (!entries.length) { el.className = "empty"; el.textContent = "لا توجد بيانات بعد."; return; }
+  el.className = "list";
+  el.innerHTML = entries.sort((x, y) => y[1] - x[1]).map(([name, days]) => `
+    <div class="list-item"><span>${escapeHtml(name)}</span><span>${days} يوم</span></div>`).join("");
+}
+
+listenAllOrders((list) => { orders = list; render(); }, 1000);
+listenUsersByRole("driver", (list) => { drivers = list; render(); });
+listenUsersByRole("customer", (list) => { customers = list; render(); });
+</script>
+<script type="module">
+try {
+  const { firebaseConfig } = await import("../js/firebase-config.js");
+  if (firebaseConfig) window.__JW_FBASE_CONFIG__ = firebaseConfig;
+} catch (e) {
+  console.warn("Jawan Firebase config bridge:", e);
+}
+</script>
+<script type="module" src="../js/jawan-ai.js"></script>
+</body></html>

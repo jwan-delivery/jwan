@@ -1,0 +1,20 @@
+{
+  "name": "jawan-delivery-mobile-app",
+  "version": "1.0.0",
+  "description": "غلاف Android لتطبيق جوان للتوصيل عبر Capacitor",
+  "private": true,
+  "scripts": {
+    "sync-web": "bash sync-web.sh",
+    "sync": "npm run sync-web && npx cap sync android"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "typescript": "^7.0.2"
+  }
+}

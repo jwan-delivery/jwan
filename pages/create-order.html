@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+  <title>طلب جديد | جوان</title>
+  <link rel="icon" href="../assets/branding/logo-external.png">
+</head>
+<body>
+<div class="page wrap">
+  <div class="card form">
+    <h2>إنشاء طلب توصيل</h2>
+    <p class="muted">حدد المركبة والتفاصيل. لا يحسب التطبيق السعر؛ السائق يقدم عرض السعر ويتم التفاوض داخل التطبيق.</p>
+    <div id="pendingNotice" class="alert alert-danger" style="display:none">حسابك بانتظار مراجعة الإدارة، لا يمكنك إنشاء طلب الآن.</div>
+    <div id="stateNotice" class="alert alert-success">ولايتك: <strong id="stateName">—</strong>. لن يقبل الطلب إلا سائقون من نفس الولاية.</div>
+
+    <form id="orderForm">
+      <div class="form-group">
+        <label for="vehicleType">نوع المركبة المطلوبة</label>
+        <select id="vehicleType" name="vehicleType" required>
+          <option value="">اختر نوع المركبة</option>
+          <option value="car">سيارة</option>
+          <option value="rickshaw">ركشة</option>
+          <option value="motorcycle">موتر</option>
+          <option value="tuk_tuk">تكتك</option>
+          <option value="truck">دفار</option>
+          <option value="bus">حافلة</option>
+          <option value="amjad">أمجاد</option>
+          <option value="kreez">كريز</option>
+          <option value="taxi">تاكسي</option>
+          <option value="tanker">تنكر</option>
+          <option value="crane">كرين</option>
+          <option value="tow_truck">رافعة</option>
+          <option value="lorry">لوري</option>
+          <option value="limousine">ليموزين</option>
+        </select>
+      </div>
+
+      <section id="passengerFields" class="card" style="margin:0 0 16px;box-shadow:none" hidden>
+        <h3 style="margin-top:0">تفاصيل الركاب</h3>
+        <div class="form-group">
+          <label for="passengerCount">عدد الركاب</label>
+          <input id="passengerCount" name="passengerCount" type="number" min="1" max="100" inputmode="numeric">
+        </div>
+        <div class="form-group luggage-inline-group">
+          <label class="check luggage-inline">
+            <input id="hasLuggage" name="hasLuggage" type="checkbox">
+            <span>يوجد أمتعة</span>
+          </label>
+        </div>
+        <div id="luggageField" class="form-group" hidden>
+          <label for="luggageDescription">وصف الأمتعة</label>
+          <textarea id="luggageDescription" name="luggageDescription" rows="2" maxlength="500"></textarea>
+        </div>
+      </section>
+
+      <section id="cargoFields" class="card" style="margin:0 0 16px;box-shadow:none" hidden>
+        <h3 style="margin-top:0">تفاصيل البضاعة</h3>
+        <div class="form-group">
+          <label for="cargoType">نوع البضاعة</label>
+          <input id="cargoType" name="cargoType" maxlength="120" placeholder="مثال: أثاث، مواد غذائية، مياه...">
+        </div>
+        <div class="form-group">
+          <label for="cargoDescription">وصف البضاعة</label>
+          <textarea id="cargoDescription" name="cargoDescription" rows="3" maxlength="1000"></textarea>
+        </div>
+      </section>
+
+      <div class="form-group">
+        <label for="description">ملاحظات إضافية (اختياري)</label>
+        <textarea id="description" name="description" rows="3" maxlength="1000" placeholder="أي تعليمات إضافية للسائق"></textarea>
+      </div>
+
+      <div class="route-input-grid">
+        <div class="form-group">
+          <label for="origin">مكان الاستلام</label>
+          <input id="origin" name="origin" maxlength="250" required>
+        </div>
+        <div class="form-group">
+          <label for="destination">مكان التسليم</label>
+          <input id="destination" name="destination" maxlength="250" required>
+        </div>
+      </div>
+
+      <div class="alert alert-success">
+        بعد قبول السائق للطلب ستفتح مفاوضة لمدة 30 دقيقة. السائق يقدم العرض الأول، ويمكن للطرف الآخر قبوله أو رفضه أو تقديم عرض مقابل.
+      </div>
+
+      <label class="check">
+        <input id="confirm" type="checkbox" required>
+        <span>أؤكد أن بيانات الطلب صحيحة.</span>
+      </label>
+
+      <button id="submitBtn" class="btn btn-primary" style="width:100%;margin-top:16px" type="submit">إرسال الطلب</button>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="../js/app.js"></script>
+<script type="module">
+import { guardPage } from "../js/auth.js";
+import { PASSENGER_VEHICLES, CARGO_VEHICLES, createOrder } from "../js/orders.js";
+import { showToast } from "../js/common.js";
+
+const { user, data } = await guardPage(["customer"]);
+
+const form = document.getElementById("orderForm");
+const vehicle = document.getElementById("vehicleType");
+const passengerFields = document.getElementById("passengerFields");
+const cargoFields = document.getElementById("cargoFields");
+const passengerCount = document.getElementById("passengerCount");
+const hasLuggage = document.getElementById("hasLuggage");
+const luggageField = document.getElementById("luggageField");
+const submitBtn = document.getElementById("submitBtn");
+
+document.getElementById("stateName").textContent = data.state || "غير محددة";
+
+function renderVehicleFields() {
+  const selected = vehicle.value;
+  const isPassenger = PASSENGER_VEHICLES.includes(selected);
+  const isCargo = CARGO_VEHICLES.includes(selected);
+
+  passengerFields.hidden = !isPassenger;
+  cargoFields.hidden = !isCargo;
+
+  passengerCount.required = isPassenger;
+
+  document.getElementById("cargoType").required = isCargo;
+  document.getElementById("cargoDescription").required = isCargo;
+
+  if (!isPassenger) {
+    passengerCount.value = "";
+    hasLuggage.checked = false;
+    luggageField.hidden = true;
+  }
+
+  if (!isCargo) {
+    document.getElementById("cargoType").value = "";
+    document.getElementById("cargoDescription").value = "";
+  }
+}
+
+vehicle.addEventListener("change", renderVehicleFields);
+hasLuggage.addEventListener("change", () => {
+  luggageField.hidden = !hasLuggage.checked;
+  document.getElementById("luggageDescription").required = hasLuggage.checked;
+});
+
+renderVehicleFields();
+
+if (data.status !== "active") {
+  document.getElementById("pendingNotice").style.display = "block";
+  form.querySelectorAll("input, textarea, select, button").forEach((el) => {
+    el.disabled = true;
+  });
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  submitBtn.disabled = true;
+
+  try {
+    await createOrder(user.uid, {
+      vehicleType: vehicle.value,
+      passengerCount: passengerCount.value,
+      hasLuggage: hasLuggage.checked,
+      luggageDescription: document.getElementById("luggageDescription").value,
+      cargoType: document.getElementById("cargoType").value,
+      cargoDescription: document.getElementById("cargoDescription").value,
+      description: document.getElementById("description").value,
+      origin: form.origin.value,
+      destination: form.destination.value
+    });
+
+    showToast("تم إرسال الطلب. بانتظار سائق من نفس الولاية ثم يبدأ التفاوض على السعر.");
+    setTimeout(() => {
+      location.href = "customer.html";
+    }, 500);
+  } catch (err) {
+    showToast(err?.message || "تعذر إرسال الطلب.");
+    submitBtn.disabled = false;
+  }
+});
+</script>
+<script type="module">
+try {
+  const { firebaseConfig } = await import("../js/firebase-config.js");
+  if (firebaseConfig) window.__JW_FBASE_CONFIG__ = firebaseConfig;
+} catch (e) {
+  console.warn("Jawan Firebase config bridge:", e);
+}
+</script>
+<script type="module" src="../js/jawan-ai.js"></script>
+</body>
+</html>

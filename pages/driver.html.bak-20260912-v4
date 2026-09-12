@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>لوحة السائق | جوان</title>  <link rel="icon" href="../assets/icons/icon-192.svg">
+</head>
+<body>
+<header class="mobilebar">
+  <strong>جوان</strong>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button id="driverRefreshBtn" class="icon-btn" type="button" aria-label="تحديث الطلبات" title="تحديث الطلبات">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0 2 5"/><path d="M20 4v7h-7"/></svg>
+    </button>
+    <button id="driverMenuBtn" class="icon-btn" type="button" aria-label="فتح قائمة السائق" aria-expanded="false">
+      <svg class="driver-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+    </button>
+  </div>
+</header>
+<div id="driverMenuBackdrop" class="driver-menu-backdrop"></div>
+<aside id="driverMenu" class="driver-menu" aria-hidden="true">
+  <div class="driver-menu-head"><strong>قائمة السائق</strong><button id="driverMenuClose" class="icon-btn" type="button" aria-label="إغلاق">×</button></div>
+  <a href="driver.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l8-8 8 8"/><path d="M6 10v10h12V10"/></svg>لوحتي</a>
+  <a href="driver-orders.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5h14v14H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>طلباتي السابقة</a>
+  <a href="driver-analytics.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>تحليلاتي</a>
+  <a href="wallet.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16v14H4z"/><path d="M16 12h4"/><path d="M7 6V4h10v2"/></svg>شحن المحفظة</a>
+  <a href="support.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg>الدعم داخل التطبيق</a>
+  <a data-whatsapp="contact" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L4 20l1.1-4.2A8.4 8.4 0 1 1 21 11.5Z"/><path d="M8.5 9.2c.3 1.8 2.4 3.7 4.2 4.1l1.4-1.1 1.3 1.2c.4.4.4 1-.1 1.3-3.1 1.6-7.9-3-6.4-6.1.2-.4.9-.5 1.2-.1l1.2 1.3-1 1.4c-.4-.2-1.5-1-1.8-1.9Z"/></svg>راسلنا على واتساب</a>
+  <a href="driver-profile.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>ملفي وبياناتي</a>
+</aside>
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand" style="margin-bottom:20px"><div class="brand-mark"><img src="../assets/branding/jawan-mark.svg" alt="جوان للتوصيل"></div><div><div class="brand-name" style="color:#fff">جوان</div><small id="userName">السائق</small></div></div>
+  <a class="active" href="driver.html">لوحتي</a><a href="wallet.html">محفظتي</a><a href="support.html">تواصل مع الإدارة</a>
+  <a href="terms.html">الشروط</a>
+  
+</aside>
+<main class="content">
+<h1 class="page-title">لوحة السائق</h1><p class="muted">الطلبات المتاحة والمفاوضات والمحفظة.</p>
+
+<div id="pendingBanner" class="card" style="display:none;border:2px solid #f0b400;background:#fffaf0;margin-bottom:20px">
+  <h3 style="margin-top:0">تفعيل حساب السائق</h3>
+  <p>حسابك بانتظار التفعيل. أرسل مستندات المركبة وإشعار تحويل <strong>10,000 ج.س</strong> للإدارة عبر واتساب.</p>
+  <a class="btn btn-success" href="https://wa.me/249964499266?text=السلام%20عليكم%20-%20أرغب%20في%20تفعيل%20حساب%20السائق%20في%20جوان.%20سأرسل%20المستندات%20وإشعار%20تحويل%20بقيمة%2010%2C000%20ج.س." target="_blank" rel="noopener">تواصل مع الإدارة عبر واتساب</a>
+</div>
+
+<div class="grid-4" style="margin:20px 0">
+  <div class="card kpi"><small>رصيد المحفظة</small><strong id="kpiBalance">—</strong></div>
+  <div class="card kpi"><small>طلبات مكتملة</small><strong id="kpiCompleted">0</strong></div>
+  <div class="card kpi"><small>طلبات نشطة</small><strong id="kpiActive">0</strong></div>
+  <div class="card kpi"><small>أيام النشاط</small><strong id="kpiActiveDays">0</strong></div>
+</div>
+
+<div id="balanceNotice" class="alert alert-warning" style="display:none;margin-bottom:20px">
+  رصيدك صفر حاليًا 😊 اشحن المحفظة قليلًا من صفحة
+  <a href="wallet.html" style="text-decoration:underline;font-weight:800">المحفظة</a>
+  ثم ارجع لاستقبال الطلبات.
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h3>طلباتي الحالية</h3><span id="stateBadge" class="badge badge-info">—</span></div>
+  <div id="myOrders" class="empty">جارٍ التحميل...</div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h3>طلبات متاحة في ولايتي</h3><span class="badge badge-info">تحديث مباشر</span></div>
+  <div id="availableOrders" class="empty">جارٍ التحميل...</div>
+</div>
+</main></div>
+
+<script type="module" src="../js/app.js"></script>
+<script type="module">
+import {
+  guardPage,
+  VEHICLE_TYPES,
+  setupLogoutButtons,
+  linkGoogleAccount
+} from "../js/auth.js";
+import {
+  listenAvailableOrders, listenMyOrders,
+  acceptOrder, pickupOrder, startDelivering, markDelivered, driverCancelOrder, driverFinalizeOrder,
+  driverNet
+} from "../js/orders.js";
+import { listenWallet } from "../js/wallet.js";
+import { listenNegotiation, listenOrderContacts, startNegotiation, proposePrice, respondToOffer } from "../js/negotiation.js";
+import { escapeHtml, formatMoney, formatDate, statusLabel, statusBadgeClass, showToast } from "../js/common.js";
+
+setupLogoutButtons();
+
+const { user, data } = await guardPage(["driver"]);
+
+const googleLinkButton = document.getElementById("googleLinkBtn");
+if (googleLinkButton) {
+  if ((user.providerData || []).some((p) => p.providerId === "google.com")) {
+    googleLinkButton.textContent = "Google مرتبط بالحساب";
+    googleLinkButton.disabled = true;
+  } else {
+    googleLinkButton.addEventListener("click", async () => {
+      googleLinkButton.disabled = true;
+      try {
+        await linkGoogleAccount();
+        showToast("تم ربط حساب Google بنجاح.");
+        googleLinkButton.textContent = "Google مرتبط بالحساب";
+      } catch (err) {
+        showToast(err?.code === "auth/credential-already-in-use" ? "حساب Google مرتبط بحساب آخر." : (err?.message || "تعذر ربط Google."));
+        googleLinkButton.disabled = false;
+      }
+    });
+  }
+}
+
+document.getElementById("userName").textContent = data.name || "السائق";
+document.getElementById("stateBadge").textContent = data.state || "لا توجد ولاية";
+
+if (data.status === "pending") document.getElementById("pendingBanner").style.display = "block";
+
+
+let walletBalance = 0;
+let latestAvailableOrders = [];
+
+listenWallet(user.uid, (wallet) => {
+  walletBalance = wallet ? Number(wallet.balance || 0) : 0;
+
+  document.getElementById("kpiBalance").textContent =
+    formatMoney(walletBalance);
+
+  const notice = document.getElementById("balanceNotice");
+  if (notice) {
+    notice.style.display = walletBalance <= 0 ? "block" : "none";
+  }
+
+  if (latestAvailableOrders.length) {
+    renderAvailableOrders(latestAvailableOrders);
+  }
+});
+
+const negotiationUnsubs = new Map();
+
+listenMyOrders("driver", user.uid, (orders) => {
+  document.getElementById("kpiCompleted").textContent = orders.filter(o => o.status === "completed").length;
+  const active = orders.filter(o => ["accepted","picked_up","delivering","awaiting_confirmation"].includes(o.status));
+  document.getElementById("kpiActive").textContent = active.length;
+
+  const days = new Set(
+    orders.filter(o => o.status === "completed" && o.completedAt?.toDate)
+      .map(o => o.completedAt.toDate().toISOString().slice(0,10))
+  );
+  document.getElementById("kpiActiveDays").textContent = days.size;
+
+  const container = document.getElementById("myOrders");
+  if (!active.length) {
+    container.className = "empty"; container.textContent = "لا توجد طلبات جارية."; return;
+  }
+
+  container.className = "";
+  container.innerHTML = active.map(renderActiveOrder).join("");
+  bindActiveActions(container, active);
+
+  for (const order of active) {
+    if (negotiationUnsubs.has(order.id)) continue;
+    negotiationUnsubs.set(order.id, listenNegotiation(order.id, (state) => updateNegotiationUI(order.id, state)));
+    listenOrderContacts(order.id, (contacts) => renderContacts(order.id, contacts));
+  }
+});
+
+listenAvailableOrders(data.state, (orders) => {
+  const container = document.getElementById("availableOrders");
+  if (!orders.length) {
+    container.className = "empty"; container.textContent = "لا توجد طلبات متاحة حاليًا في ولايتك."; return;
+  }
+  container.className = "";
+  container.innerHTML = orders.map(o => `
+    <div class="order-row" data-id="${o.id}">
+      <div>
+        <strong>${escapeHtml(VEHICLE_TYPES[o.vehicleType] || o.vehicleType)}</strong>
+        <div class="muted">${escapeHtml(o.origin)} ← ${escapeHtml(o.destination)}</div>
+        <div class="muted" style="font-size:12px">${escapeHtml(orderDetails(o))}</div>
+      </div>
+      <div style="text-align:left">
+        <span class="badge badge-info">السعر بالتفاوض</span><br>
+        <button class="btn btn-primary btn-sm accept-btn" ${data.status === "active" && walletBalance > 0 ? "" : "disabled"}>${walletBalance > 0 ? "قبول الطلب وبدء التفاوض" : "اشحن الرصيد أولًا"}</button>
+      </div>
+    </div>`).join("");
+
+  container.querySelectorAll(".accept-btn").forEach(btn => {
+    btn.addEventListener("click", () => runAction(btn, () => acceptOrder(btn.closest(".order-row").dataset.id, user.uid)));
+  });
+});
+
+function renderActiveOrder(o) {
+  const fee = Number(o.agreedFee || o.deliveryFee || 0);
+  const feeText = fee > 0 ? `الأجرة المتفق عليها: ${formatMoney(fee)} — صافي لك بعد 5%: ${formatMoney(driverNet(fee))}` : "لم يتم الاتفاق على السعر بعد.";
+  return `<div class="order-row" data-id="${o.id}">
+    <div style="flex:1">
+      <strong>${escapeHtml(VEHICLE_TYPES[o.vehicleType] || o.vehicleType)}</strong>
+      <div class="muted">${escapeHtml(o.origin)} ← ${escapeHtml(o.destination)}</div>
+      <div class="muted" style="font-size:12px">${escapeHtml(orderDetails(o))}</div>
+      <div id="neg-${o.id}" class="negotiation-summary" style="margin-top:12px"></div>
+      <div id="contacts-${o.id}" style="margin-top:10px"></div>
+    </div>
+    <div style="text-align:left;min-width:170px">
+      <div>${feeText}</div>
+      <span class="${statusBadgeClass(o.status)}">${statusLabel(o.status)}</span>
+      <div id="actions-${o.id}" style="margin-top:6px"></div>
+      <div class="muted" style="font-size:12px;margin-top:6px">${formatDate(o.createdAt)}</div>
+    </div>
+  </div>`;
+}
+
+function updateNegotiationUI(orderId, state) {
+  const box = document.getElementById(`neg-${orderId}`);
+  if (!box) return;
+  const n = state.negotiation;
+  if (!n) {
+    box.innerHTML = `<a class="btn btn-primary btn-sm" href="negotiation.html?order=${encodeURIComponent(orderId)}">فتح صفحة التفاوض</a>`;
+    return updateActions(orderId, null);
+  }
+  const status = n.status === "agreed" ? `تم الاتفاق على ${formatMoney(n.currentOffer)}` : (n.currentOffer == null ? "في انتظار العرض الأول" : `العرض الحالي ${formatMoney(n.currentOffer)}`);
+  box.innerHTML = `<div class="glass-wide" style="padding:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><strong>${status}</strong><a class="btn btn-primary btn-sm" href="negotiation.html?order=${encodeURIComponent(orderId)}">فتح التفاوض</a></div>`;
+  updateActions(orderId, n);
+}
+
+function updateActions(orderId, negotiation) {
+  const el = document.getElementById(`actions-${orderId}`);
+  if (!el) return;
+
+  const row = el.closest(".order-row");
+  const status = row?.querySelector("span")?.textContent || "";
+  const agreed = negotiation?.status === "agreed";
+
+  let html = "";
+  if (status === statusLabel("accepted")) {
+    html = agreed
+      ? `<button class="btn btn-primary btn-sm pickup-btn">تم استلام الطلب</button><button class="btn btn-dark btn-sm cancel-btn">إلغاء</button>`
+      : `<div class="muted" style="font-size:12px">أرسل أول عرض سعر لإتمام الاتفاق.</div>`;
+  }
+  const currentOrder = currentOrders.get(orderId);
+  if (currentOrder?.status === "picked_up") html = `<button class="btn btn-primary btn-sm start-btn">بدء التوصيل</button><button class="btn btn-dark btn-sm cancel-btn">إلغاء</button>`;
+  if (currentOrder?.status === "delivering") html = `<button class="btn btn-primary btn-sm deliver-btn">تم التسليم</button>`;
+  if (currentOrder?.status === "awaiting_confirmation") {
+    html = currentOrder.customerConfirmedAt ? `<button class="btn btn-primary btn-sm finalize-btn">تأكيد وإغلاق</button>` : `<span class="muted">بانتظار تأكيد العميل</span>`;
+  }
+  el.innerHTML = html;
+  bindSingleOrderActions(orderId);
+}
+
+const currentOrders = new Map();
+function bindActiveActions(container, orders) {
+  orders.forEach(o => currentOrders.set(o.id, o));
+  container.querySelectorAll(".cancel-btn").forEach(btn => btn.addEventListener("click", () => cancelActive(btn)));
+}
+function bindSingleOrderActions(orderId) {
+  const row = document.querySelector(`.order-row[data-id="${orderId}"]`);
+  if (!row) return;
+  row.querySelector(".pickup-btn")?.addEventListener("click", () => runAction(row.querySelector(".pickup-btn"), () => pickupOrder(orderId)));
+  row.querySelector(".start-btn")?.addEventListener("click", () => runAction(row.querySelector(".start-btn"), () => startDelivering(orderId)));
+  row.querySelector(".deliver-btn")?.addEventListener("click", () => runAction(row.querySelector(".deliver-btn"), () => markDelivered(orderId)));
+  row.querySelector(".finalize-btn")?.addEventListener("click", () => runAction(row.querySelector(".finalize-btn"), () => driverFinalizeOrder(orderId, user.uid)));
+  row.querySelector(".cancel-btn")?.addEventListener("click", () => cancelActive(row.querySelector(".cancel-btn")));
+}
+async function cancelActive(btn) {
+  const row = btn.closest(".order-row"); const reason = prompt("سبب إلغاء الطلب؟");
+  if (!reason) return;
+  runAction(btn, () => driverCancelOrder(row.dataset.id, user.uid, reason));
+}
+
+function renderContacts(orderId, contacts) {
+  const el = document.getElementById(`contacts-${orderId}`);
+  if (!el || !contacts) return;
+  el.innerHTML = `<div class="alert alert-success">أرقام التواصل بعد الاتفاق: العميل ${escapeHtml(contacts.customerPhone || "—")} | السائق ${escapeHtml(contacts.driverPhone || "—")}</div>`;
+}
+
+function orderDetails(o) {
+  if (o.serviceCategory === "passenger") {
+    const luggage = o.hasLuggage ? `، أمتعة: ${o.luggageDescription || "نعم"}` : "، بدون أمتعة";
+    return `ركاب: ${o.passengerCount}${luggage}`;
+  }
+  return `بضاعة: ${o.cargoType || ""} — ${o.cargoDescription || ""}`;
+}
+
+async function runAction(btn, action) {
+  btn.disabled = true;
+  try { await action(); showToast("تمت العملية."); }
+  catch (err) { showToast(err?.message || "حدث خطأ، حاول مرة أخرى."); btn.disabled = false; }
+}
+const driverMenuBtn = document.getElementById("driverMenuBtn");
+const driverMenu = document.getElementById("driverMenu");
+const driverMenuBackdrop = document.getElementById("driverMenuBackdrop");
+const driverMenuClose = document.getElementById("driverMenuClose");
+function setDriverMenu(open){ driverMenu.classList.toggle("open",open); driverMenuBackdrop.classList.toggle("open",open); driverMenu.setAttribute("aria-hidden",String(!open)); driverMenuBtn.setAttribute("aria-expanded",String(open)); document.body.style.overflow = open ? "hidden" : ""; }
+driverMenuBtn?.addEventListener("click",()=>setDriverMenu(!driverMenu.classList.contains("open")));
+driverMenuClose?.addEventListener("click",()=>setDriverMenu(false));
+driverMenuBackdrop?.addEventListener("click",()=>setDriverMenu(false));
+driverMenu?.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>setDriverMenu(false)));
+document.getElementById("driverRefreshBtn")?.addEventListener("click", (e)=>{ e.currentTarget.classList.add("rotating"); location.reload(); });
+
+</script>
+<script src="../js/driver-menu.js"></script>
+</body></html>

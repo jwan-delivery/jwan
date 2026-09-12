@@ -1,0 +1,170 @@
+
+/* Jawan — final glass landing layer */
+:root{
+  --j-yellow:#f5c400;
+  --j-yellow-soft:#ffd84a;
+  --j-ink:#070708;
+  --j-white:#fff;
+  --j-muted:rgba(255,255,255,.70);
+  --j-line:rgba(255,255,255,.11);
+  --j-glass:rgba(255,255,255,.055);
+  --j-glass-strong:rgba(255,255,255,.09);
+  --j-shadow:0 24px 80px rgba(0,0,0,.42);
+}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+body{line-height:1.95;background:
+ radial-gradient(circle at 8% 6%,rgba(245,196,0,.16),transparent 26%),
+ radial-gradient(circle at 92% 18%,rgba(255,255,255,.045),transparent 22%),
+ linear-gradient(180deg,#050506 0%,#0a0a0c 48%,#050506 100%);}
+.header{background:rgba(8,8,8,.58)!important;border-bottom:1px solid var(--j-line)!important;backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%)}
+.header-inner{min-height:82px}
+.brand{gap:11px}
+.brand-logo{width:48px!important;height:48px!important;border-radius:16px!important;background:rgba(255,255,255,.06)!important;border:1px solid rgba(245,196,0,.32);box-shadow:0 10px 36px rgba(245,196,0,.14)!important}
+.brand-logo img{object-fit:cover!important;padding:0!important}
+.brand-name{letter-spacing:-.01em}
+.login-btn,.menu-btn{background:rgba(255,255,255,.05)!important;border:1px solid rgba(255,255,255,.11)!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.login-btn{color:var(--j-white)!important}
+.login-btn:hover{color:var(--j-yellow)!important;border-color:rgba(245,196,0,.4)!important;transform:translateY(-1px)}
+.menu-btn{position:relative;overflow:hidden}
+.menu-btn svg{transition:transform .35s cubic-bezier(.22,.61,.36,1)}
+.menu-btn:hover svg{transform:scale(1.08)}
+.menu-btn:active{transform:scale(.93)}
+.menu-btn svg path{transform-box:fill-box;transform-origin:center;transition:transform .32s cubic-bezier(.22,.61,.36,1),opacity .22s ease}
+#menuBtn[aria-expanded="true"] svg path:nth-child(1){transform:translateY(6px) rotate(45deg)}
+#menuBtn[aria-expanded="true"] svg path:nth-child(2){opacity:0}
+#menuBtn[aria-expanded="true"] svg path:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+.hero{padding:110px 0 90px;min-height:690px;display:flex;align-items:center;position:relative}
+.hero:before,.hero:after{content:"";position:absolute;border-radius:50%;pointer-events:none;filter:blur(10px)}
+.hero:before{width:220px;height:220px;background:rgba(245,196,0,.08);right:8%;top:8%}
+.hero:after{width:180px;height:180px;background:rgba(255,255,255,.035);left:8%;bottom:4%}
+.hero-grid{position:relative;z-index:1;gap:44px}
+.hero-badge{display:inline-flex;gap:9px;align-items:center;padding:8px 13px;border-radius:999px;background:var(--j-glass);border:1px solid var(--j-line);box-shadow:inset 0 1px rgba(255,255,255,.05);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.hero-badge span{animation:statusPulse 1.9s ease-in-out infinite}
+@keyframes statusPulse{0%,100%{box-shadow:0 0 0 0 rgba(245,196,0,.20)}50%{box-shadow:0 0 0 9px rgba(245,196,0,0)}}
+.hero h1{line-height:1.18;letter-spacing:-.035em;font-size:clamp(2.7rem,6vw,5.4rem);margin:20px 0 18px}
+.hero h1 span{color:var(--j-yellow);display:inline-block}
+.hero-description{max-width:720px;color:var(--j-muted);font-size:1.06rem;line-height:2.15;margin-bottom:28px}
+.hero-buttons{gap:12px}
+.hero-buttons .btn{min-height:52px;border-radius:17px}
+.hero-features{gap:12px;margin-top:27px}
+.hero-feature{padding:14px 16px;border:1px solid var(--j-line);background:var(--j-glass);border-radius:18px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:inset 0 1px rgba(255,255,255,.04)}
+.hero-feature svg{width:20px;height:20px;color:var(--j-yellow)}
+.hero-visual{filter:drop-shadow(0 28px 55px rgba(0,0,0,.35))}
+.floating{background:rgba(255,255,255,.065)!important;border:1px solid var(--j-line)!important;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:var(--j-shadow)!important}
+.quick-strip,.section,.cta{scroll-margin-top:90px}
+.quick-strip{margin-top:-34px;position:relative;z-index:3}
+.quick-grid{gap:14px}
+.quick-item,.service-card,.about-box,.contact-card,.steps .step,.vision-section,.cta,.jobs{background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.045))!important;border:1px solid var(--j-line)!important;box-shadow:var(--j-shadow);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px);border-radius:24px!important}
+.quick-item{padding:18px}
+.quick-item:hover,.service-card:hover,.contact-card:hover,.about-box:hover{transform:translateY(-5px);border-color:rgba(245,196,0,.28)!important}
+.section{padding:105px 0 30px}
+.section-heading{margin-bottom:34px}
+.section-heading h2{font-size:clamp(2rem,4vw,3rem);line-height:1.25;margin-top:8px}
+.section-heading p{line-height:2;color:var(--j-muted)}
+.service-grid{gap:18px}
+.service-card{padding:26px!important;min-height:210px}
+.service-icon,.contact-icon{background:rgba(245,196,0,.10)!important;border:1px solid rgba(245,196,0,.16);color:var(--j-yellow)!important}
+.service-icon svg,.contact-icon svg{width:25px;height:25px}
+.service-card p,.about-box p,.contact-card small{line-height:2;color:var(--j-muted)!important}
+.steps{gap:18px}
+.steps .step{padding:24px}
+.about-grid,.contact-grid{gap:18px}
+.cta{padding:35px!important;margin-top:25px}
+.drawer{background:rgba(11,11,12,.78)!important;border-left:1px solid var(--j-line)!important;backdrop-filter:blur(28px) saturate(150%);-webkit-backdrop-filter:blur(28px);box-shadow:-28px 0 80px rgba(0,0,0,.35)}
+.overlay{background:rgba(0,0,0,.55)!important;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.drawer-nav a{border:1px solid transparent;border-radius:16px;transition:transform .22s ease,background .22s ease,border-color .22s ease}
+.drawer-nav a:hover{background:rgba(255,255,255,.06)!important;border-color:var(--j-line);transform:translateX(-4px)}
+.close-btn{transition:transform .35s cubic-bezier(.2,.7,.2,1)!important}
+.close-btn:hover{transform:rotate(90deg) scale(1.06)}
+/* scroll reveal: .reveal is added by JS (progressive enhancement) so pages
+   with JS disabled simply keep the default, fully-visible state below */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in-view{opacity:1;transform:translateY(0)}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+/* remove visible decorative extras if present */
+#vision,#jobs,.whatsapp{display:none!important}
+@media (max-width:800px){
+  .header-inner{min-height:72px}
+  .hero{padding:78px 0 72px;min-height:auto}
+  .hero-grid{gap:30px}
+  .hero h1{font-size:clamp(2.35rem,12vw,4rem)}
+  .hero-description{font-size:.98rem;line-height:2.05}
+  .hero-features{display:grid;grid-template-columns:1fr}
+  .quick-grid{grid-template-columns:1fr 1fr}
+  .section{padding-top:78px}
+  .service-grid,.about-grid,.contact-grid{grid-template-columns:1fr}
+}
+@media (max-width:460px){
+  .login-btn{padding-inline:12px!important;min-width:auto!important}
+  .brand-name{font-size:1rem!important}
+  .quick-grid{grid-template-columns:1fr}
+  .hero-buttons{flex-direction:column}
+  .hero-buttons .btn{width:100%}
+}
+/* ===== FIX HOME DRAWER AFTER SCROLL ===== */
+
+#overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 99990 !important;
+}
+
+#drawer {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+
+    width: min(330px, 88vw) !important;
+    height: 100dvh !important;
+
+    z-index: 99999 !important;
+
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    visibility: hidden;
+    pointer-events: none;
+}
+
+#drawer.open {
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: translateX(0) !important;
+}
+
+#overlay.show {
+    z-index: 99990 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+/* ===== Jwan Hamburger Fix After Scroll ===== */
+
+.hamburger-menu,
+.mobile-menu,
+.nav-menu,
+.menu-panel,
+.side-menu,
+.drawer {
+    position: fixed !important;
+    z-index: 99999 !important;
+}
+
+.menu-overlay,
+.drawer-overlay,
+.mobile-menu-overlay,
+.overlay {
+    position: fixed !important;
+    z-index: 99990 !important;
+}
+
+/* زر الهمبرجر نفسه */
+.hamburger,
+.hamburger-btn,
+.menu-toggle,
+#hamburger,
+#menuToggle {
+    position: relative !important;
+    z-index: 100000 !important;
+}

@@ -1,0 +1,12 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>تحليلاتي | جوان</title>  <link rel="icon" href="../assets/branding/logo-external.png">
+</head><body><main class="content" style="max-width:1000px;margin:auto;padding:20px 14px"><div class="card"><h1 class="page-title">تحليلاتي</h1><p class="muted">أرقامك الشخصية من نشاطك داخل جوان.</p><div class="grid-4" style="margin:20px 0"><div class="card kpi"><small>مكتملة</small><strong id="completed">0</strong></div><div class="card kpi"><small>ملغاة</small><strong id="cancelled">0</strong></div><div class="card kpi"><small>الدخل المتفق عليه</small><strong id="revenue">0</strong></div><div class="card kpi"><small>متوسط الطلب</small><strong id="avg">0</strong></div></div><div class="glass-wide" style="padding:22px"><h3>ملخص النشاط</h3><p id="summary" class="muted">جارٍ التحميل...</p></div></div></main><script type="module">import { guardPage } from "../js/auth.js"; import { listenMyOrders } from "../js/orders.js"; import { formatMoney } from "../js/common.js"; const {user}=await guardPage(["driver"]); listenMyOrders("driver",user.uid,(orders)=>{const c=orders.filter(o=>o.status==="completed"),x=orders.filter(o=>o.status==="cancelled"),sum=c.reduce((a,o)=>a+Number(o.agreedFee||o.deliveryFee||0),0);document.getElementById("completed").textContent=c.length;document.getElementById("cancelled").textContent=x.length;document.getElementById("revenue").textContent=formatMoney(sum);document.getElementById("avg").textContent=formatMoney(c.length?sum/c.length:0);document.getElementById("summary").textContent=c.length?`أنجزت ${c.length} طلبًا مكتملًا بإجمالي أجور متفق عليها ${formatMoney(sum)}.`:"لم تبدأ لديك طلبات مكتملة بعد.";});</script><script src="../js/driver-menu.js"></script>
+<script type="module">
+try {
+  const { firebaseConfig } = await import("../js/firebase-config.js");
+  if (firebaseConfig) window.__JW_FBASE_CONFIG__ = firebaseConfig;
+} catch (e) {
+  console.warn("Jawan Firebase config bridge:", e);
+}
+</script>
+<script type="module" src="../js/jawan-ai.js"></script>
+</body></html>

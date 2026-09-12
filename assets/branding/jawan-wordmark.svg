@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 110" role="img" aria-label="جوان للتوصيل">
+  <rect x="0" y="9" width="92" height="92" rx="22" fill="#0a0a0a"/>
+  <g transform="translate(46 55) scale(0.64) translate(-64 -70)">
+    <circle cx="34" cy="92" r="16" fill="none" stroke="#f5c400" stroke-width="10"/>
+    <circle cx="90" cy="92" r="16" fill="none" stroke="#f5c400" stroke-width="10"/>
+    <path d="M34 92C36 64 56 48 78 52C86 53.5 90 60 90 76" fill="none" stroke="#f5c400" stroke-width="10" stroke-linecap="round"/>
+    <path d="M80 50L94 34" fill="none" stroke="#f5c400" stroke-width="10" stroke-linecap="round"/>
+  </g>
+  <text x="116" y="48" font-family="Cairo, Segoe UI, sans-serif" font-size="34" font-weight="800" fill="#0a0a0a">جوان</text>
+  <text x="116" y="78" font-family="Cairo, Segoe UI, sans-serif" font-size="17" font-weight="600" fill="#6e6e6e">للتوصيل</text>
+</svg>

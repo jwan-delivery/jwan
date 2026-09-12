@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="utf-8">
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1">
+
+  <link
+    rel="stylesheet"
+    href="../css/style.css">
+
+  <title>الطلبات | إدارة جوان</title>
+  <link rel="icon" href="../assets/branding/logo-external.png">
+</head>
+
+<body>
+
+<header class="mobilebar">
+  <strong>جوان — الإدارة</strong>
+  <a href="../index.html">الرئيسية</a>
+</header>
+
+<div class="app-shell">
+
+  <aside class="sidebar">
+
+    <div
+      class="brand"
+      style="margin-bottom:20px">
+
+      <div class="brand-mark"><img src="/assets/branding/logo-external.png" alt="جوان للتوصيل"></div>
+
+      <div>
+        <div
+          class="brand-name"
+          style="color:#fff">
+          جوان
+        </div>
+
+        <small>الإدارة</small>
+      </div>
+
+    </div>
+
+    <a href="admin.html">الرئيسية</a>
+    <a class="active" href="admin-orders.html">الطلبات</a>
+    <a href="admin-users.html">المستخدمون</a>
+    <a href="admin-topups.html">شحن المحافظ</a>
+    <a href="admin-withdrawals.html">السحوبات</a>
+    <a href="admin-analytics.html">التحليلات</a>
+
+    <a
+      id="managersLink"
+      href="admin-managers.html"
+      style="display:none">
+      المدراء
+    </a>
+
+    <a href="create-order.html">
+      إنشاء طلب
+    </a>
+
+    <a href="wallet.html">
+      المحفظة
+    </a>
+
+    <a href="support.html">
+      الدعم
+    </a>
+
+    <a href="#" id="logoutLink">
+      تسجيل الخروج
+    </a>
+
+  </aside>
+
+  <main class="content">
+
+    <h1 class="page-title">
+      إدارة الطلبات
+    </h1>
+
+    <div
+      class="form-group"
+      style="max-width:260px">
+
+      <label>
+        تصفية حسب الحالة
+      </label>
+
+      <select id="filter">
+
+        <option value="">
+          الكل
+        </option>
+
+        <option value="pending">
+          بانتظار سائق
+        </option>
+
+        <option value="accepted">
+          مقبول
+        </option>
+
+        <option value="delivering">
+          قيد التوصيل
+        </option>
+
+        <option value="awaiting_confirmation">
+          بانتظار التأكيد
+        </option>
+
+        <option value="completed">
+          مكتمل
+        </option>
+
+        <option value="cancelled">
+          ملغي
+        </option>
+
+      </select>
+
+    </div>
+
+    <div class="card">
+
+      <div
+        id="ordersList"
+        class="empty">
+        جارٍ التحميل...
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+<script
+  type="module"
+  src="../js/app.js">
+</script>
+
+<script type="module">
+
+import {
+  guardPage,
+  logoutUser
+} from "../js/auth.js";
+
+import {
+  listenAllOrders,
+  cancelOrder
+} from "../js/orders.js";
+import { db } from "../js/firebase-config.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+import {
+  driverCommission
+} from "../js/wallet.js";
+
+import {
+  escapeHtml,
+  formatMoney,
+  formatDate,
+  statusLabel,
+  statusBadgeClass,
+  showToast
+} from "../js/common.js";
+
+const { data } =
+  await guardPage([
+    "admin",
+    "super_admin"
+  ]);
+
+if (data.role === "super_admin") {
+  document
+    .getElementById("managersLink")
+    .style.display = "block";
+}
+
+document
+  .getElementById("logoutLink")
+  .addEventListener(
+    "click",
+    async (event) => {
+
+      event.preventDefault();
+
+      await logoutUser();
+
+      location.href =
+        "login.html";
+    }
+  );
+
+let allOrders = [];
+
+document
+  .getElementById("filter")
+  .addEventListener(
+    "change",
+    render
+  );
+
+listenAllOrders(
+  (orders) => {
+
+    allOrders = orders;
+    render();
+
+  },
+  300
+);
+
+function render() {
+
+  const filter =
+    document.getElementById(
+      "filter"
+    ).value;
+
+  const list =
+    document.getElementById(
+      "ordersList"
+    );
+
+  const orders =
+    filter
+      ? allOrders.filter(
+          (o) => o.status === filter
+        )
+      : allOrders;
+
+  if (!orders.length) {
+
+    list.className = "empty";
+
+    list.textContent =
+      "لا توجد طلبات مطابقة.";
+
+    return;
+  }
+
+  list.className = "";
+
+  list.innerHTML =
+    orders.map((o) => {
+
+      const canCancel =
+        ["pending", "accepted"]
+          .includes(o.status);
+
+      const distance =
+        o.distanceKm !== undefined &&
+        o.distanceKm !== null
+          ? `${Number(o.distanceKm).toFixed(1)} كم`
+          : "غير متوفر";
+
+      const fee =
+        o.deliveryFee !== undefined &&
+        o.deliveryFee !== null
+          ? formatMoney(o.deliveryFee)
+          : "غير محسوب";
+
+      const commission =
+        o.deliveryFee !== undefined &&
+        o.deliveryFee !== null
+          ? formatMoney(
+              driverCommission(
+                o.deliveryFee
+              )
+            )
+          : "—";
+
+      return `
+        <div
+          class="order-row"
+          data-id="${o.id}">
+
+          <div>
+
+            <strong>
+              ${escapeHtml(o.type)}
+            </strong>
+
+            — 
+
+            ${escapeHtml(o.description)}
+
+            <div
+              class="muted"
+              style="font-size:13px">
+
+              الانطلاق:
+              ${escapeHtml(
+                o.origin || "—"
+              )}
+
+            </div>
+
+            <div
+              class="muted"
+              style="font-size:13px">
+
+              الوصول:
+              ${escapeHtml(
+                o.destination || "—"
+              )}
+
+            </div>
+
+            <div
+              class="muted"
+              style="font-size:12px">
+
+              المسافة:
+              ${distance}
+
+              ${
+                o.durationMinutes
+                  ? ` — ${Math.round(
+                      Number(
+                        o.durationMinutes
+                      )
+                    )} دقيقة`
+                  : ""
+              }
+
+            </div>
+
+            <div
+              class="muted"
+              style="font-size:12px">
+
+              ${formatDate(
+                o.createdAt
+              )}
+
+            </div>
+
+          </div>
+
+          <div
+            style="text-align:left">
+
+            <div>
+              <strong>
+                ${fee}
+              </strong>
+            </div>
+
+            <div
+              class="muted"
+              style="font-size:12px">
+
+              عمولة جوان:
+              ${commission}
+
+            </div>
+
+            <div
+              class="muted"
+              style="font-size:11px">
+
+              نظام السعر: تفاوض مباشر
+
+            </div>
+
+            <span
+              class="${statusBadgeClass(
+                o.status
+              )}">
+
+              ${statusLabel(
+                o.status
+              )}
+
+            </span>
+
+            ${
+              canCancel
+                ? `
+                  <button
+                    class="btn btn-dark btn-sm cancel-btn">
+                    إلغاء
+                  </button>
+                `
+                : ""
+            }
+
+          </div>
+
+        </div>
+      `;
+
+    }).join("");
+
+  list
+    .querySelectorAll(".details-btn")
+    .forEach((button) => {
+      button.addEventListener("click", async () => {
+        const row = button.closest(".order-row");
+        const details = row.querySelector(".order-details");
+        if (details.style.display !== "none") {
+          details.style.display = "none";
+          button.textContent = "تفاصيل الطلب";
+          return;
+        }
+        const id = row.dataset.id;
+        const order = allOrders.find((item) => item.id === id);
+        if (!order) return;
+        button.disabled = true;
+        try {
+          const [customerSnap, driverSnap] = await Promise.all([
+            order.customerId ? getDoc(doc(db, "users", order.customerId)) : null,
+            order.driverId ? getDoc(doc(db, "users", order.driverId)) : null
+          ]);
+          const customer = customerSnap?.exists() ? customerSnap.data() : null;
+          const driver = driverSnap?.exists() ? driverSnap.data() : null;
+          const fee = order.agreedFee ?? order.deliveryFee;
+          details.innerHTML = `<div class="card" style="padding:12px">
+            <div><strong>رقم الطلب:</strong> ${escapeHtml(id)}</div>
+            <div><strong>الولاية:</strong> ${escapeHtml(order.state || "—")}</div>
+            <div><strong>المركبة:</strong> ${escapeHtml(order.vehicleType || "—")}</div>
+            <div><strong>الخدمة:</strong> ${escapeHtml(order.serviceCategory || "—")}</div>
+            <div><strong>الاستلام:</strong> ${escapeHtml(order.origin || "—")}</div>
+            <div><strong>التسليم:</strong> ${escapeHtml(order.destination || "—")}</div>
+            <div><strong>تفاصيل الطلب:</strong> ${escapeHtml(order.description || "—")}</div>
+            ${order.serviceCategory === "passenger" ? `<div><strong>عدد الركاب:</strong> ${escapeHtml(String(order.passengerCount ?? "—"))}</div><div><strong>الأمتعة:</strong> ${order.hasLuggage ? escapeHtml(order.luggageDescription || "نعم") : "لا"}</div>` : `<div><strong>نوع البضاعة:</strong> ${escapeHtml(order.cargoType || "—")}</div><div><strong>وصف البضاعة:</strong> ${escapeHtml(order.cargoDescription || "—")}</div>`}
+            <div><strong>السعر المتفق عليه:</strong> ${fee != null ? formatMoney(fee) : "لم يتم الاتفاق"}</div>
+            <div><strong>حالة التفاوض:</strong> ${escapeHtml(order.negotiationStatus || "—")}</div>
+            <div><strong>العميل:</strong> ${escapeHtml(customer?.name || order.customerId || "—")}</div>
+            <div><strong>السائق:</strong> ${escapeHtml(driver?.name || order.driverId || "لم يعيّن بعد")}</div>
+            ${order.negotiationStatus === "agreed" && driver?.phone && customer?.phone ? `<div><strong>هاتف العميل:</strong> ${escapeHtml(customer.phone)}</div><div><strong>هاتف السائق:</strong> ${escapeHtml(driver.phone)}</div>` : ""}
+          </div>`;
+          details.style.display = "block";
+          button.textContent = "إخفاء التفاصيل";
+        } catch (err) {
+          showToast(err?.message || "تعذر تحميل تفاصيل الطلب.");
+        } finally {
+          button.disabled = false;
+        }
+      });
+    });
+
+  list
+    .querySelectorAll(".cancel-btn")
+    .forEach((button) => {
+
+      button.addEventListener(
+        "click",
+        async () => {
+
+          const id =
+            button
+              .closest(".order-row")
+              .dataset.id;
+
+          const reason =
+            prompt(
+              "سبب الإلغاء:",
+              ""
+            ) ||
+            "ألغته الإدارة";
+
+          try {
+
+            await cancelOrder(
+              id,
+              reason
+            );
+
+          } catch (error) {
+
+            showToast(
+              error?.message ||
+              "تعذر الإلغاء."
+            );
+
+          }
+
+        }
+      );
+
+    });
+}
+
+</script>
+
+<script type="module">
+try {
+  const { firebaseConfig } = await import("../js/firebase-config.js");
+  if (firebaseConfig) window.__JW_FBASE_CONFIG__ = firebaseConfig;
+} catch (e) {
+  console.warn("Jawan Firebase config bridge:", e);
+}
+</script>
+<script type="module" src="../js/jawan-ai.js"></script>
+</body>
+</html>

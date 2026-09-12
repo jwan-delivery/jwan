@@ -1,0 +1,802 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && userDoc().data.role in ['admin', 'super_admin']
+        && userDoc().data.status == 'active';
+    }
+
+    function isSuperAdmin() {
+      return signedIn()
+        && userDoc().data.role == 'super_admin'
+        && userDoc().data.status == 'active';
+    }
+
+    function isDriver() {
+      return signedIn()
+        && userDoc().data.role == 'driver'
+        && userDoc().data.status == 'active';
+    }
+
+    function isCustomer() {
+      return signedIn()
+        && userDoc().data.role == 'customer'
+        && userDoc().data.status == 'active';
+    }
+
+    function positiveNumber(value) {
+      return (value is int || value is float) && value > 0;
+    }
+
+    function commissionFor(fee) {
+      return math.round(fee * 0.05);
+    }
+
+    function cancellationPenaltyFor(fee) {
+      return math.round(fee * 0.10);
+    }
+
+    function validVehicleType(value) {
+      return value in [
+        'car', 'rickshaw', 'motorcycle', 'tuk_tuk', 'truck', 'bus',
+        'amjad', 'kreez', 'taxi', 'tanker', 'crane', 'tow_truck',
+        'lorry', 'limousine'
+      ];
+    }
+
+    function isPassengerVehicle(value) {
+      return value in ['car', 'rickshaw', 'bus', 'amjad', 'taxi', 'limousine'];
+    }
+
+    function isCargoVehicle(value) {
+      return value in ['motorcycle', 'tuk_tuk', 'truck', 'kreez', 'tanker', 'crane', 'tow_truck', 'lorry'];
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+
+      allow create: if (
+        signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role in ['customer', 'driver']
+        && request.resource.data.privacyAccepted == true
+        && request.resource.data.termsAccepted == true
+        && request.resource.data.state is string
+        && request.resource.data.state.size() > 0
+        && (
+          (
+            request.resource.data.role == 'customer'
+            && request.resource.data.status == 'active'
+            && request.resource.data.age == null
+            && request.resource.data.vehicleType == null
+          )
+          ||
+          (
+            request.resource.data.role == 'driver'
+            && request.resource.data.status == 'pending'
+            && request.resource.data.age is int
+            && request.resource.data.age >= 18
+            && request.resource.data.age <= 100
+            && validVehicleType(request.resource.data.vehicleType)
+          )
+        )
+        && request.resource.data.keys().hasOnly([
+          'role','name','phone','address','state','age','vehicleType','status',
+          'privacyAccepted','termsAccepted','createdAt','lastActiveAt'
+        ])
+      ) || (
+        isSuperAdmin()
+        && uid != request.auth.uid
+        && request.resource.data.role == 'admin'
+        && request.resource.data.status == 'active'
+        && request.resource.data.keys().hasOnly([
+          'role','name','phone','address','state','age','vehicleType','status',
+          'privacyAccepted','termsAccepted','createdAt','lastActiveAt'
+        ])
+      );
+
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.state == resource.data.state
+        && request.resource.data.age == resource.data.age
+        && request.resource.data.vehicleType == resource.data.vehicleType
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name','address','lastActiveAt','privacyAccepted','termsAccepted'
+        ]);
+
+      allow update: if isAdmin()
+        && resource.data.role in ['customer','driver']
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['pending','active','suspended','rejected'];
+
+      allow update: if isSuperAdmin()
+        && uid != request.auth.uid
+        && resource.data.role in ['admin','super_admin']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role','status'])
+        && request.resource.data.role in ['admin','super_admin']
+        && request.resource.data.status in ['active','suspended'];
+
+      allow delete: if isSuperAdmin() && uid != request.auth.uid;
+    }
+
+    match /orders/{orderId} {
+      allow read: if signedIn() && (
+        request.auth.uid == resource.data.customerId
+        || request.auth.uid == resource.data.driverId
+        || isAdmin()
+        || (
+          isDriver()
+          && resource.data.status == 'pending'
+          && resource.data.driverId == null
+          && resource.data.state == userDoc().data.state
+        )
+      );
+
+      allow create: if isCustomer()
+        && request.auth.uid == request.resource.data.customerId
+        && request.resource.data.driverId == null
+        && request.resource.data.state == userDoc().data.state
+        && request.resource.data.status == 'pending'
+        && request.resource.data.negotiationStatus == 'none'
+        && request.resource.data.deliveryFee == null
+        && request.resource.data.agreedFee == null
+        && validVehicleType(request.resource.data.vehicleType)
+        && request.resource.data.serviceCategory in ['passenger','cargo']
+        && (
+          (
+            isPassengerVehicle(request.resource.data.vehicleType)
+            && request.resource.data.serviceCategory == 'passenger'
+            && request.resource.data.passengerCount is int
+            && request.resource.data.passengerCount >= 1
+            && request.resource.data.passengerCount <= 100
+            && request.resource.data.hasLuggage is bool
+            && (
+              (
+                request.resource.data.hasLuggage == true
+                && request.resource.data.luggageDescription is string
+                && request.resource.data.luggageDescription.size() > 0
+              )
+              ||
+              (
+                request.resource.data.hasLuggage == false
+                && request.resource.data.luggageDescription == null
+              )
+            )
+            && request.resource.data.cargoType == null
+            && request.resource.data.cargoDescription == null
+          )
+          ||
+          (
+            isCargoVehicle(request.resource.data.vehicleType)
+            && request.resource.data.serviceCategory == 'cargo'
+            && request.resource.data.passengerCount == null
+            && request.resource.data.hasLuggage == null
+            && request.resource.data.luggageDescription == null
+            && request.resource.data.cargoType is string
+            && request.resource.data.cargoType.size() > 0
+            && request.resource.data.cargoDescription is string
+            && request.resource.data.cargoDescription.size() > 0
+          )
+        )
+        && request.resource.data.description is string
+        && request.resource.data.origin is string
+        && request.resource.data.origin.size() > 0
+        && request.resource.data.destination is string
+        && request.resource.data.destination.size() > 0
+        && request.resource.data.commissionCharged == false
+        && request.resource.data.cancellationPenaltyCharged == false
+        && request.resource.data.keys().hasOnly([
+          'customerId','driverId','state','vehicleType','serviceCategory',
+          'passengerCount','hasLuggage','luggageDescription',
+          'cargoType','cargoDescription','description','origin','destination',
+          'deliveryFee','agreedFee','status','negotiationStatus',
+          'commissionCharged','cancellationPenaltyCharged',
+          'createdAt','acceptedAt','pickedUpAt','startedAt','deliveredAt',
+          'customerConfirmedAt','notDeliveredAt','driverConfirmedAt',
+          'completedAt','cancelledAt','agreedAt','agreedBy',
+          'cancelReason','driverComment'
+        ]);
+
+      allow update: if isAdmin()
+        && resource.data.status in ['pending','accepted']
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','cancelledAt','cancelReason'
+        ]);
+
+      allow update: if isDriver()
+        && resource.data.status == 'pending'
+        && resource.data.driverId == null
+        && resource.data.state == userDoc().data.state
+        && request.resource.data.driverId == request.auth.uid
+        && request.resource.data.status == 'accepted'
+        && request.resource.data.negotiationStatus == 'open'
+        && getAfter(/databases/$(database)/documents/priceNegotiations/$(orderId)).data.status == 'open'
+        && getAfter(/databases/$(database)/documents/priceNegotiations/$(orderId)).data.driverId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'driverId','status','acceptedAt','negotiationStatus'
+        ]);
+
+      // Either negotiation participant can reject.
+      // Rejection closes the negotiation and releases the order atomically.
+      allow update: if isCustomer()
+        && resource.data.customerId == request.auth.uid
+        && resource.data.status == 'accepted'
+        && resource.data.negotiationStatus == 'open'
+        && request.resource.data.driverId == null
+        && request.resource.data.status == 'pending'
+        && request.resource.data.negotiationStatus == 'none'
+        && getAfter(/databases/$(database)/documents/priceNegotiations/$(orderId)).data.status == 'closed'
+        && getAfter(/databases/$(database)/documents/priceNegotiations/$(orderId)).data.lastAction == 'reject'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'driverId','status','negotiationStatus'
+        ]);
+
+      // Driver rejects negotiation: release the order atomically.
+      allow update: if isDriver()
+        && resource.data.driverId == request.auth.uid
+        && resource.data.state == userDoc().data.state
+        && resource.data.status == 'accepted'
+        && resource.data.negotiationStatus == 'open'
+        && request.resource.data.driverId == null
+        && request.resource.data.status == 'pending'
+        && request.resource.data.negotiationStatus == 'none'
+        && getAfter(/databases/$(database)/documents/priceNegotiations/$(orderId)).data.status == 'closed'
+        && getAfter(/databases/$(database)/documents/priceNegotiations/$(orderId)).data.lastAction == 'reject'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'driverId','status','negotiationStatus'
+        ]);
+
+      allow update: if isDriver()
+        && resource.data.driverId == request.auth.uid
+        && resource.data.state == userDoc().data.state
+        && resource.data.status == 'accepted'
+        && resource.data.negotiationStatus == 'agreed'
+        && request.resource.data.driverId == request.auth.uid
+        && request.resource.data.status == 'picked_up'
+        && request.resource.data.pickedUpAt != null
+        && request.resource.data.deliveryFee is number
+        && request.resource.data.deliveryFee > 0
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','pickedUpAt']);
+
+      allow update: if isDriver()
+        && resource.data.driverId == request.auth.uid
+        && resource.data.status == 'picked_up'
+        && request.resource.data.driverId == request.auth.uid
+        && request.resource.data.status == 'delivering'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','startedAt']);
+
+      allow update: if isDriver()
+        && resource.data.driverId == request.auth.uid
+        && resource.data.status == 'delivering'
+        && request.resource.data.status == 'awaiting_confirmation'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','deliveredAt']);
+
+      allow update: if isCustomer()
+        && resource.data.customerId == request.auth.uid
+        && resource.data.status == 'awaiting_confirmation'
+        && resource.data.customerConfirmedAt == null
+        && request.resource.data.customerConfirmedAt != null
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['customerConfirmedAt']);
+
+      allow update: if isCustomer()
+        && resource.data.customerId == request.auth.uid
+        && resource.data.status == 'awaiting_confirmation'
+        && resource.data.customerConfirmedAt == null
+        && resource.data.createdAt != null
+        && request.time >= resource.data.createdAt + duration.value(1,'h')
+        && request.resource.data.status == 'not_delivered'
+        && request.resource.data.notDeliveredAt != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','notDeliveredAt']);
+
+      // Customer can cancel only before any driver is assigned and before negotiation starts.
+      allow update: if isCustomer()
+        && resource.data.customerId == request.auth.uid
+        && resource.data.status == 'pending'
+        && resource.data.driverId == null
+        && (resource.data.negotiationStatus == null || resource.data.negotiationStatus == 'none')
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.driverId == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','cancelledAt','cancelReason'
+        ]);
+
+      // Driver cancellation before agreement: no financial penalty because there is no agreed fee.
+      allow update: if isDriver()
+        && resource.data.driverId == request.auth.uid
+        && resource.data.status == 'accepted'
+        && resource.data.negotiationStatus != 'agreed'
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.cancellationPenaltyCharged == false
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','cancelledAt','cancelReason','cancellationPenaltyCharged'
+        ]);
+
+      // Driver cancellation after agreement: 10% penalty, tied atomically to wallet update.
+      allow update: if isDriver()
+        && resource.data.driverId == request.auth.uid
+        && resource.data.status in ['accepted','picked_up']
+        && resource.data.negotiationStatus == 'agreed'
+        && resource.data.deliveryFee is number
+        && resource.data.deliveryFee > 0
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.cancellationPenaltyCharged == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','cancelledAt','cancelReason','cancellationPenaltyCharged'
+        ])
+        && getAfter(/databases/$(database)/documents/wallets/$(request.auth.uid)).data.lastCancellationOrderId == orderId;
+
+      allow update: if isDriver()
+        && resource.data.driverId == request.auth.uid
+        && resource.data.status == 'awaiting_confirmation'
+        && resource.data.negotiationStatus == 'agreed'
+        && resource.data.customerConfirmedAt != null
+        && resource.data.deliveryFee is number
+        && resource.data.deliveryFee > 0
+        && resource.data.commissionCharged == false
+        && request.resource.data.status == 'completed'
+        && request.resource.data.commissionCharged == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','driverConfirmedAt','completedAt','commissionCharged'
+        ])
+        && getAfter(/databases/$(database)/documents/wallets/$(request.auth.uid)).data.lastCommissionOrderId == orderId;
+
+      allow delete: if isAdmin();
+    }
+
+    match /priceNegotiations/{orderId} {
+      allow read: if signedIn() && (
+        isAdmin()
+        || request.auth.uid == resource.data.customerId
+        || request.auth.uid == resource.data.driverId
+      );
+
+      allow create: if isDriver()
+        && request.auth.uid == request.resource.data.driverId
+        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.driverId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.status == 'accepted'
+        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.negotiationStatus == 'open'
+        && request.resource.data.orderId == orderId
+        && request.resource.data.customerId == getAfter(/databases/$(database)/documents/orders/$(orderId)).data.customerId
+        && request.resource.data.status == 'open'
+        && request.resource.data.currentOffer == null
+        && request.resource.data.offeredBy == null
+        && request.resource.data.keys().hasOnly([
+          'orderId','customerId','driverId','customerName','driverName',
+          'currentOffer','offeredBy','status','expiresAt','updatedAt',
+          'agreedAt','agreedBy','lastAction','lastMessageId'
+        ]);
+
+      allow update: if (isDriver() || isCustomer())
+        && (
+          request.auth.uid == resource.data.driverId
+          || request.auth.uid == resource.data.customerId
+        )
+        && (
+          resource.data.status == 'open'
+          || (
+            resource.data.status == 'closed'
+            && request.resource.data.status == 'closed'
+            && isDriver()
+            && request.auth.uid == resource.data.driverId
+          )
+        )
+        && (
+          (
+            request.resource.data.lastAction == 'offer'
+            && request.resource.data.currentOffer is number
+            && request.resource.data.currentOffer > 0
+            && request.resource.data.offeredBy == request.auth.uid
+            && request.resource.data.status == 'open'
+            && request.resource.data.lastMessageId is string
+            && getAfter(/databases/$(database)/documents/priceNegotiations/$(orderId)/messages/$(request.resource.data.lastMessageId)).data.action == 'offer'
+            && (
+              (resource.data.currentOffer == null && resource.data.lastAction == 'accepted' && request.auth.uid == resource.data.driverId)
+              || (resource.data.currentOffer == null && resource.data.lastAction == 'reject')
+              || (resource.data.currentOffer is number && resource.data.offeredBy != request.auth.uid)
+            )
+          )
+          ||
+          (
+            request.resource.data.lastAction == 'reject'
+            && request.resource.data.currentOffer == null
+            && request.resource.data.offeredBy == null
+            && request.resource.data.status == 'open'
+            && request.resource.data.lastMessageId is string
+            && getAfter(/databases/$(database)/documents/priceNegotiations/$(orderId)/messages/$(request.resource.data.lastMessageId)).data.action == 'reject'
+          )
+          ||
+          (
+            // Driver rejects active negotiation and releases the order.
+            request.resource.data.lastAction == 'reject'
+            && request.resource.data.currentOffer == null
+            && request.resource.data.offeredBy == null
+            && request.resource.data.status == 'closed'
+            && request.resource.data.lastMessageId is string
+            && isDriver()
+            && request.auth.uid == resource.data.driverId
+            && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.status == 'pending'
+            && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.driverId == null
+            && getAfter(/databases/$(database)/documents/priceNegotiations/$(orderId)/messages/$(request.resource.data.lastMessageId)).data.action == 'reject'
+          )
+          ||
+          (
+            request.resource.data.lastAction == 'accept'
+            && request.resource.data.status == 'agreed'
+            && request.resource.data.currentOffer is number
+            && request.resource.data.currentOffer > 0
+            && request.resource.data.agreedBy == request.auth.uid
+            && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.negotiationStatus == 'agreed'
+            && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.deliveryFee == request.resource.data.currentOffer
+            && getAfter(/databases/$(database)/documents/orderContacts/$(orderId)).data.orderId == orderId
+          )
+        )
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'customerName','driverName','currentOffer','offeredBy','status',
+          'expiresAt','updatedAt','agreedAt','agreedBy','lastAction','lastMessageId'
+        ]);
+
+      allow delete: if isSuperAdmin();
+
+      match /messages/{messageId} {
+        allow read: if signedIn() && (
+          isAdmin()
+          || request.auth.uid == get(/databases/$(database)/documents/priceNegotiations/$(orderId)).data.customerId
+          || request.auth.uid == get(/databases/$(database)/documents/priceNegotiations/$(orderId)).data.driverId
+        );
+
+        allow create: if signedIn()
+          && (
+            request.auth.uid == get(/databases/$(database)/documents/priceNegotiations/$(orderId)).data.customerId
+            || request.auth.uid == get(/databases/$(database)/documents/priceNegotiations/$(orderId)).data.driverId
+          )
+          && request.resource.data.orderId == orderId
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.action in ['offer','accept','reject']
+          && request.resource.data.amount is number
+          && request.resource.data.amount > 0
+          && request.resource.data.senderRole in ['customer','driver']
+          && request.resource.data.senderRole == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+          && request.resource.data.senderName is string
+          && request.resource.data.senderName.size() > 0
+          && request.resource.data.senderName.size() <= 120
+          && getAfter(/databases/$(database)/documents/priceNegotiations/$(orderId)).data.lastMessageId == messageId
+          && request.resource.data.keys().hasOnly([
+            'orderId','amount','action','senderId','senderRole','senderName',
+            'createdAt','expiresAt'
+          ]);
+
+        allow update, delete: if isSuperAdmin();
+      }
+    }
+
+    match /orderContacts/{orderId} {
+      allow read: if signedIn()
+        && (
+          isAdmin()
+          || (
+            get(/databases/$(database)/documents/orders/$(orderId)).data.negotiationStatus == 'agreed'
+            && (
+              request.auth.uid == get(/databases/$(database)/documents/orders/$(orderId)).data.customerId
+              || request.auth.uid == get(/databases/$(database)/documents/orders/$(orderId)).data.driverId
+            )
+          )
+        );
+
+      allow create: if signedIn()
+        && (request.auth.uid == getAfter(/databases/$(database)/documents/orders/$(orderId)).data.customerId
+            || request.auth.uid == getAfter(/databases/$(database)/documents/orders/$(orderId)).data.driverId)
+        && request.resource.data.orderId == orderId
+        && request.resource.data.customerId == getAfter(/databases/$(database)/documents/orders/$(orderId)).data.customerId
+        && request.resource.data.driverId == getAfter(/databases/$(database)/documents/orders/$(orderId)).data.driverId
+        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.negotiationStatus == 'agreed'
+        && request.resource.data.customerPhone == get(/databases/$(database)/documents/users/$(request.resource.data.customerId)).data.phone
+        && request.resource.data.driverPhone == get(/databases/$(database)/documents/users/$(request.resource.data.driverId)).data.phone
+        && request.resource.data.keys().hasOnly([
+          'orderId','customerId','driverId','customerPhone','driverPhone','createdAt'
+        ]);
+
+      allow update, delete: if isSuperAdmin();
+    }
+
+    match /wallets/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+
+      allow create: if isAdmin()
+        && get(/databases/$(database)/documents/users/$(uid)).data.role == 'driver'
+        && get(/databases/$(database)/documents/users/$(uid)).data.status == 'active'
+        && request.resource.data.keys().hasOnly([
+          'balance','totalCommission','totalCancellationPenalties',
+          'totalTopups','totalWithdrawals','updatedAt'
+        ])
+        && request.resource.data.balance == 10000
+        && request.resource.data.totalCommission == 0
+        && request.resource.data.totalCancellationPenalties == 0
+        && request.resource.data.totalTopups == 0
+        && request.resource.data.totalWithdrawals == 0;
+
+      allow update: if isDriver()
+        && request.auth.uid == uid
+        && request.resource.data.lastCommissionOrderId is string
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'balance','totalCommission','updatedAt','lastCommissionOrderId'
+        ])
+        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastCommissionOrderId)).data.driverId == uid
+        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastCommissionOrderId)).data.status == 'completed'
+        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastCommissionOrderId)).data.commissionCharged == true
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.lastCommissionOrderId)).data.status == 'awaiting_confirmation'
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.lastCommissionOrderId)).data.commissionCharged == false
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.lastCommissionOrderId)).data.customerConfirmedAt != null
+        && resource.data.balance >= commissionFor(getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastCommissionOrderId)).data.deliveryFee)
+        && request.resource.data.balance == resource.data.balance - commissionFor(getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastCommissionOrderId)).data.deliveryFee)
+        && request.resource.data.totalCommission == resource.data.totalCommission + commissionFor(getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastCommissionOrderId)).data.deliveryFee);
+
+      allow update: if isDriver()
+        && request.auth.uid == uid
+        && request.resource.data.lastCancellationOrderId is string
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'balance','totalCancellationPenalties','updatedAt','lastCancellationOrderId'
+        ])
+        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastCancellationOrderId)).data.driverId == uid
+        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastCancellationOrderId)).data.status == 'cancelled'
+        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastCancellationOrderId)).data.cancellationPenaltyCharged == true
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.lastCancellationOrderId)).data.status in ['accepted','picked_up']
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.lastCancellationOrderId)).data.negotiationStatus == 'agreed'
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.lastCancellationOrderId)).data.deliveryFee is number
+        && resource.data.balance >= cancellationPenaltyFor(getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastCancellationOrderId)).data.deliveryFee)
+        && request.resource.data.balance == resource.data.balance - cancellationPenaltyFor(getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastCancellationOrderId)).data.deliveryFee)
+        && request.resource.data.totalCancellationPenalties == resource.data.totalCancellationPenalties + cancellationPenaltyFor(getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastCancellationOrderId)).data.deliveryFee);
+
+      allow update: if isAdmin()
+        && request.resource.data.lastTopupRequestId is string
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance','totalTopups','updatedAt','lastTopupRequestId'])
+        && getAfter(/databases/$(database)/documents/topupRequests/$(request.resource.data.lastTopupRequestId)).data.status == 'approved'
+        && get(/databases/$(database)/documents/topupRequests/$(request.resource.data.lastTopupRequestId)).data.status == 'pending'
+        && getAfter(/databases/$(database)/documents/topupRequests/$(request.resource.data.lastTopupRequestId)).data.driverId == uid
+        && request.resource.data.balance == resource.data.balance + getAfter(/databases/$(database)/documents/topupRequests/$(request.resource.data.lastTopupRequestId)).data.amount
+        && request.resource.data.totalTopups == resource.data.totalTopups + getAfter(/databases/$(database)/documents/topupRequests/$(request.resource.data.lastTopupRequestId)).data.amount;
+
+      allow update: if isAdmin()
+        && request.resource.data.lastManualTopupId is string
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance','totalTopups','updatedAt','lastManualTopupId'])
+        && getAfter(/databases/$(database)/documents/walletTransactions/$(request.resource.data.lastManualTopupId)).data.type == 'manual_topup'
+        && getAfter(/databases/$(database)/documents/walletTransactions/$(request.resource.data.lastManualTopupId)).data.userId == uid
+        && getAfter(/databases/$(database)/documents/walletTransactions/$(request.resource.data.lastManualTopupId)).data.createdBy == request.auth.uid
+        && getAfter(/databases/$(database)/documents/walletTransactions/$(request.resource.data.lastManualTopupId)).data.amount > 0
+        && getAfter(/databases/$(database)/documents/walletTransactions/$(request.resource.data.lastManualTopupId)).data.balanceBefore == resource.data.balance
+        && getAfter(/databases/$(database)/documents/walletTransactions/$(request.resource.data.lastManualTopupId)).data.balanceAfter == request.resource.data.balance
+        && request.resource.data.balance == resource.data.balance + getAfter(/databases/$(database)/documents/walletTransactions/$(request.resource.data.lastManualTopupId)).data.amount
+        && request.resource.data.totalTopups == resource.data.totalTopups + getAfter(/databases/$(database)/documents/walletTransactions/$(request.resource.data.lastManualTopupId)).data.amount;
+
+      allow update: if isAdmin()
+        && request.resource.data.lastWithdrawalRequestId is string
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance','totalWithdrawals','updatedAt','lastWithdrawalRequestId'])
+        && getAfter(/databases/$(database)/documents/withdrawalRequests/$(request.resource.data.lastWithdrawalRequestId)).data.status == 'paid'
+        && get(/databases/$(database)/documents/withdrawalRequests/$(request.resource.data.lastWithdrawalRequestId)).data.status == 'pending'
+        && getAfter(/databases/$(database)/documents/withdrawalRequests/$(request.resource.data.lastWithdrawalRequestId)).data.driverId == uid
+        && resource.data.balance >= getAfter(/databases/$(database)/documents/withdrawalRequests/$(request.resource.data.lastWithdrawalRequestId)).data.amount
+        && request.resource.data.balance == resource.data.balance - getAfter(/databases/$(database)/documents/withdrawalRequests/$(request.resource.data.lastWithdrawalRequestId)).data.amount
+        && request.resource.data.totalWithdrawals == resource.data.totalWithdrawals + getAfter(/databases/$(database)/documents/withdrawalRequests/$(request.resource.data.lastWithdrawalRequestId)).data.amount;
+
+      allow delete: if isSuperAdmin() && uid != request.auth.uid;
+    }
+
+    match /walletTransactions/{txId} {
+      allow read: if signedIn() && (request.auth.uid == resource.data.userId || isAdmin());
+
+      allow create: if isDriver()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.type == 'commission'
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.orderId is string
+        && request.resource.data.topupRequestId == null
+        && request.resource.data.withdrawalRequestId == null
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'awaiting_confirmation'
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.driverId == request.auth.uid
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.customerConfirmedAt != null
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.commissionCharged == false
+        && request.resource.data.amount == -commissionFor(getAfter(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.deliveryFee)
+        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'completed'
+        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.commissionCharged == true
+        && getAfter(/databases/$(database)/documents/wallets/$(request.auth.uid)).data.lastCommissionOrderId == request.resource.data.orderId
+        && request.resource.data.balanceBefore + request.resource.data.amount == request.resource.data.balanceAfter
+        && request.resource.data.keys().hasOnly([
+          'userId','type','amount','balanceBefore','balanceAfter',
+          'orderId','topupRequestId','withdrawalRequestId','createdAt','createdBy'
+        ]);
+
+      allow create: if isDriver()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.type == 'cancellation_penalty'
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.orderId is string
+        && request.resource.data.topupRequestId == null
+        && request.resource.data.withdrawalRequestId == null
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status in ['accepted','picked_up']
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.driverId == request.auth.uid
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.negotiationStatus == 'agreed'
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.cancellationPenaltyCharged == false
+        && request.resource.data.amount == -cancellationPenaltyFor(getAfter(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.deliveryFee)
+        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'cancelled'
+        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.cancellationPenaltyCharged == true
+        && getAfter(/databases/$(database)/documents/wallets/$(request.auth.uid)).data.lastCancellationOrderId == request.resource.data.orderId
+        && request.resource.data.balanceBefore + request.resource.data.amount == request.resource.data.balanceAfter
+        && request.resource.data.keys().hasOnly([
+          'userId','type','amount','balanceBefore','balanceAfter',
+          'orderId','topupRequestId','withdrawalRequestId','createdAt','createdBy'
+        ]);
+
+      allow create: if isAdmin()
+        && request.resource.data.userId is string
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.type in ['topup','withdrawal']
+        && request.resource.data.amount != 0
+        && request.resource.data.balanceBefore is number
+        && request.resource.data.balanceAfter is number
+        && request.resource.data.keys().hasOnly([
+          'userId','type','amount','balanceBefore','balanceAfter',
+          'orderId','topupRequestId','withdrawalRequestId','manualTopupId','note','createdAt','createdBy'
+        ]);
+
+      allow create: if isAdmin()
+        && request.resource.data.type == 'manual_topup'
+        && request.resource.data.userId is string
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && request.resource.data.balanceBefore is number
+        && request.resource.data.balanceAfter is number
+        && request.resource.data.manualTopupId == request.resource.id
+        && request.resource.data.orderId == null
+        && request.resource.data.topupRequestId == null
+        && request.resource.data.withdrawalRequestId == null
+        && get(/databases/$(database)/documents/users/$(request.resource.data.userId)).data.role == 'driver'
+        && get(/databases/$(database)/documents/users/$(request.resource.data.userId)).data.status == 'active'
+        && getAfter(/databases/$(database)/documents/wallets/$(request.resource.data.userId)).data.lastManualTopupId == request.resource.id
+        && request.resource.data.balanceBefore + request.resource.data.amount == request.resource.data.balanceAfter
+        && request.resource.data.keys().hasOnly([
+          'userId','type','amount','balanceBefore','balanceAfter',
+          'orderId','topupRequestId','withdrawalRequestId','manualTopupId','note','createdAt','createdBy'
+        ]);
+
+      allow update, delete: if isSuperAdmin();
+    }
+
+    match /topupRequests/{id} {
+      allow read: if signedIn() && (request.auth.uid == resource.data.driverId || isAdmin());
+
+      allow create: if isDriver()
+        && request.auth.uid == request.resource.data.driverId
+        && positiveNumber(request.resource.data.amount)
+        && request.resource.data.paymentMethod in ['بنكك','فوري','أوكاش','ماي كاشي']
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly([
+          'driverId','amount','paymentMethod','status','submittedAt','reviewedAt',
+          'reviewedBy','reviewNote','whatsappVerified'
+        ]);
+
+      allow update: if isAdmin()
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','reviewedAt','reviewedBy','reviewNote'
+        ])
+        && request.resource.data.status in ['approved','rejected']
+        && request.resource.data.reviewedBy == request.auth.uid;
+
+      allow delete: if isSuperAdmin();
+    }
+
+    match /withdrawalRequests/{id} {
+      allow read: if signedIn() && (request.auth.uid == resource.data.driverId || isAdmin());
+
+      allow create: if isDriver()
+        && request.auth.uid == request.resource.data.driverId
+        && positiveNumber(request.resource.data.amount)
+        && request.resource.data.paymentMethod in ['بنكك','فوري','أوكاش','ماي كاشي']
+        && request.resource.data.status == 'pending'
+        && request.resource.data.accountReference is string
+        && request.resource.data.accountReference.size() > 0
+        && request.resource.data.keys().hasOnly([
+          'driverId','amount','paymentMethod','accountReference','status',
+          'createdAt','reviewedAt','reviewedBy'
+        ])
+        && get(/databases/$(database)/documents/wallets/$(request.auth.uid)).data.balance >= request.resource.data.amount;
+
+      allow update: if isAdmin()
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status','reviewedAt','reviewedBy'
+        ])
+        && request.resource.data.status in ['paid','rejected']
+        && request.resource.data.reviewedBy == request.auth.uid
+        && (
+          request.resource.data.status == 'rejected'
+          || getAfter(/databases/$(database)/documents/wallets/$(resource.data.driverId)).data.lastWithdrawalRequestId == id
+        );
+
+      allow delete: if isSuperAdmin();
+    }
+
+    match /ratings/{id} {
+      allow read: if signedIn();
+
+      allow create: if isCustomer()
+        && request.resource.data.customerId == request.auth.uid
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.orderId is string
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.customerId == request.auth.uid
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'completed'
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.driverId == request.resource.data.driverId
+        && id == request.resource.data.orderId + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'orderId','customerId','driverId','rating','comment','createdAt'
+        ]);
+
+      allow update, delete: if isAdmin();
+    }
+
+    match /supportMessages/{id} {
+      allow read: if signedIn() && (request.auth.uid == resource.data.userId || isAdmin());
+
+      allow create: if signedIn()
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.role == userDoc().data.role
+        && request.resource.data.status == 'open'
+        && request.resource.data.keys().hasOnly([
+          'userId','role','message','reply','status','createdAt','repliedAt','repliedBy'
+        ]);
+
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'reply','status','repliedAt','repliedBy'
+        ])
+        && request.resource.data.status == 'answered'
+        && request.resource.data.repliedBy == request.auth.uid;
+
+      allow delete: if isSuperAdmin();
+    }
+
+    match /notifications/{id} {
+      allow read: if signedIn() && request.auth.uid == resource.data.userId;
+
+      allow update: if signedIn()
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read == true;
+
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /auditLogs/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.actorRole == userDoc().data.role
+        && request.resource.data.createdAt != null;
+      allow update, delete: if isSuperAdmin();
+    }
+
+    match /settings/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

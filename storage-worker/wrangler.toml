@@ -1,0 +1,13 @@
+name = "jwan-storage"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "jwan"
+
+[vars]
+FIREBASE_PROJECT_ID = "jwan-delivery-c930d-72911"
+ALLOWED_ORIGIN = "https://jwan-delivery-c930d-72911.web.app"
+PUBLIC_BASE_URL = "https://jwan-storage.example.workers.dev"
+PUBLIC_FILES = "true"
