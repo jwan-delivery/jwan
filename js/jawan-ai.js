@@ -248,12 +248,27 @@ async function answer(text) {
       error
     );
 
-    addMessage(
-      "تعذر الاتصال بـ Gemini حاليًا.\n\n" +
-      "السبب: " +
-      (error?.message || "خطأ غير معروف"),
-      "bot"
-    );
+    const rawMessage = String(error?.message || "");
+    let friendly = "تعذر تشغيل الذكاء الاصطناعي حاليًا.";
+
+    if (!navigator.onLine) {
+      friendly = "لا يوجد اتصال بالإنترنت حاليًا. اتصل بالإنترنت ثم حاول مرة أخرى.";
+    } else if (
+      rawMessage.includes("appCheck/recaptcha-error") ||
+      rawMessage.includes("AppCheck") ||
+      rawMessage.includes("reCAPTCHA")
+    ) {
+      friendly =
+        "ميزة AI تحتاج تحققًا أمنيًا من Firebase. إذا استمرت المشكلة، يحتاج إعداد App Check لتطبيق الهاتف إلى الضبط الصحيح.";
+    } else if (
+      rawMessage.includes("permission-denied") ||
+      rawMessage.includes("403")
+    ) {
+      friendly =
+        "ميزة AI محمية حاليًا بواسطة Firebase App Check ولم يتم قبول هذا التطبيق بعد.";
+    }
+
+    addMessage(friendly, "bot");
 
   } finally {
     if (send) send.disabled = false;

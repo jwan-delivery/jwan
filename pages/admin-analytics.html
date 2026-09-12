@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../css/style.css"><title>التحليلات | إدارة جوان</title>  <link rel="icon" href="../assets/branding/logo-external.png">
 </head>
-<body>
+<body class="admin-page">
 <header class="mobilebar"><strong>جوان — الإدارة</strong><a href="../index.html">الرئيسية</a></header>
 <div class="app-shell">
 <aside class="sidebar">
@@ -23,6 +23,7 @@
 <div class="card"><h3>أيام نشاط السائقين (طلبات مكتملة)</h3><div id="activeDays" class="empty">جارٍ التحميل...</div></div>
 </main></div>
 <script type="module" src="../js/app.js"></script>
+<script src="../js/admin-menu.js"></script>
 <script type="module">
 import { guardPage, logoutUser } from "../js/auth.js";
 import { listenAllOrders } from "../js/orders.js";

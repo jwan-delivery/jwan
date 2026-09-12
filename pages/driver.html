@@ -247,15 +247,7 @@ async function runAction(btn, action) {
   try { await action(); showToast("تمت العملية."); }
   catch (err) { showToast(err?.message || "حدث خطأ، حاول مرة أخرى."); btn.disabled = false; }
 }
-const driverMenuBtn = document.getElementById("driverMenuBtn");
-const driverMenu = document.getElementById("driverMenu");
-const driverMenuBackdrop = document.getElementById("driverMenuBackdrop");
-const driverMenuClose = document.getElementById("driverMenuClose");
-function setDriverMenu(open){ driverMenu.classList.toggle("open",open); driverMenuBackdrop.classList.toggle("open",open); driverMenu.setAttribute("aria-hidden",String(!open)); driverMenuBtn.setAttribute("aria-expanded",String(open)); document.body.style.overflow = open ? "hidden" : ""; }
-driverMenuBtn?.addEventListener("click",()=>setDriverMenu(!driverMenu.classList.contains("open")));
-driverMenuClose?.addEventListener("click",()=>setDriverMenu(false));
-driverMenuBackdrop?.addEventListener("click",()=>setDriverMenu(false));
-driverMenu?.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>setDriverMenu(false)));
+
 
 </script>
 <script src="../js/driver-menu.js"></script>
