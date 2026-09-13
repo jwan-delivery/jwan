@@ -811,14 +811,59 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                 ),
               ],
 
-              if (data['status'] == 'awaiting_confirmation' &&
-                FilledButton(onPressed: busy ? null : () => run(() => service.customerConfirm(widget.orderId)), child: const Text('تأكيد الاستلام')),
+              if (data['status'] == 'awaiting_confirmation') ...[
+                FilledButton(
+                  onPressed: busy
+                      ? null
+                      : () => run(
+                            () => service.customerConfirm(widget.orderId),
+                          ),
+                  child: const Text('تأكيد الاستلام'),
+                ),
                 const SizedBox(height: 8),
-                if (data['customerConfirmedAt'] != null) ...[
-                  DropdownButtonFormField<int>(initialValue: stars, items: List.generate(5, (i) => i + 1).map((v) => DropdownMenuItem(value: v, child: Text('$v نجوم'))).toList(), onChanged: (v) => setState(() => stars = v!), decoration: const InputDecoration(labelText: 'التقييم')),
-                  const SizedBox(height: 8), TextField(controller: comment, decoration: const InputDecoration(labelText: 'تعليق مختصر')),
-                  const SizedBox(height: 8), FilledButton(onPressed: busy ? null : () => run(() => service.rate(widget.orderId, uid, stars, comment.text)), child: const Text('حفظ التقييم')),
-                ],
+              ],
+
+              if (data['customerConfirmedAt'] != null) ...[
+                DropdownButtonFormField<int>(
+                  initialValue: stars,
+                  items: List.generate(5, (i) => i + 1)
+                      .map(
+                        (v) => DropdownMenuItem(
+                          value: v,
+                          child: Text('$v نجوم'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      setState(() => stars = v);
+                    }
+                  },
+                  decoration: const InputDecoration(
+                    labelText: 'التقييم',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: comment,
+                  decoration: const InputDecoration(
+                    labelText: 'تعليق مختصر',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                FilledButton(
+                  onPressed: busy
+                      ? null
+                      : () => run(
+                            () => service.rate(
+                              widget.orderId,
+                              uid,
+                              stars,
+                              comment.text,
+                            ),
+                          ),
+                  child: const Text('حفظ التقييم'),
+                ),
               ],
             ]))),
           ]);
