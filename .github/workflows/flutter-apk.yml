@@ -51,11 +51,15 @@ jobs:
 
       - name: Build Release APK
         working-directory: mobile-app
-        run: flutter build apk --release
+        run: flutter build apk --release \
+            --dart-define=JAWAN_FIREBASE_API_KEY=${{ secrets.JAWAN_FIREBASE_API_KEY }} \
+            --dart-define=JAWAN_FIREBASE_APP_ID=${{ secrets.JAWAN_FIREBASE_APP_ID }}
 
       - name: Build Release AAB
         working-directory: mobile-app
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release \
+            --dart-define=JAWAN_FIREBASE_API_KEY=${{ secrets.JAWAN_FIREBASE_API_KEY }} \
+            --dart-define=JAWAN_FIREBASE_APP_ID=${{ secrets.JAWAN_FIREBASE_APP_ID }}
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
