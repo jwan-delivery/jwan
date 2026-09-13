@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'firebase_options.dart';
 
@@ -173,9 +174,26 @@ class OrderService {
       'cargoDescription': isCargo ? cargoDescription.trim() : null,
       'description': description.trim().length > 1000 ? description.trim().substring(0, 1000) : description.trim(),
       'origin': originText, 'destination': destinationText,
-      'deliveryFee': null, 'agreedFee': null, 'status': 'pending', 'negotiationStatus': 'none',
-      'commissionCharged': false, 'cancellationPenaltyCharged': false,
+      'deliveryFee': null,
+      'agreedFee': null,
+      'status': 'pending',
+      'negotiationStatus': 'none',
+      'commissionCharged': false,
+      'cancellationPenaltyCharged': false,
       'createdAt': FieldValue.serverTimestamp(),
+      'acceptedAt': null,
+      'pickedUpAt': null,
+      'startedAt': null,
+      'deliveredAt': null,
+      'customerConfirmedAt': null,
+      'notDeliveredAt': null,
+      'driverConfirmedAt': null,
+      'completedAt': null,
+      'cancelledAt': null,
+      'agreedAt': null,
+      'agreedBy': null,
+      'cancelReason': null,
+      'driverComment': null,
     });
     return ref.id;
   }
@@ -326,6 +344,40 @@ class OrderService {
   }
 }
 
+
+Future<void> openJawanWhatsApp(BuildContext context) async {
+  final uri = Uri.parse(
+    'https://wa.me/249964499266?text=${Uri.encodeComponent('السلام عليكم، أحتاج مساعدة من جوان للتوصيل')}',
+  );
+
+  final ok = await launchUrl(
+    uri,
+    mode: LaunchMode.externalApplication,
+  );
+
+  if (!ok && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تعذر فتح واتساب')),
+    );
+  }
+}
+
+Widget whatsappTile(BuildContext context) {
+  return Card(
+    child: ListTile(
+      leading: const CircleAvatar(
+        backgroundColor: kYellow,
+        foregroundColor: Colors.black,
+        child: Icon(Icons.chat),
+      ),
+      title: const Text('التواصل مع الدعم عبر واتساب'),
+      subtitle: const Text('اضغط هنا لفتح واتساب مباشرة'),
+      trailing: const Icon(Icons.open_in_new),
+      onTap: () => openJawanWhatsApp(context),
+    ),
+  );
+}
+
 class JawanApp extends StatelessWidget {
   const JawanApp({super.key});
   @override
@@ -413,14 +465,16 @@ class _LoginPageState extends State<LoginPage> {
             SwitchListTile(title: const Text('تسجيل كسائق'), value: driver, onChanged: (v) => setState(() => driver = v)),
             if (driver) ...[
               TextField(controller: age, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'العمر')),
-              const SizedBox(height: 10), DropdownButtonFormField<String>(initialValue: vehicle, items: OrderService.cargo.map((v) => DropdownMenuItem(value: v, child: Text(vehicleLabel(v)))).toList(), onChanged: (v) => setState(() => vehicle = v!), decoration: const InputDecoration(labelText: 'نوع المركبة')),
+              const SizedBox(height: 10), DropdownButtonFormField<String>(initialValue: vehicle, items: [...OrderService.passenger, ...OrderService.cargo]
+    .map((v) => DropdownMenuItem(value: v, child: Text(vehicleLabel(v))))
+    .toList(), onChanged: (v) => setState(() => vehicle = v!), decoration: const InputDecoration(labelText: 'نوع المركبة')),
             ],
           ],
           const SizedBox(height: 10), TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'رقم الهاتف')),
           const SizedBox(height: 10), TextField(controller: password, obscureText: obscure, decoration: InputDecoration(labelText: 'كلمة المرور', suffixIcon: IconButton(icon: Icon(obscure ? Icons.visibility : Icons.visibility_off), onPressed: () => setState(() => obscure = !obscure)))),
           const SizedBox(height: 18), FilledButton(onPressed: busy ? null : submit, child: Text(busy ? 'جارٍ التنفيذ...' : (register ? 'إنشاء الحساب' : 'تسجيل الدخول'))),
           TextButton(onPressed: () => setState(() => register = !register), child: Text(register ? 'لدي حساب بالفعل' : 'إنشاء حساب جديد')),
-        ]))))),
+        ])))))),
       );
 }
 
@@ -465,6 +519,8 @@ class CustomerDashboard extends StatelessWidget {
   Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(18), children: [
         heroCard('أهلاً ${profile['name'] ?? ''}', 'أنشئ طلبك واترك التسعير للتفاوض مع السائق.'),
         const SizedBox(height: 14),
+        whatsappTile(context),
+        const SizedBox(height: 8),
         Card(child: ListTile(leading: const CircleAvatar(backgroundColor: kYellow, foregroundColor: Colors.black, child: Icon(Icons.local_shipping)), title: const Text('طلب جديد'), subtitle: const Text('مكان الاستلام • الوجهة • تفاصيل الخدمة'), onTap: () => showModalBottomSheet(isScrollControlled: true, context: context, builder: (_) => CreateOrderSheet(profile: profile)))),
       ]);
 }
@@ -476,6 +532,8 @@ class DriverDashboard extends StatelessWidget {
   Widget build(BuildContext context) => StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: OrderService().availableOrders('${profile['state'] ?? ''}'),
         builder: (context, snapshot) => ListView(padding: const EdgeInsets.all(18), children: [
+          whatsappTile(context),
+          const SizedBox(height: 10),
           heroCard('لوحة السائق', '${profile['status'] ?? 'pending'} • ${profile['state'] ?? ''}'),
           const SizedBox(height: 14),
           if (profile['status'] != 'active') const Card(child: ListTile(title: Text('الحساب بانتظار اعتماد الإدارة'), subtitle: Text('بعد الاعتماد ستظهر الطلبات المتاحة.'), leading: Icon(Icons.info_outline))),
@@ -618,7 +676,142 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
               if (data['status'] == 'accepted' && data['negotiationStatus'] == 'agreed' && role == 'driver') FilledButton(onPressed: busy ? null : () => run(() => service.updateStatus(widget.orderId, 'picked_up')), child: const Text('تم استلام الطلب')),
               if (data['status'] == 'picked_up' && role == 'driver') FilledButton(onPressed: busy ? null : () => run(() => service.updateStatus(widget.orderId, 'delivering')), child: const Text('بدء التوصيل')),
               if (data['status'] == 'delivering' && role == 'driver') FilledButton(onPressed: busy ? null : () => run(() => service.updateStatus(widget.orderId, 'awaiting_confirmation')), child: const Text('تم التسليم')),
-              if (data['status'] == 'awaiting_confirmation' && role == 'customer') ...[
+              if (data['status'] == 'awaiting_confirmation' &&
+                  role == 'driver' &&
+                  data['customerConfirmedAt'] != null) ...[
+                FilledButton(
+                  onPressed: busy
+                      ? null
+                      : () async {
+                          final ok = await showDialog<bool>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text('إغلاق الطلب'),
+                              content: const Text(
+                                'بعد التأكيد سيتم إكمال الطلب واحتساب عمولة 5%.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('إلغاء'),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('إكمال'),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (ok != true) return;
+
+                          await run(() async {
+                            final uid =
+                                FirebaseAuth.instance.currentUser!.uid;
+                            final db = FirebaseFirestore.instance;
+
+                            await db.runTransaction((tx) async {
+                              final orderRef =
+                                  db.collection('orders').doc(widget.orderId);
+                              final walletRef =
+                                  db.collection('wallets').doc(uid);
+                              final walletTxRef =
+                                  db.collection('walletTransactions').doc();
+
+                              final orderSnap = await tx.get(orderRef);
+                              final walletSnap = await tx.get(walletRef);
+
+                              if (!orderSnap.exists) {
+                                throw Exception('الطلب غير موجود');
+                              }
+
+                              if (!walletSnap.exists) {
+                                throw Exception('المحفظة غير موجودة');
+                              }
+
+                              final orderData = orderSnap.data()!;
+                              final walletData = walletSnap.data()!;
+
+                              if (orderData['driverId'] != uid) {
+                                throw Exception('ليس لديك صلاحية');
+                              }
+
+                              if (orderData['status'] !=
+                                  'awaiting_confirmation') {
+                                throw Exception('الطلب ليس جاهزاً للإغلاق');
+                              }
+
+                              if (orderData['customerConfirmedAt'] == null) {
+                                throw Exception('بانتظار تأكيد العميل');
+                              }
+
+                              if (orderData['commissionCharged'] == true) {
+                                throw Exception('تم احتساب العمولة مسبقاً');
+                              }
+
+                              final fee =
+                                  (orderData['deliveryFee'] as num?)?.toInt() ??
+                                      0;
+
+                              if (fee <= 0) {
+                                throw Exception('قيمة الطلب غير صحيحة');
+                              }
+
+                              final commission = (fee * 0.05).round();
+
+                              final balance =
+                                  (walletData['balance'] as num?)?.toInt() ?? 0;
+
+                              if (balance < commission) {
+                                throw Exception(
+                                  'رصيد المحفظة لا يكفي للعمولة',
+                                );
+                              }
+
+                              final before = balance;
+                              final after = balance - commission;
+
+                              tx.update(orderRef, {
+                                'status': 'completed',
+                                'driverConfirmedAt':
+                                    FieldValue.serverTimestamp(),
+                                'completedAt':
+                                    FieldValue.serverTimestamp(),
+                                'commissionCharged': true,
+                              });
+
+                              tx.update(walletRef, {
+                                'balance': after,
+                                'totalCommission':
+                                    ((walletData['totalCommission'] as num?)
+                                                ?.toInt() ??
+                                            0) +
+                                        commission,
+                                'updatedAt': FieldValue.serverTimestamp(),
+                                'lastCommissionOrderId': widget.orderId,
+                              });
+
+                              tx.set(walletTxRef, {
+                                'userId': uid,
+                                'type': 'commission',
+                                'amount': -commission,
+                                'balanceBefore': before,
+                                'balanceAfter': after,
+                                'orderId': widget.orderId,
+                                'topupRequestId': null,
+                                'withdrawalRequestId': null,
+                                'createdAt':
+                                    FieldValue.serverTimestamp(),
+                                'createdBy': uid,
+                              });
+                            });
+                          });
+                        },
+                  child: const Text('إكمال الطلب واحتساب العمولة'),
+                ),
+              ],
+
+              if (data['status'] == 'awaiting_confirmation' &&
                 FilledButton(onPressed: busy ? null : () => run(() => service.customerConfirm(widget.orderId)), child: const Text('تأكيد الاستلام')),
                 const SizedBox(height: 8),
                 if (data['customerConfirmedAt'] != null) ...[
