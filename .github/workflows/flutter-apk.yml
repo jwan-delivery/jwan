@@ -27,16 +27,12 @@ jobs:
         run: |
           rm -rf mobile-app/lib mobile-app/android mobile-app/ios mobile-app/test mobile-app/web mobile-app/linux mobile-app/macos mobile-app/windows
           mv mobile-app/flutter_spec.yaml /tmp/flutter_spec.yaml
-
-          flutter create \
-            --org sd.jawan.delivery \
-            --project-name jawan_flutter \
-            --platforms android \
-            mobile-app
-
+          flutter create --org sd.jawan.delivery --project-name jawan_flutter --platforms android mobile-app
           mv /tmp/flutter_spec.yaml mobile-app/flutter_spec.yaml
+          cp /tmp/jawan_main.dart mobile-app/lib/main.dart
 
-      - name: Copy application code
+      - name: Install dependencies
+
         run: |
           cp mobile-app/flutter_spec.yaml /tmp/flutter_spec.yaml
           cp mobile-app/lib/main.dart mobile-app/lib/main.dart

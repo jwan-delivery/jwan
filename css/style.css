@@ -1232,3 +1232,171 @@ body.admin-page .content { padding-top: 10px; }
 @media (max-width:600px) {
   .support-admin-user-grid { grid-template-columns:1fr; }
 }
+/* =====================================================
+   JWAN DRIVER MENU — FINAL
+   ===================================================== */
+
+.jawan-driver-fixedbar {
+  display: none;
+}
+
+.driver-mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  direction: rtl;
+}
+
+.driver-mobile-brand strong {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.driver-mobile-brand span {
+  font-size: 12px;
+  opacity: .65;
+}
+
+.driver-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.48);
+  z-index: 2998;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .2s ease;
+}
+
+.driver-menu-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.driver-menu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(320px, 88vw);
+  height: 100vh;
+  background: var(--card, #fff);
+  color: var(--text, #111);
+  z-index: 2999;
+
+  transform: translateX(110%);
+  visibility: hidden;
+
+  transition:
+    transform .24s ease,
+    visibility .24s ease;
+
+  overflow-y: auto;
+
+  box-shadow:
+    -12px 0 35px rgba(0,0,0,.22);
+}
+
+.driver-menu.open {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.driver-menu-head {
+  min-height: 72px;
+  padding: 14px 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+
+.driver-menu-head strong {
+  display: block;
+  font-size: 17px;
+}
+
+.driver-menu-head small {
+  display: block;
+  opacity: .6;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.driver-menu-links {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 4px;
+}
+
+.driver-menu-links a {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+
+  padding: 13px 14px;
+  border-radius: 12px;
+
+  font-weight: 700;
+
+  transition:
+    background .18s ease,
+    transform .18s ease;
+}
+
+.driver-menu-links a:hover,
+.driver-menu-links a:focus {
+  background: rgba(255,193,7,.14);
+}
+
+.driver-menu-links a.active {
+  background: rgba(255,193,7,.22);
+}
+
+body.driver-menu-open {
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+
+  .jawan-driver-fixedbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+
+    width: 100% !important;
+    min-height: 60px;
+
+    padding:
+      8px
+      14px;
+
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+
+    background: var(--card, #fff);
+
+    border-bottom:
+      1px solid rgba(0,0,0,.08);
+
+    z-index: 2997;
+  }
+
+  .has-jawan-driver-menu .app-shell {
+    padding-top: 72px !important;
+  }
+}
+
+@media (min-width: 901px) {
+
+  .jawan-driver-fixedbar,
+  .driver-menu,
+  .driver-menu-backdrop {
+    display: none !important;
+  }
+}
