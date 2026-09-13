@@ -37,6 +37,26 @@ jobs:
           cp -R .flutter_seed/android mobile-app/android
           rm -rf .flutter_seed
 
+      - name: Allow url_launcher to open links (WhatsApp/browser)
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("mobile-app/android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+          block = (
+              '    <queries>\n'
+              '        <intent>\n'
+              '            <action android:name="android.intent.action.VIEW" />\n'
+              '            <category android:name="android.intent.category.BROWSABLE" />\n'
+              '            <data android:scheme="https" />\n'
+              '        </intent>\n'
+              '    </queries>\n'
+              '</manifest>'
+          )
+          s = s.replace('</manifest>', block)
+          p.write_text(s)
+          PY
+
       - name: Get dependencies
         working-directory: mobile-app
         run: flutter pub get
@@ -51,13 +71,15 @@ jobs:
 
       - name: Build Release APK
         working-directory: mobile-app
-        run: flutter build apk --release \
+        run: |
+          flutter build apk --release \
             --dart-define=JAWAN_FIREBASE_API_KEY=${{ secrets.JAWAN_FIREBASE_API_KEY }} \
             --dart-define=JAWAN_FIREBASE_APP_ID=${{ secrets.JAWAN_FIREBASE_APP_ID }}
 
       - name: Build Release AAB
         working-directory: mobile-app
-        run: flutter build appbundle --release \
+        run: |
+          flutter build appbundle --release \
             --dart-define=JAWAN_FIREBASE_API_KEY=${{ secrets.JAWAN_FIREBASE_API_KEY }} \
             --dart-define=JAWAN_FIREBASE_APP_ID=${{ secrets.JAWAN_FIREBASE_APP_ID }}
 
