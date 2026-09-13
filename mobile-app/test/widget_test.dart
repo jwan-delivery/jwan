@@ -3,9 +3,9 @@ import 'package:jawan_flutter/main.dart';
 
 void main() {
   test('vehicle labels are mapped correctly', () {
-    expect(vehicleAr('motorcycle'), 'موتر');
-    expect(vehicleAr('rickshaw'), 'ركشة');
-    expect(vehicleAr('lorry'), 'لوري');
+    expect(vehicleLabel('motorcycle'), 'موتر');
+    expect(vehicleLabel('rickshaw'), 'ركشة');
+    expect(vehicleLabel('lorry'), 'لوري');
   });
 
   test('order status labels are mapped correctly', () {
