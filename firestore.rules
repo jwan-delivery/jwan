@@ -356,7 +356,8 @@ service cloud.firestore {
         ])
         && getAfter(/databases/$(database)/documents/wallets/$(request.auth.uid)).data.lastCommissionOrderId == orderId;
 
-      allow delete: if isAdmin();
+      // حذف الطلبات يتم فقط عبر Cloud Function adminDeleteOrder.
+      allow delete: if false;
     }
 
     match /priceNegotiations/{orderId} {

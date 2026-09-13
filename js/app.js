@@ -386,11 +386,134 @@ function scheduleJwanNotificationAlert() {
 }
 
 // ننتظر تسجيل الدخول ثم نعرض التنبيه للمستخدم المسجل فقط.
-auth.onAuthStateChanged((user) => {
+auth.onAuthStateChanged(async (user) => {
   if (!user) return;
 
-  if (Notification.permission === "granted") return;
+  try {
+    if ("Notification" in window &&
+        Notification.permission === "granted") {
+      await enablePushNotifications();
+      return;
+    }
+  } catch (error) {
+    console.warn(
+      "Jwan automatic push registration failed:",
+      error
+    );
+  }
+
+  if (!("Notification" in window)) return;
   if (Notification.permission === "denied") return;
 
   scheduleJwanNotificationAlert();
 });
+
+/* ===== JWAN CONNECTIVITY + ROLE RESTORE ===== */
+(() => {
+  function initOfflineBanner() {
+    if (document.getElementById("jawan-offline-banner")) return;
+    const banner = document.createElement("div");
+    banner.id = "jawan-offline-banner";
+    banner.innerHTML = `
+      <span class="offline-icon">⚠️</span>
+      <span>أنت غير متصل بالإنترنت. بعض وظائف جوان لن تعمل حتى يعود الاتصال.</span>
+    `;
+    document.body.appendChild(banner);
+
+    const update = () => banner.classList.toggle("is-visible", !navigator.onLine);
+    window.addEventListener("online", update, { passive:true });
+    window.addEventListener("offline", update, { passive:true });
+    update();
+  }
+
+  async function restoreRolePage() {
+    const file = location.pathname.split("/").pop() || "index.html";
+    if (!["", "index.html", "login.html"].includes(file)) return;
+
+    try {
+      const { auth } = await import("./firebase-config.js");
+      const { getCurrentUserData, roleHome } = await import("./auth.js");
+      auth.onAuthStateChanged(async user => {
+        if (!user) return;
+        const data = await getCurrentUserData(user.uid).catch(() => null);
+        if (!data) return;
+        const home = roleHome(data.role);
+        if (!home) return;
+
+        localStorage.setItem("jawan:lastRole", data.role);
+        localStorage.setItem("jawan:lastRoleHome", home);
+
+        const target = home.split("/").pop();
+        if (target !== file) location.replace(home);
+      });
+    } catch (e) {
+      console.warn("Jawan role restore skipped:", e);
+    }
+  }
+
+  const start = () => {
+    initOfflineBanner();
+    restoreRolePage();
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once:true });
+  } else {
+    start();
+  }
+})();
+
+/* ===== JWAN CONNECTIVITY + ROLE RESTORE ===== */
+(() => {
+  function initOfflineBanner() {
+    if (document.getElementById("jawan-offline-banner")) return;
+    const banner = document.createElement("div");
+    banner.id = "jawan-offline-banner";
+    banner.innerHTML = `
+      <span class="offline-icon">⚠️</span>
+      <span>أنت غير متصل بالإنترنت. بعض وظائف جوان لن تعمل حتى يعود الاتصال.</span>
+    `;
+    document.body.appendChild(banner);
+
+    const update = () => banner.classList.toggle("is-visible", !navigator.onLine);
+    window.addEventListener("online", update, { passive:true });
+    window.addEventListener("offline", update, { passive:true });
+    update();
+  }
+
+  async function restoreRolePage() {
+    const file = location.pathname.split("/").pop() || "index.html";
+    if (!["", "index.html", "login.html"].includes(file)) return;
+
+    try {
+      const { auth } = await import("./firebase-config.js");
+      const { getCurrentUserData, roleHome } = await import("./auth.js");
+      auth.onAuthStateChanged(async user => {
+        if (!user) return;
+        const data = await getCurrentUserData(user.uid).catch(() => null);
+        if (!data) return;
+        const home = roleHome(data.role);
+        if (!home) return;
+
+        localStorage.setItem("jawan:lastRole", data.role);
+        localStorage.setItem("jawan:lastRoleHome", home);
+
+        const target = home.split("/").pop();
+        if (target !== file) location.replace(home);
+      });
+    } catch (e) {
+      console.warn("Jawan role restore skipped:", e);
+    }
+  }
+
+  const start = () => {
+    initOfflineBanner();
+    restoreRolePage();
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once:true });
+  } else {
+    start();
+  }
+})();
