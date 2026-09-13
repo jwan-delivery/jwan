@@ -302,3 +302,147 @@ exports.adminDeleteUser = onCall(
     };
   }
 );
+
+
+/*
+ * حذف طلب بواسطة الإدارة.
+ *
+ * الحذف يتم من الخادم فقط حتى لا تعتمد العملية
+ * على صلاحيات المتصفح المباشرة.
+ */
+exports.adminDeleteOrder = onCall(
+  async (request) => {
+    const callerUid = request.auth?.uid;
+
+    if (!callerUid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "يجب تسجيل الدخول كمسؤول."
+      );
+    }
+
+    const orderId = String(
+      request.data?.orderId || ""
+    ).trim();
+
+    if (!orderId) {
+      throw new HttpsError(
+        "invalid-argument",
+        "لم يتم تحديد الطلب."
+      );
+    }
+
+    const callerSnap = await db
+      .collection("users")
+      .doc(callerUid)
+      .get();
+
+    if (!callerSnap.exists) {
+      throw new HttpsError(
+        "permission-denied",
+        "حساب المسؤول غير موجود."
+      );
+    }
+
+    const caller = callerSnap.data();
+
+    if (
+      !["admin", "super_admin"].includes(caller.role) ||
+      caller.status !== "active"
+    ) {
+      throw new HttpsError(
+        "permission-denied",
+        "ليس لديك صلاحية حذف الطلبات."
+      );
+    }
+
+    const orderRef = db
+      .collection("orders")
+      .doc(orderId);
+
+    const orderSnap = await orderRef.get();
+
+    if (!orderSnap.exists) {
+      throw new HttpsError(
+        "not-found",
+        "الطلب غير موجود."
+      );
+    }
+
+    const order = orderSnap.data() || {};
+
+    /*
+     * نحفظ الحد الأدنى من معلومات الطلب في سجل التدقيق
+     * قبل الحذف النهائي.
+     */
+    const metadata = {
+      customerId: order.customerId || null,
+      driverId: order.driverId || null,
+      status: order.status || null,
+      agreedFee: order.agreedFee ?? null,
+      deliveryFee: order.deliveryFee ?? null,
+      state: order.state || null
+    };
+
+    const refs = [];
+
+    /*
+     * وثائق مباشرة مرتبطة بنفس رقم الطلب.
+     */
+    refs.push(
+      db.collection("priceNegotiations").doc(orderId),
+      db.collection("orderContacts").doc(orderId)
+    );
+
+    /*
+     * مجموعات تستخدم orderId داخل الوثيقة.
+     */
+    const querySpecs = [
+      ["ratings", "orderId"],
+      ["walletTransactions", "orderId"],
+      ["notifications", "orderId"]
+    ];
+
+    for (const [collectionName, fieldName] of querySpecs) {
+      const snap = await db
+        .collection(collectionName)
+        .where(fieldName, "==", orderId)
+        .get();
+
+      snap.docs.forEach((docSnap) => {
+        refs.push(docSnap.ref);
+      });
+    }
+
+    /*
+     * Firestore batch حدّه 500 عملية.
+     * نستخدم 400 كحد آمن لكل دفعة.
+     */
+    for (let i = 0; i < refs.length; i += 400) {
+      const batch = db.batch();
+
+      refs
+        .slice(i, i + 400)
+        .forEach((ref) => batch.delete(ref));
+
+      await batch.commit();
+    }
+
+    await orderRef.delete();
+
+    await db.collection("auditLogs").add({
+      actorUid: callerUid,
+      actorRole: caller.role,
+      action: "delete_order",
+      targetType: "order",
+      targetId: orderId,
+      metadata,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    return {
+      success: true,
+      orderId
+    };
+  }
+);
