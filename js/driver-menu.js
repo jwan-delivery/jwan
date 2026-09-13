@@ -1,16 +1,45 @@
 (() => {
+  const DRIVER_PAGES = new Set([
+    "driver.html",
+    "driver-orders.html",
+    "driver-analytics.html"
+  ]);
+
+  const currentPage =
+    location.pathname.split("/").pop() || "index.html";
+
+  if (!DRIVER_PAGES.has(currentPage)) return;
+
   function initDriverMenu() {
-    if (document.querySelector("[data-jawan-driver-menu]")) return;
+    if (document.getElementById("jawanDriverMobileBar")) return;
+
+    const oldBars = document.querySelectorAll(
+      "body > header.mobilebar, body > header.driver-mobilebar"
+    );
+
+    oldBars.forEach((el) => el.remove());
 
     const header = document.createElement("header");
-    header.className = "mobilebar jawan-driver-fixedbar";
-    header.dataset.jawanDriverMenu = "1";
+    header.id = "jawanDriverMobileBar";
+    header.className = "jawan-driver-fixedbar";
+
     header.innerHTML = `
-      <strong>جوان</strong>
-      <button id="driverMenuBtn" class="icon-btn" type="button"
-              aria-label="فتح قائمة السائق" aria-expanded="false">
-        <svg class="driver-menu-icon" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <div class="driver-mobile-brand">
+        <strong>جوان</strong>
+        <span>السائق</span>
+      </div>
+
+      <button
+        id="driverMenuBtn"
+        class="driver-menu-btn"
+        type="button"
+        aria-label="فتح قائمة السائق"
+        aria-expanded="false"
+      >
+        <svg viewBox="0 0 24 24" fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round">
           <path d="M4 6h16"></path>
           <path d="M4 12h16"></path>
           <path d="M4 18h16"></path>
@@ -26,53 +55,170 @@
     menu.id = "driverMenu";
     menu.className = "driver-menu";
     menu.setAttribute("aria-hidden", "true");
+
     menu.innerHTML = `
       <div class="driver-menu-head">
-        <strong>قائمة السائق</strong>
-        <button id="driverMenuClose" class="icon-btn" type="button"
-                aria-label="إغلاق">×</button>
+        <div>
+          <strong>قائمة السائق</strong>
+          <small>جوان للتوصيل</small>
+        </div>
+
+        <button
+          id="driverMenuClose"
+          class="icon-btn"
+          type="button"
+          aria-label="إغلاق"
+        >×</button>
       </div>
-      <a href="driver.html">لوحتي</a>
-      <a href="driver-orders.html">طلباتي السابقة</a>
-      <a href="driver-analytics.html">تحليلاتي</a>
-      <a href="wallet.html">شحن المحفظة</a>
-      <a href="support.html">الدعم داخل التطبيق</a>
-      <a href="change-password.html">تغيير كلمة المرور</a>
-      <a href="driver-profile.html">ملفي وبياناتي</a>
-      <a data-whatsapp="contact" href="#">راسلنا على واتساب</a>
+
+      <nav class="driver-menu-links">
+
+        <a href="driver.html">
+          <span>لوحتي</span>
+        </a>
+
+        <a href="driver-orders.html">
+          <span>طلباتي السابقة</span>
+        </a>
+
+        <a href="driver-analytics.html">
+          <span>تحليلاتي</span>
+        </a>
+
+        <a href="wallet.html">
+          <span>المحفظة</span>
+        </a>
+
+        <a href="support.html">
+          <span>الدعم داخل التطبيق</span>
+        </a>
+
+        <a href="change-password.html">
+          <span>تغيير كلمة المرور</span>
+        </a>
+
+        <a href="driver-profile.html">
+          <span>ملفي وبياناتي</span>
+        </a>
+
+        <a
+          data-whatsapp="contact"
+          href="#"
+        >
+          <span>راسلنا على واتساب</span>
+        </a>
+
+      </nav>
     `;
 
-    document.body.insertBefore(header, document.body.firstChild);
+    document.body.prepend(header);
     document.body.appendChild(backdrop);
     document.body.appendChild(menu);
+
     document.body.classList.add("has-jawan-driver-menu");
 
-    const btn = document.getElementById("driverMenuBtn");
-    const closeBtn = document.getElementById("driverMenuClose");
+    const btn =
+      document.getElementById("driverMenuBtn");
 
-    const setOpen = open => {
-      menu.classList.toggle("open", open);
-      backdrop.classList.toggle("open", open);
-      menu.setAttribute("aria-hidden", String(!open));
-      btn?.setAttribute("aria-expanded", String(open));
-      document.body.classList.toggle("menu-locked", open);
-    };
+    const closeBtn =
+      document.getElementById("driverMenuClose");
 
-    btn?.addEventListener("click", e => {
-      e.preventDefault();
-      e.stopPropagation();
-      setOpen(!menu.classList.contains("open"));
-    });
-    closeBtn?.addEventListener("click", () => setOpen(false));
-    backdrop.addEventListener("click", () => setOpen(false));
-    menu.querySelectorAll("a").forEach(a => a.addEventListener("click", () => setOpen(false)));
-    document.addEventListener("keydown", e => {
-      if (e.key === "Escape") setOpen(false);
-    });
+    function closeMenu() {
+      menu.classList.remove("open");
+      backdrop.classList.remove("open");
+
+      menu.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
+      btn?.setAttribute(
+        "aria-expanded",
+        "false"
+      );
+
+      document.body.classList.remove(
+        "driver-menu-open"
+      );
+    }
+
+    function openMenu() {
+      menu.classList.add("open");
+      backdrop.classList.add("open");
+
+      menu.setAttribute(
+        "aria-hidden",
+        "false"
+      );
+
+      btn?.setAttribute(
+        "aria-expanded",
+        "true"
+      );
+
+      document.body.classList.add(
+        "driver-menu-open"
+      );
+    }
+
+    btn?.addEventListener(
+      "click",
+      (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (menu.classList.contains("open")) {
+          closeMenu();
+        } else {
+          openMenu();
+        }
+      }
+    );
+
+    closeBtn?.addEventListener(
+      "click",
+      closeMenu
+    );
+
+    backdrop.addEventListener(
+      "click",
+      closeMenu
+    );
+
+    menu
+      .querySelectorAll("a")
+      .forEach((link) => {
+        link.addEventListener(
+          "click",
+          closeMenu
+        );
+      });
+
+    document.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.key === "Escape") {
+          closeMenu();
+        }
+      }
+    );
+
+    const active =
+      menu.querySelector(
+        `a[href="${currentPage}"]`
+      );
+
+    active?.classList.add("active");
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initDriverMenu, { once:true });
+  if (
+    document.readyState === "loading"
+  ) {
+    document.addEventListener(
+      "DOMContentLoaded",
+      initDriverMenu,
+      { once: true }
+    );
   } else {
     initDriverMenu();
   }
