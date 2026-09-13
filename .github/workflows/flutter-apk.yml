@@ -1,0 +1,65 @@
+name: Build Jawan Flutter APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - flutter-native-20260913
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Create Flutter project
+        run: |
+          rm -rf mobile-app/lib mobile-app/android mobile-app/ios mobile-app/test mobile-app/web mobile-app/linux mobile-app/macos mobile-app/windows
+          mv mobile-app/flutter_spec.yaml /tmp/flutter_spec.yaml
+
+          flutter create \
+            --org sd.jawan.delivery \
+            --project-name jawan_flutter \
+            --platforms android \
+            mobile-app
+
+          mv /tmp/flutter_spec.yaml mobile-app/flutter_spec.yaml
+
+      - name: Copy application code
+        run: |
+          cp mobile-app/flutter_spec.yaml /tmp/flutter_spec.yaml
+          cp mobile-app/lib/main.dart mobile-app/lib/main.dart
+
+      - name: Install dependencies
+        working-directory: mobile-app
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: mobile-app
+        run: flutter analyze
+
+      - name: Test
+        working-directory: mobile-app
+        run: flutter test
+
+      - name: Build debug APK
+        working-directory: mobile-app
+        run: flutter build apk --debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jawan-flutter-debug-apk
+          path: mobile-app/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
