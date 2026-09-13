@@ -1,9 +1,10 @@
-name: Build Jawan Flutter APK
+name: Jawan Flutter Release Candidate
 
 on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - flutter-native-20260913
 
 permissions:
@@ -12,7 +13,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,21 +23,31 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Generate Android platform
+      - name: Generate Android project
         run: |
           rm -rf .flutter_seed
-          mkdir -p .flutter_seed
-
-          flutter create \
-            --org sd.jawan \
-            --project-name delivery \
-            --platforms android \
-            .flutter_seed
-
+          flutter create --org sd.jawan --project-name delivery --platforms android .flutter_seed
           rm -rf mobile-app/android
           cp -R .flutter_seed/android mobile-app/android
-
           rm -rf .flutter_seed
+
+      - name: Read Firebase Android config
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+        run: |
+          test -n "$GOOGLE_SERVICES_JSON_B64" || { echo "Missing GOOGLE_SERVICES_JSON_B64"; exit 1; }
+          echo "$GOOGLE_SERVICES_JSON_B64" | base64 --decode > /tmp/google-services.json
+          API_KEY=$(jq -r '.client[0].api_key[0].current_key' /tmp/google-services.json)
+          APP_ID=$(jq -r '.client[0].client_info.mobilesdk_app_id' /tmp/google-services.json)
+          PROJECT_ID=$(jq -r '.project_info.project_id' /tmp/google-services.json)
+          SENDER_ID=$(jq -r '.project_info.project_number' /tmp/google-services.json)
+          test -n "$API_KEY" && test "$API_KEY" != "null"
+          test -n "$APP_ID" && test "$APP_ID" != "null"
+          echo "JAWAN_FIREBASE_API_KEY=$API_KEY" >> "$GITHUB_ENV"
+          echo "JAWAN_FIREBASE_APP_ID=$APP_ID" >> "$GITHUB_ENV"
+          echo "JAWAN_FIREBASE_PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
+          echo "JAWAN_FIREBASE_MESSAGING_SENDER_ID=$SENDER_ID" >> "$GITHUB_ENV"
+          rm -f /tmp/google-services.json
 
       - name: Get dependencies
         working-directory: mobile-app
@@ -51,13 +61,29 @@ jobs:
         working-directory: mobile-app
         run: flutter test
 
-      - name: Build debug APK
+      - name: Build Release APK
         working-directory: mobile-app
-        run: flutter build apk --debug
+        run: |
+          flutter build apk --release \
+            --dart-define=JAWAN_FIREBASE_API_KEY="$JAWAN_FIREBASE_API_KEY" \
+            --dart-define=JAWAN_FIREBASE_APP_ID="$JAWAN_FIREBASE_APP_ID" \
+            --dart-define=JAWAN_FIREBASE_PROJECT_ID="$JAWAN_FIREBASE_PROJECT_ID" \
+            --dart-define=JAWAN_FIREBASE_MESSAGING_SENDER_ID="$JAWAN_FIREBASE_MESSAGING_SENDER_ID"
 
-      - name: Upload APK
+      - name: Build Release AAB
+        working-directory: mobile-app
+        run: |
+          flutter build appbundle --release \
+            --dart-define=JAWAN_FIREBASE_API_KEY="$JAWAN_FIREBASE_API_KEY" \
+            --dart-define=JAWAN_FIREBASE_APP_ID="$JAWAN_FIREBASE_APP_ID" \
+            --dart-define=JAWAN_FIREBASE_PROJECT_ID="$JAWAN_FIREBASE_PROJECT_ID" \
+            --dart-define=JAWAN_FIREBASE_MESSAGING_SENDER_ID="$JAWAN_FIREBASE_MESSAGING_SENDER_ID"
+
+      - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: jawan-flutter-debug-apk
-          path: mobile-app/build/app/outputs/flutter-apk/app-debug.apk
+          name: jawan-flutter-release
+          path: |
+            mobile-app/build/app/outputs/flutter-apk/app-release.apk
+            mobile-app/build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
