@@ -32,29 +32,8 @@ jobs:
           grep -q 'sd.jawan.delivery' android/app/src/main/AndroidManifest.xml
           grep -q 'io.flutter.embedding.android.FlutterActivity' android/app/src/main/java/sd/jawan/delivery/MainActivity.java
           test -f android/app/build.gradle
-          echo "Using the tracked mobile-app/android project; no regeneration will occur."
-
-      - name: Allow url_launcher to open links (WhatsApp/browser)
-        working-directory: mobile-app
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("android/app/src/main/AndroidManifest.xml")
-          s = p.read_text()
-          if '<queries>' not in s:
-              block = (
-                  '    <queries>\n'
-                  '        <intent>\n'
-                  '            <action android:name="android.intent.action.VIEW" />\n'
-                  '            <category android:name="android.intent.category.BROWSABLE" />\n'
-                  '            <data android:scheme="https" />\n'
-                  '        </intent>\n'
-                  '    </queries>\n'
-                  '</manifest>'
-              )
-              s = s.replace('</manifest>', block)
-              p.write_text(s)
-          PY
+          test -f lib/main_native.dart
+          echo "Using the tracked Android project and main_native.dart. No Android regeneration will occur."
 
       - name: Get dependencies
         working-directory: mobile-app
@@ -72,6 +51,7 @@ jobs:
         working-directory: mobile-app
         run: |
           flutter build apk --release \
+            --target lib/main_native.dart \
             --dart-define=JAWAN_FIREBASE_API_KEY=${{ secrets.JAWAN_FIREBASE_API_KEY }} \
             --dart-define=JAWAN_FIREBASE_APP_ID=${{ secrets.JAWAN_FIREBASE_APP_ID }} \
             --dart-define=JAWAN_FIREBASE_PROJECT_ID=jwan-delivery-c930d-72911 \
@@ -81,6 +61,7 @@ jobs:
         working-directory: mobile-app
         run: |
           flutter build appbundle --release \
+            --target lib/main_native.dart \
             --dart-define=JAWAN_FIREBASE_API_KEY=${{ secrets.JAWAN_FIREBASE_API_KEY }} \
             --dart-define=JAWAN_FIREBASE_APP_ID=${{ secrets.JAWAN_FIREBASE_APP_ID }} \
             --dart-define=JAWAN_FIREBASE_PROJECT_ID=jwan-delivery-c930d-72911 \
