@@ -1,5 +1,5 @@
 name: jawan_flutter
-description: Jawan Delivery native Flutter Android application
+description: Ayez native Flutter Android application
 publish_to: "none"
 version: 1.0.0+1
 
@@ -17,6 +17,7 @@ dependencies:
   firebase_app_check: ^0.4.7
   url_launcher: ^6.3.2
   google_fonts: ^6.2.1
+  google_sign_in: ^6.2.2
 
 dev_dependencies:
   flutter_test:
