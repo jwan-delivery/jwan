@@ -138,6 +138,6 @@ jobs:
           name: ayez-flutter-release
           path: |
             mobile-app/build/app/outputs/flutter-apk/app-release.apk
-            mobile-app/build/outputs/bundle/release/app-release.aab
+            mobile-app/build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
