@@ -50,6 +50,13 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Install Android build components
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "cmake;3.22.1"
+
       - name: Verify tracked native project
         working-directory: mobile-app
         run: |
