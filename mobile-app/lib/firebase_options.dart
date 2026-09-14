@@ -4,8 +4,6 @@ class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     const apiKey = String.fromEnvironment('JAWAN_FIREBASE_API_KEY');
     const appId = String.fromEnvironment('JAWAN_FIREBASE_APP_ID');
-    const projectId = String.fromEnvironment('JAWAN_FIREBASE_PROJECT_ID', defaultValue: 'jwan-delivery-c930d-72911');
-    const messagingSenderId = String.fromEnvironment('JAWAN_FIREBASE_MESSAGING_SENDER_ID', defaultValue: '22978141935');
     if (apiKey.isEmpty || appId.isEmpty) {
       throw StateError('Missing Firebase Android dart-defines. Configure CI before release build.');
     }
