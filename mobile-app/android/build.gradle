@@ -1,4 +1,21 @@
-plugins {
-    id "com.android.application" version "8.13.0" apply false
-    id "dev.flutter.flutter-gradle-plugin" version "1.0.0" apply false
+// Flutter Gradle is provided by the Flutter SDK through settings.gradle.
+// Do not declare dev.flutter.flutter-gradle-plugin here a second time.
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.buildDir = '../build'
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(':app')
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
 }
