@@ -9,8 +9,6 @@ on:
 permissions:
   contents: read
 
-# Firebase application configuration. The API key is a client-side Firebase
-# identifier; Android API-key restrictions must allow sd.jawan.delivery.
 env:
   JAWAN_FIREBASE_API_KEY: "AIzaSyDQKVdQ7laLfNyZyIdtHbS91wVtSd1QeuM"
   JAWAN_FIREBASE_APP_ID: "1:22978141935:web:cea2a66dd01f5bec04051a"
@@ -52,6 +50,13 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Install Android build components
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "cmake;3.22.1"
 
       - name: Flutter version
         run: flutter --version
