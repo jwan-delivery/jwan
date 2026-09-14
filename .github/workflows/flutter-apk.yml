@@ -35,11 +35,22 @@ jobs:
         run: |
           test -f pubspec.yaml
           test -f lib/main_native.dart
+          test -f android/settings.gradle
           test -f android/app/src/main/AndroidManifest.xml
           test -f android/app/src/main/java/sd/jawan/delivery/MainActivity.java
           grep -q 'applicationId = "sd.jawan.delivery"' android/app/build.gradle
           grep -q 'io.flutter.embedding.android.FlutterActivity' android/app/src/main/java/sd/jawan/delivery/MainActivity.java
           echo "Using tracked native Android project and lib/main_native.dart."
+
+      - name: Verify Firebase build configuration
+        shell: bash
+        env:
+          JAWAN_FIREBASE_API_KEY: ${{ secrets.JAWAN_FIREBASE_API_KEY }}
+          JAWAN_FIREBASE_APP_ID: ${{ secrets.JAWAN_FIREBASE_APP_ID }}
+        run: |
+          test -n "$JAWAN_FIREBASE_API_KEY"
+          test -n "$JAWAN_FIREBASE_APP_ID"
+          echo "Firebase production dart-defines are configured."
 
       - name: Get dependencies
         working-directory: mobile-app
@@ -55,21 +66,27 @@ jobs:
 
       - name: Build Release APK
         working-directory: mobile-app
+        env:
+          JAWAN_FIREBASE_API_KEY: ${{ secrets.JAWAN_FIREBASE_API_KEY }}
+          JAWAN_FIREBASE_APP_ID: ${{ secrets.JAWAN_FIREBASE_APP_ID }}
         run: |
           flutter build apk --release \
             --target lib/main_native.dart \
-            --dart-define=JAWAN_FIREBASE_API_KEY=${{ secrets.JAWAN_FIREBASE_API_KEY }} \
-            --dart-define=JAWAN_FIREBASE_APP_ID=${{ secrets.JAWAN_FIREBASE_APP_ID }} \
+            --dart-define=JAWAN_FIREBASE_API_KEY="$JAWAN_FIREBASE_API_KEY" \
+            --dart-define=JAWAN_FIREBASE_APP_ID="$JAWAN_FIREBASE_APP_ID" \
             --dart-define=JAWAN_FIREBASE_PROJECT_ID=jwan-delivery-c930d-72911 \
             --dart-define=JAWAN_FIREBASE_MESSAGING_SENDER_ID=22978141935
 
       - name: Build Release AAB
         working-directory: mobile-app
+        env:
+          JAWAN_FIREBASE_API_KEY: ${{ secrets.JAWAN_FIREBASE_API_KEY }}
+          JAWAN_FIREBASE_APP_ID: ${{ secrets.JAWAN_FIREBASE_APP_ID }}
         run: |
           flutter build appbundle --release \
             --target lib/main_native.dart \
-            --dart-define=JAWAN_FIREBASE_API_KEY=${{ secrets.JAWAN_FIREBASE_API_KEY }} \
-            --dart-define=JAWAN_FIREBASE_APP_ID=${{ secrets.JAWAN_FIREBASE_APP_ID }} \
+            --dart-define=JAWAN_FIREBASE_API_KEY="$JAWAN_FIREBASE_API_KEY" \
+            --dart-define=JAWAN_FIREBASE_APP_ID="$JAWAN_FIREBASE_APP_ID" \
             --dart-define=JAWAN_FIREBASE_PROJECT_ID=jwan-delivery-c930d-72911 \
             --dart-define=JAWAN_FIREBASE_MESSAGING_SENDER_ID=22978141935
 
