@@ -1,12 +1,6 @@
 // Flutter Gradle is provided by the Flutter SDK through settings.gradle.
-// Do not declare dev.flutter.flutter-gradle-plugin here a second time.
-
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+// Repositories are centralized in settings.gradle so Flutter's Maven
+// repository remains visible to the application and plugins.
 
 rootProject.buildDir = '../build'
 subprojects {
