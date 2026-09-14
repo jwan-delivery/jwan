@@ -40,7 +40,7 @@ jobs:
           test -f lib/main_native.dart
           test -f android/app/src/main/AndroidManifest.xml
           test -f android/app/src/main/java/sd/jawan/delivery/MainActivity.java
-          grep -q 'sd.jawan.delivery' android/app/src/main/AndroidManifest.xml
+          grep -q 'applicationId = "sd.jawan.delivery"' android/app/build.gradle
           grep -q 'io.flutter.embedding.android.FlutterActivity' android/app/src/main/java/sd/jawan/delivery/MainActivity.java
           echo "Tracked native Flutter project OK"
 
