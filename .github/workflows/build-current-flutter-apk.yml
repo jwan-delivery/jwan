@@ -1,0 +1,78 @@
+name: Build Current Jawan Flutter APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-flutter-apk:
+    name: Build Flutter APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Show Flutter version
+        run: flutter --version
+
+      - name: Verify Flutter project
+        working-directory: mobile-app
+        run: |
+          test -f pubspec.yaml
+          test -d lib
+          test -d android
+          echo "Flutter project detected successfully."
+
+      - name: Get dependencies
+        working-directory: mobile-app
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: mobile-app
+        run: flutter analyze
+
+      - name: Test
+        working-directory: mobile-app
+        run: flutter test
+
+      - name: Build Debug APK
+        working-directory: mobile-app
+        run: flutter build apk --debug
+
+      - name: Build Release APK
+        working-directory: mobile-app
+        run: flutter build apk --release
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jawan-current-debug-apk
+          path: mobile-app/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jawan-current-release-apk
+          path: mobile-app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
