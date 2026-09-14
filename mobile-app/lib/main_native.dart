@@ -4,15 +4,15 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'firebase_options.dart';
 import 'main.dart' as legacy;
 
-/// Native Android entrypoint for the Jawan Flutter application.
-///
-/// The Android APK intentionally boots the same complete Flutter application
-/// implemented in `main.dart`, so the native build does not fork business
-/// logic or lose customer/driver/admin capabilities.
+const _black = Color(0xFF0B0B0B);
+const _yellow = Color(0xFFF5C400);
+const _background = Color(0xFFF7F7F7);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const JawanNativeBootstrap());
@@ -43,8 +43,6 @@ class _JawanNativeBootstrapState extends State<JawanNativeBootstrap> {
         ).timeout(const Duration(seconds: 15));
       }
 
-      // Keep App Check enabled for release builds. Debug builds can opt into
-      // the debug provider through the same CI dart-define already supported.
       try {
         await FirebaseAppCheck.instance.activate(
           androidProvider: const bool.fromEnvironment(
@@ -55,13 +53,11 @@ class _JawanNativeBootstrapState extends State<JawanNativeBootstrap> {
               : AndroidProvider.playIntegrity,
         );
       } catch (_) {
-        // App Check must not leave the whole UI stuck at the splash screen.
+        // App Check must never leave the application stuck on the splash.
       }
 
       try {
-        FirebaseMessaging.onBackgroundMessage(
-          _firebaseMessagingBackgroundHandler,
-        );
+        FirebaseMessaging.onBackgroundMessage(_backgroundMessageHandler);
       } catch (_) {}
 
       if (!mounted) return;
@@ -93,18 +89,43 @@ class _JawanNativeBootstrapState extends State<JawanNativeBootstrap> {
       return _StartupErrorPage(error: _error!, retry: _retry);
     }
 
-    // IMPORTANT: use the complete Flutter app rather than the reduced native
-    // shell. This preserves the same order lifecycle, negotiation, delivery,
-    // wallet, rating, notifications, support and admin flows in the APK.
-    return const Directionality(
-      textDirection: TextDirection.rtl,
-      child: legacy.JawanApp(),
+    final theme = ThemeData(
+      useMaterial3: true,
+      scaffoldBackgroundColor: _background,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: _yellow,
+        brightness: Brightness.light,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: _black,
+        foregroundColor: Colors.white,
+        centerTitle: false,
+      ),
+      inputDecorationTheme: const InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(14)),
+        ),
+      ),
+    );
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'جوان للتوصيل',
+      theme: theme.copyWith(
+        textTheme: GoogleFonts.cairoTextTheme(theme.textTheme),
+      ),
+      home: const Directionality(
+        textDirection: TextDirection.rtl,
+        child: legacy.AuthGate(),
+      ),
     );
   }
 }
 
 @pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+Future<void> _backgroundMessageHandler(RemoteMessage message) async {
   try {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
@@ -121,15 +142,16 @@ class _StartupPage extends StatelessWidget {
   Widget build(BuildContext context) => const MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-          backgroundColor: Color(0xFF0B0B0B),
+          backgroundColor: _black,
           body: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.local_shipping_rounded,
-                  size: 72,
-                  color: Color(0xFFFFC400),
+                Image(
+                  image: AssetImage('assets/branding/jawan-logo.png'),
+                  width: 112,
+                  height: 112,
+                  fit: BoxFit.contain,
                 ),
                 SizedBox(height: 16),
                 Text(
@@ -141,13 +163,9 @@ class _StartupPage extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 18),
-                SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    color: Color(0xFFFFC400),
-                  ),
+                CircularProgressIndicator(
+                  color: _yellow,
+                  strokeWidth: 3,
                 ),
               ],
             ),
@@ -166,43 +184,51 @@ class _StartupErrorPage extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-          backgroundColor: const Color(0xFFF7F7F7),
+          backgroundColor: _background,
           body: SafeArea(
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(22),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.cloud_off, size: 54),
-                        const SizedBox(height: 12),
-                        const Text(
+                        Image(
+                          image: const AssetImage(
+                            'assets/branding/jawan-logo.png',
+                          ),
+                          width: 90,
+                          height: 90,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
                           'تعذر تشغيل جوان',
-                          style: TextStyle(
-                            fontSize: 22,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.cairo(
+                            fontSize: 23,
                             fontWeight: FontWeight.w900,
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'تحقق من اتصال الإنترنت ثم أعد المحاولة.',
+                        const SizedBox(height: 10),
+                        Text(
+                          'تحقق من الإنترنت ثم أعد المحاولة.',
                           textAlign: TextAlign.center,
+                          style: GoogleFonts.cairo(),
                         ),
-                        const SizedBox(height: 12),
-                        SelectableText(
+                        const SizedBox(height: 10),
+                        Text(
                           error.toString(),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 12),
+                          style: const TextStyle(fontSize: 11),
                         ),
                         const SizedBox(height: 18),
                         FilledButton.icon(
                           onPressed: retry,
                           icon: const Icon(Icons.refresh),
-                          label: const Text('إعادة المحاولة'),
+                          label: Text('إعادة المحاولة', style: GoogleFonts.cairo()),
                         ),
                       ],
                     ),
