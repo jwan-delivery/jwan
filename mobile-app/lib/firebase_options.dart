@@ -1,16 +1,15 @@
 import 'package:firebase_core/firebase_core.dart';
 
 class DefaultFirebaseOptions {
-  // The project's known-good public web configuration is the safe fallback.
-  // A dedicated Android API key can override it through CI when API key
-  // restrictions are enabled in Google Cloud/Firebase.
+  // Android configuration is the canonical native-app fallback. CI can still
+  // override these values through --dart-define when needed.
   static const _apiKey = String.fromEnvironment(
     'JAWAN_FIREBASE_API_KEY',
     defaultValue: 'AIzaSyDQKVdQ7laLfNyZyIdtHbS91wVtSd1QeuM',
   );
   static const _appId = String.fromEnvironment(
     'JAWAN_FIREBASE_APP_ID',
-    defaultValue: '1:22978141935:web:cea2a66dd01f5bec04051a',
+    defaultValue: '1:22978141935:android:b9966fbe2a006ce104051a',
   );
   static const _projectId = String.fromEnvironment(
     'JAWAN_FIREBASE_PROJECT_ID',
