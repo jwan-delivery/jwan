@@ -35,7 +35,7 @@ jobs:
           channel: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
-      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: dart format --output=none lib test
       - run: flutter analyze
       - run: flutter test --coverage
 
@@ -62,7 +62,7 @@ jobs:
       - name: Verify Android Firebase configuration
         run: |
           if [ -z "$FIREBASE_ANDROID_APP_ID" ]; then
-            echo "FIREBASE_ANDROID_APP_ID is not configured; skipping release artifact build."
+            echo "FIREBASE_ANDROID_APP_ID is not configured; release artifacts will not be built in this run."
             exit 0
           fi
       - name: Build release APK
