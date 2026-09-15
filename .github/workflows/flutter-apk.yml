@@ -11,8 +11,6 @@ permissions:
   contents: read
 
 env:
-  JAWAN_FIREBASE_API_KEY: "AIzaSyDQKVdQ7laLfNyZyIdtHbS91wVtSd1QeuM"
-  JAWAN_FIREBASE_APP_ID: "1:22978141935:web:cea2a66dd01f5bec04051a"
   JAWAN_FIREBASE_PROJECT_ID: "jwan-delivery-c930d-72911"
   JAWAN_FIREBASE_MESSAGING_SENDER_ID: "22978141935"
 
@@ -24,19 +22,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare Ayez branding assets
+      - name: Prepare Ayez branding and Firebase Android config
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p mobile-app/assets/branding
           mkdir -p mobile-app/android/app/src/main/res/drawable
-          curl -fsSL \
-            https://raw.githubusercontent.com/jwan-delivery/jwan/main/assets/branding/logo-external.png \
-            -o mobile-app/assets/branding/jawan-logo.png
-          cp mobile-app/assets/branding/jawan-logo.png \
-            mobile-app/android/app/src/main/res/drawable/jawan_logo.png
-          test -s mobile-app/assets/branding/jawan-logo.png
-          test -s mobile-app/android/app/src/main/res/drawable/jawan_logo.png
+          # Use the new Ayez logo when committed; retain repository logo only as a temporary fallback.
+          if [ -f mobile-app/assets/branding/new_logo_3ayez.png ]; then
+            cp mobile-app/assets/branding/new_logo_3ayez.png mobile-app/assets/branding/jawan-logo.png
+          else
+            curl -fsSL https://raw.githubusercontent.com/jwan-delivery/jwan/main/assets/branding/logo-external.png -o mobile-app/assets/branding/jawan-logo.png
+          fi
+          cp mobile-app/assets/branding/jawan-logo.png mobile-app/android/app/src/main/res/drawable/jawan_logo.png
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('mobile-app/android/app/google-services.json')
+          data = json.loads(p.read_text(encoding='utf-8'))
+          client = data['client'][0]
+          api_key = client['api_key'][0]['current_key']
+          app_id = client['client_info']['mobilesdk_app_id']
+          project_id = data['project_info']['project_id']
+          sender_id = data['project_info']['project_number']
+          with open('/tmp/firebase_env', 'w', encoding='utf-8') as f:
+              f.write(f'JAWAN_FIREBASE_API_KEY={api_key}\n')
+              f.write(f'JAWAN_FIREBASE_APP_ID={app_id}\n')
+              f.write(f'JAWAN_FIREBASE_PROJECT_ID={project_id}\n')
+              f.write(f'JAWAN_FIREBASE_MESSAGING_SENDER_ID={sender_id}\n')
+          PY
+          cat /tmp/firebase_env >> "$GITHUB_ENV"
 
           python3 - <<'PY'
           from pathlib import Path
@@ -77,9 +93,11 @@ jobs:
           test -f android/settings.gradle
           test -f android/app/src/main/AndroidManifest.xml
           test -f android/app/src/main/java/sd/jawan/delivery/MainActivity.java
+          test -f android/app/google-services.json
           test -f assets/branding/jawan-logo.png
           test -f android/app/src/main/res/drawable/jawan_logo.png
           grep -q 'applicationId = "sd.jawan.delivery"' android/app/build.gradle
+          grep -q 'com.google.gms.google-services' android/app/build.gradle
           grep -q 'io.flutter.embedding.android.FlutterActivity' android/app/src/main/java/sd/jawan/delivery/MainActivity.java
 
       - name: Verify Firebase build configuration
@@ -89,7 +107,8 @@ jobs:
           test -n "$JAWAN_FIREBASE_APP_ID"
           test -n "$JAWAN_FIREBASE_PROJECT_ID"
           test -n "$JAWAN_FIREBASE_MESSAGING_SENDER_ID"
-          echo "Firebase production dart-defines are configured."
+          test "$JAWAN_FIREBASE_PROJECT_ID" = "jwan-delivery-c930d-72911"
+          echo "Firebase Android configuration loaded from google-services.json."
 
       - name: Get dependencies
         working-directory: mobile-app
