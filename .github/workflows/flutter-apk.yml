@@ -28,7 +28,6 @@ jobs:
           set -euo pipefail
           mkdir -p mobile-app/assets/branding
           mkdir -p mobile-app/android/app/src/main/res/drawable
-          # Use the new Ayez logo when committed; retain repository logo only as a temporary fallback.
           if [ -f mobile-app/assets/branding/new_logo_3ayez.png ]; then
             cp mobile-app/assets/branding/new_logo_3ayez.png mobile-app/assets/branding/jawan-logo.png
           else
