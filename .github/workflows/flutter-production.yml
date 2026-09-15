@@ -1,4 +1,4 @@
-name: Flutter Production CI
+name: Ayez Flutter Production CI
 
 on:
   pull_request:
@@ -6,7 +6,9 @@ on:
       - 'mobile-app/**'
       - '.github/workflows/flutter-production.yml'
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'feat/**'
     paths:
       - 'mobile-app/**'
       - '.github/workflows/flutter-production.yml'
@@ -33,12 +35,14 @@ jobs:
           channel: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test --coverage
 
   android-build:
     name: Android release build
     needs: analyze-test
+    if: ${{ secrets.FIREBASE_ANDROID_APP_ID != '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -54,13 +58,13 @@ jobs:
           channel: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
-      - name: Build unsigned release APK
+      - name: Build release APK
         run: flutter build apk --release --dart-define=FIREBASE_ANDROID_APP_ID=${{ secrets.FIREBASE_ANDROID_APP_ID }}
-      - name: Build unsigned release AAB
+      - name: Build release AAB
         run: flutter build appbundle --release --dart-define=FIREBASE_ANDROID_APP_ID=${{ secrets.FIREBASE_ANDROID_APP_ID }}
       - uses: actions/upload-artifact@v4
         with:
-          name: jawan-android-release
+          name: ayez-android-release
           path: |
             mobile-app/build/app/outputs/flutter-apk/app-release.apk
             mobile-app/build/app/outputs/bundle/release/app-release.aab
