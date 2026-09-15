@@ -60,6 +60,7 @@ jobs:
           s = s.replace('جوان •', 'عايز •')
           s = s.replace('أحتاج مساعدة من جوان للتوصيل', 'أحتاج مساعدة من عايز')
           s = s.replace("Icon(Icons.local_shipping)", "ImageIcon(AssetImage('assets/branding/jawan-logo.png'), size: 24)")
+          s = s.replace('androidProvider:', 'providerAndroid:')
           p.write_text(s, encoding='utf-8')
           PY
 
