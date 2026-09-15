@@ -1,8 +1,8 @@
 name: jawan_flutter
-description: Jawan Delivery native Flutter mobile application
+description: عايز — native Flutter mobile application for Jawan Delivery
 publish_to: "none"
 
-version: 1.1.0+2
+version: 1.2.0+3
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
@@ -15,6 +15,7 @@ dependencies:
   firebase_core: ^4.15.0
   firebase_auth: ^6.7.0
   cloud_firestore: ^6.10.0
+  firebase_messaging: ^16.7.0
   provider: ^6.1.5+1
 
 dev_dependencies:
