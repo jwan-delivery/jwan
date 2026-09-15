@@ -42,7 +42,7 @@ class _AyezNativeBootstrapState extends State<AyezNativeBootstrap> {
       }
       try {
         await FirebaseAppCheck.instance.activate(
-          androidProvider: const bool.fromEnvironment('JAWAN_APPCHECK_DEBUG', defaultValue: false) ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+          providerAndroid: const bool.fromEnvironment('JAWAN_APPCHECK_DEBUG', defaultValue: false) ? AndroidProvider.debug : AndroidProvider.playIntegrity,
         );
       } catch (_) {}
       try {
@@ -110,9 +110,7 @@ class _StartupPage extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         home: Scaffold(
           backgroundColor: _black,
-          body: Center(
-            child: CircularProgressIndicator(color: _yellow, strokeWidth: 3),
-          ),
+          body: Center(child: CircularProgressIndicator(color: _yellow, strokeWidth: 3)),
         ),
       );
 }
