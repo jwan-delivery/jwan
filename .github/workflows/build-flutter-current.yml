@@ -26,26 +26,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p mobile-app/assets/branding mobile-app/android/app/src/main/res/drawable
+          mkdir -p mobile-app/assets/branding
+          mkdir -p mobile-app/android/app/src/main/res/drawable
           if [ -f mobile-app/assets/branding/new_logo_3ayez.png ]; then
             cp mobile-app/assets/branding/new_logo_3ayez.png mobile-app/assets/branding/jawan-logo.png
           else
             curl -fsSL https://raw.githubusercontent.com/jwan-delivery/jwan/main/assets/branding/logo-external.png -o mobile-app/assets/branding/jawan-logo.png
           fi
           cp mobile-app/assets/branding/jawan-logo.png mobile-app/android/app/src/main/res/drawable/jawan_logo.png
-
-          # Keep launcher branding consistent with the new Ayez logo.
-          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do mkdir -p "mobile-app/android/app/src/main/res/mipmap-$d"; done
-          convert mobile-app/assets/branding/jawan-logo.png -resize 48x48\! mobile-app/android/app/src/main/res/mipmap-mdpi/ic_launcher.png
-          convert mobile-app/assets/branding/jawan-logo.png -resize 72x72\! mobile-app/android/app/src/main/res/mipmap-hdpi/ic_launcher.png
-          convert mobile-app/assets/branding/jawan-logo.png -resize 96x96\! mobile-app/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          convert mobile-app/assets/branding/jawan-logo.png -resize 144x144\! mobile-app/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-          convert mobile-app/assets/branding/jawan-logo.png -resize 192x192\! mobile-app/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-          cp mobile-app/android/app/src/main/res/mipmap-mdpi/ic_launcher.png mobile-app/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
-          cp mobile-app/android/app/src/main/res/mipmap-hdpi/ic_launcher.png mobile-app/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
-          cp mobile-app/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png mobile-app/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
-          cp mobile-app/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png mobile-app/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
-          cp mobile-app/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png mobile-app/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
 
           python3 - <<'PY'
           import json
@@ -109,7 +97,6 @@ jobs:
           test -f android/app/google-services.json
           test -f assets/branding/jawan-logo.png
           test -f android/app/src/main/res/drawable/jawan_logo.png
-          test -f android/app/src/main/res/mipmap-mdpi/ic_launcher.png
           grep -q 'applicationId = "sd.jawan.delivery"' android/app/build.gradle
           grep -q 'com.google.gms.google-services' android/app/build.gradle
           grep -q 'io.flutter.embedding.android.FlutterActivity' android/app/src/main/java/sd/jawan/delivery/MainActivity.java
