@@ -35,6 +35,22 @@
       ]
     },
     {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath":"userId","order":"ASCENDING"},
+        {"fieldPath":"createdAt","order":"DESCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "walletTransactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath":"userId","order":"ASCENDING"},
+        {"fieldPath":"createdAt","order":"DESCENDING"}
+      ]
+    },
+    {
       "collectionGroup": "driverActivity",
       "queryScope": "COLLECTION",
       "fields": [
