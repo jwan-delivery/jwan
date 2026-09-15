@@ -23,9 +23,9 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   try {
     await FirebaseAppCheck.instance.activate(
-      androidProvider: const bool.fromEnvironment('JAWAN_APPCHECK_DEBUG', defaultValue: false)
-          ? AndroidProvider.debug
-          : AndroidProvider.playIntegrity,
+      providerAndroid: const bool.fromEnvironment('JAWAN_APPCHECK_DEBUG', defaultValue: false)
+          ? AndroidDebugProvider()
+          : AndroidPlayIntegrityProvider(),
     );
   } catch (_) {}
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
@@ -344,10 +344,9 @@ class OrderService {
   }
 }
 
-
 Future<void> openJawanWhatsApp(BuildContext context) async {
   final uri = Uri.parse(
-    'https://wa.me/249964499266?text=${Uri.encodeComponent('السلام عليكم، أحتاج مساعدة من جوان للتوصيل')}',
+    'https://wa.me/249964499266?text=${Uri.encodeComponent('السلام عليكم، أحتاج مساعدة من عايز')}',
   );
 
   final ok = await launchUrl(
@@ -383,7 +382,7 @@ class JawanApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'جوان للتوصيل',
+        title: 'عايز',
         theme: ThemeData(useMaterial3: true, scaffoldBackgroundColor: kBg, colorScheme: ColorScheme.fromSeed(seedColor: kYellow)),
         home: const Directionality(textDirection: TextDirection.rtl, child: AuthGate()),
       );
@@ -453,16 +452,16 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(backgroundColor: kBlack, foregroundColor: kYellow, title: const Text('جوان للتوصيل', style: TextStyle(fontWeight: FontWeight.w900))),
+        appBar: AppBar(backgroundColor: kBlack, foregroundColor: kYellow, title: const Text('عايز', style: TextStyle(fontWeight: FontWeight.w900))),
         body: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 520), child: Card(child: Padding(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Text('جوان', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900)),
+          const Text('عايز', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900)),
           const Text('توصيل أسرع وأسهل في بورتسودان'),
           if (widget.message != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(widget.message!, style: const TextStyle(color: Colors.red))),
           if (register) ...[
             const SizedBox(height: 16), TextField(controller: name, decoration: const InputDecoration(labelText: 'الاسم الكامل')),
             const SizedBox(height: 10), DropdownButtonFormField<String>(initialValue: state, items: states.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), onChanged: (v) => setState(() => state = v!), decoration: const InputDecoration(labelText: 'الولاية')),
             const SizedBox(height: 10), TextField(controller: address, decoration: const InputDecoration(labelText: 'مكان السكن')),
-            SwitchListTile(title: const Text('تسجيل كسائق'), value: driver, onChanged: (v) => setState(() => driver = v)),
+            CheckboxListTile(title: const Text('تسجيل كسائق'), value: driver, onChanged: (v) => setState(() => driver = v ?? false), contentPadding: EdgeInsets.zero),
             if (driver) ...[
               TextField(controller: age, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'العمر')),
               const SizedBox(height: 10), DropdownButtonFormField<String>(initialValue: vehicle, items: [...OrderService.passenger, ...OrderService.cargo]
@@ -495,7 +494,7 @@ class _HomePageState extends State<HomePage> {
             ? [CustomerDashboard(profile: widget.profile), OrdersPage(profile: widget.profile)]
             : [AdminDashboard(profile: widget.profile), AdminOrdersPage()];
     return Scaffold(
-      appBar: AppBar(backgroundColor: kBlack, foregroundColor: Colors.white, title: Text('جوان • ${widget.profile['name'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w800)), actions: [
+      appBar: AppBar(backgroundColor: kBlack, foregroundColor: Colors.white, title: Text('عايز • ${widget.profile['name'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w800)), actions: [
         IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())), icon: const Icon(Icons.notifications_none)),
         IconButton(onPressed: () => FirebaseAuth.instance.signOut(), icon: const Icon(Icons.logout)),
       ]),
@@ -598,7 +597,7 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
       const SizedBox(height: 10), TextField(controller: destination, decoration: const InputDecoration(labelText: 'الوجهة')),
       if (isPassenger) ...[
         const SizedBox(height: 10), DropdownButtonFormField<int>(initialValue: passengers, items: List.generate(10, (i) => i + 1).map((v) => DropdownMenuItem(value: v, child: Text('$v'))).toList(), onChanged: (v) => setState(() => passengers = v!), decoration: const InputDecoration(labelText: 'عدد الركاب')),
-        SwitchListTile(title: const Text('يوجد أمتعة'), value: luggage, onChanged: (v) => setState(() => luggage = v)),
+        CheckboxListTile(title: const Text('يوجد أمتعة'), value: luggage, onChanged: (v) => setState(() => luggage = v ?? false)),
         if (luggage) TextField(controller: luggageDescription, decoration: const InputDecoration(labelText: 'وصف الأمتعة')),
       ] else ...[
         const SizedBox(height: 10), TextField(controller: cargo, decoration: const InputDecoration(labelText: 'نوع البضاعة')),
@@ -676,9 +675,8 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
               if (data['status'] == 'accepted' && data['negotiationStatus'] == 'agreed' && role == 'driver') FilledButton(onPressed: busy ? null : () => run(() => service.updateStatus(widget.orderId, 'picked_up')), child: const Text('تم استلام الطلب')),
               if (data['status'] == 'picked_up' && role == 'driver') FilledButton(onPressed: busy ? null : () => run(() => service.updateStatus(widget.orderId, 'delivering')), child: const Text('بدء التوصيل')),
               if (data['status'] == 'delivering' && role == 'driver') FilledButton(onPressed: busy ? null : () => run(() => service.updateStatus(widget.orderId, 'awaiting_confirmation')), child: const Text('تم التسليم')),
-              if (data['status'] == 'awaiting_confirmation' &&
-                  role == 'driver' &&
-                  data['customerConfirmedAt'] != null) ...[
+              if (data['status'] == 'awaiting_confirmation' && role == 'customer') FilledButton(onPressed: busy ? null : () => run(() => service.customerConfirm(widget.orderId)), child: const Text('تأكيد الاستلام')),
+              if (data['status'] == 'awaiting_confirmation' && role == 'driver' && data['customerConfirmedAt'] != null) ...[
                 FilledButton(
                   onPressed: busy
                       ? null
@@ -687,183 +685,53 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                             context: context,
                             builder: (_) => AlertDialog(
                               title: const Text('إغلاق الطلب'),
-                              content: const Text(
-                                'بعد التأكيد سيتم إكمال الطلب واحتساب عمولة 5%.',
-                              ),
+                              content: const Text('بعد التأكيد سيتم إكمال الطلب واحتساب عمولة 5%.'),
                               actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
-                                  child: const Text('إلغاء'),
-                                ),
-                                FilledButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('إكمال'),
-                                ),
+                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+                                FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('إكمال')),
                               ],
                             ),
                           );
-
                           if (ok != true) return;
-
                           await run(() async {
-                            final uid =
-                                FirebaseAuth.instance.currentUser!.uid;
+                            final uid = FirebaseAuth.instance.currentUser!.uid;
                             final db = FirebaseFirestore.instance;
-
                             await db.runTransaction((tx) async {
-                              final orderRef =
-                                  db.collection('orders').doc(widget.orderId);
-                              final walletRef =
-                                  db.collection('wallets').doc(uid);
-                              final walletTxRef =
-                                  db.collection('walletTransactions').doc();
-
+                              final orderRef = db.collection('orders').doc(widget.orderId);
+                              final walletRef = db.collection('wallets').doc(uid);
+                              final walletTxRef = db.collection('walletTransactions').doc();
                               final orderSnap = await tx.get(orderRef);
                               final walletSnap = await tx.get(walletRef);
-
-                              if (!orderSnap.exists) {
-                                throw Exception('الطلب غير موجود');
-                              }
-
-                              if (!walletSnap.exists) {
-                                throw Exception('المحفظة غير موجودة');
-                              }
-
+                              if (!orderSnap.exists) throw Exception('الطلب غير موجود');
+                              if (!walletSnap.exists) throw Exception('المحفظة غير موجودة');
                               final orderData = orderSnap.data()!;
                               final walletData = walletSnap.data()!;
-
-                              if (orderData['driverId'] != uid) {
-                                throw Exception('ليس لديك صلاحية');
-                              }
-
-                              if (orderData['status'] !=
-                                  'awaiting_confirmation') {
-                                throw Exception('الطلب ليس جاهزاً للإغلاق');
-                              }
-
-                              if (orderData['customerConfirmedAt'] == null) {
-                                throw Exception('بانتظار تأكيد العميل');
-                              }
-
-                              if (orderData['commissionCharged'] == true) {
-                                throw Exception('تم احتساب العمولة مسبقاً');
-                              }
-
-                              final fee =
-                                  (orderData['deliveryFee'] as num?)?.toInt() ??
-                                      0;
-
-                              if (fee <= 0) {
-                                throw Exception('قيمة الطلب غير صحيحة');
-                              }
-
+                              if (orderData['driverId'] != uid) throw Exception('ليس لديك صلاحية');
+                              if (orderData['status'] != 'awaiting_confirmation') throw Exception('الطلب ليس جاهزاً للإغلاق');
+                              if (orderData['customerConfirmedAt'] == null) throw Exception('بانتظار تأكيد العميل');
+                              if (orderData['commissionCharged'] == true) throw Exception('تم احتساب العمولة مسبقاً');
+                              final fee = (orderData['deliveryFee'] as num?)?.toInt() ?? 0;
+                              if (fee <= 0) throw Exception('قيمة الطلب غير صحيحة');
                               final commission = (fee * 0.05).round();
-
-                              final balance =
-                                  (walletData['balance'] as num?)?.toInt() ?? 0;
-
-                              if (balance < commission) {
-                                throw Exception(
-                                  'رصيد المحفظة لا يكفي للعمولة',
-                                );
-                              }
-
+                              final balance = (walletData['balance'] as num?)?.toInt() ?? 0;
+                              if (balance < commission) throw Exception('رصيد المحفظة لا يكفي للعمولة');
                               final before = balance;
                               final after = balance - commission;
-
-                              tx.update(orderRef, {
-                                'status': 'completed',
-                                'driverConfirmedAt':
-                                    FieldValue.serverTimestamp(),
-                                'completedAt':
-                                    FieldValue.serverTimestamp(),
-                                'commissionCharged': true,
-                              });
-
-                              tx.update(walletRef, {
-                                'balance': after,
-                                'totalCommission':
-                                    ((walletData['totalCommission'] as num?)
-                                                ?.toInt() ??
-                                            0) +
-                                        commission,
-                                'updatedAt': FieldValue.serverTimestamp(),
-                                'lastCommissionOrderId': widget.orderId,
-                              });
-
-                              tx.set(walletTxRef, {
-                                'userId': uid,
-                                'type': 'commission',
-                                'amount': -commission,
-                                'balanceBefore': before,
-                                'balanceAfter': after,
-                                'orderId': widget.orderId,
-                                'topupRequestId': null,
-                                'withdrawalRequestId': null,
-                                'createdAt':
-                                    FieldValue.serverTimestamp(),
-                                'createdBy': uid,
-                              });
+                              tx.update(orderRef, {'status': 'completed', 'driverConfirmedAt': FieldValue.serverTimestamp(), 'completedAt': FieldValue.serverTimestamp(), 'commissionCharged': true});
+                              tx.update(walletRef, {'balance': after, 'totalCommission': ((walletData['totalCommission'] as num?)?.toInt() ?? 0) + commission, 'updatedAt': FieldValue.serverTimestamp(), 'lastCommissionOrderId': widget.orderId});
+                              tx.set(walletTxRef, {'userId': uid, 'type': 'commission', 'amount': -commission, 'balanceBefore': before, 'balanceAfter': after, 'orderId': widget.orderId, 'topupRequestId': null, 'withdrawalRequestId': null, 'createdAt': FieldValue.serverTimestamp(), 'createdBy': uid});
                             });
                           });
                         },
                   child: const Text('إكمال الطلب واحتساب العمولة'),
                 ),
               ],
-
-              if (data['status'] == 'awaiting_confirmation') ...[
-                FilledButton(
-                  onPressed: busy
-                      ? null
-                      : () => run(
-                            () => service.customerConfirm(widget.orderId),
-                          ),
-                  child: const Text('تأكيد الاستلام'),
-                ),
-                const SizedBox(height: 8),
-              ],
-
               if (data['customerConfirmedAt'] != null) ...[
-                DropdownButtonFormField<int>(
-                  initialValue: stars,
-                  items: List.generate(5, (i) => i + 1)
-                      .map(
-                        (v) => DropdownMenuItem(
-                          value: v,
-                          child: Text('$v نجوم'),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) {
-                      setState(() => stars = v);
-                    }
-                  },
-                  decoration: const InputDecoration(
-                    labelText: 'التقييم',
-                  ),
-                ),
+                DropdownButtonFormField<int>(initialValue: stars, items: List.generate(5, (i) => i + 1).map((v) => DropdownMenuItem(value: v, child: Text('$v نجوم'))).toList(), onChanged: (v) { if (v != null) setState(() => stars = v); }, decoration: const InputDecoration(labelText: 'التقييم')),
                 const SizedBox(height: 8),
-                TextField(
-                  controller: comment,
-                  decoration: const InputDecoration(
-                    labelText: 'تعليق مختصر',
-                  ),
-                ),
+                TextField(controller: comment, decoration: const InputDecoration(labelText: 'تعليق مختصر')),
                 const SizedBox(height: 8),
-                FilledButton(
-                  onPressed: busy
-                      ? null
-                      : () => run(
-                            () => service.rate(
-                              widget.orderId,
-                              uid,
-                              stars,
-                              comment.text,
-                            ),
-                          ),
-                  child: const Text('حفظ التقييم'),
-                ),
+                if (role == 'customer') FilledButton(onPressed: busy ? null : () => run(() => service.rate(widget.orderId, uid, stars, comment.text)), child: const Text('حفظ التقييم')),
               ],
             ]))),
           ]));
@@ -890,6 +758,7 @@ class AdminOrdersPage extends StatelessWidget {
         stream: FirebaseFirestore.instance.collection('orders').orderBy('createdAt', descending: true).limit(200).snapshots(),
         builder: (context, snapshot) => ListView(padding: const EdgeInsets.all(18), children: [
           const Text('كل الطلبات', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+          if (snapshot.hasError) Text(cleanError(snapshot.error!)),
           ...snapshot.data?.docs.map((doc) => OrderCard(order: {'id': doc.id, ...doc.data()}, profile: const {'role': 'admin'})).toList() ?? const [],
         ]),
       );
@@ -920,7 +789,7 @@ class NotificationsPage extends StatelessWidget {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     return Scaffold(appBar: AppBar(title: const Text('الإشعارات')), body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('notifications').where('userId', isEqualTo: uid).orderBy('createdAt', descending: true).limit(100).snapshots(),
-      builder: (context, snapshot) => ListView(children: snapshot.data?.docs.map((doc) => ListTile(title: Text('${doc.data()['title'] ?? 'جوان'}'), subtitle: Text('${doc.data()['body'] ?? ''}'), onTap: () => doc.reference.update({'read': true}))).toList() ?? const []),
+      builder: (context, snapshot) => ListView(children: snapshot.data?.docs.map((doc) => ListTile(title: Text('${doc.data()['title'] ?? 'عايز'}'), subtitle: Text('${doc.data()['body'] ?? ''}'), onTap: () => doc.reference.update({'read': true}))).toList() ?? const []),
     ));
   }
 }
