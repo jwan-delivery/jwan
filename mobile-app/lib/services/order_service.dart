@@ -82,7 +82,8 @@ class OrderService {
       final walletSnap = await tx.get(_firestore.collection('wallets').doc(driverId));
       if (!orderSnap.exists) throw StateError('الطلب غير موجود');
       if (!driverSnap.exists) throw StateError('حساب السائق غير موجود');
-      if (!walletSnap.exists || Number(walletSnap.data()?['balance']) <= 0) throw StateError('رصيد المحفظة غير كافٍ لقبول الطلب');
+      final walletBalance = (walletSnap.data()?['balance'] as num?)?.toDouble() ?? 0;
+      if (!walletSnap.exists || walletBalance <= 0) throw StateError('رصيد المحفظة غير كافٍ لقبول الطلب');
       final order = orderSnap.data()!;
       final driver = driverSnap.data()!;
       if (order['status'] != 'pending' || order['driverId'] != null) throw StateError('تم أخذ الطلب بالفعل');
@@ -140,10 +141,11 @@ class OrderService {
       if (order['customerId'] != customerId || order['status'] != 'pending' || order['driverId'] != null) {
         throw StateError('لا يمكن إلغاء الطلب في هذه المرحلة');
       }
+      final cleanReason = reason.trim();
       tx.update(ref, {
         'status': 'cancelled',
         'cancelledAt': FieldValue.serverTimestamp(),
-        'cancelReason': reason.trim().isEmpty ? 'إلغاء بواسطة العميل' : reason.trim().substring(0, reason.trim().length.clamp(1, 300)),
+        'cancelReason': cleanReason.isEmpty ? 'إلغاء بواسطة العميل' : cleanReason.substring(0, cleanReason.length > 300 ? 300 : cleanReason.length),
       });
     });
   }
@@ -222,11 +224,13 @@ class OrderService {
       final agreed = order['negotiationStatus'] == 'agreed';
       final fee = (order['deliveryFee'] as num?)?.round() ?? 0;
       final penalty = agreed ? (fee * 0.10).round() : 0;
+      final cleanReason = reason.trim();
+      final cancelReason = cleanReason.isEmpty ? 'إلغاء بواسطة السائق' : cleanReason.substring(0, cleanReason.length > 300 ? 300 : cleanReason.length);
       if (penalty <= 0) {
         tx.update(orderRef, {
           'status': 'cancelled',
           'cancelledAt': FieldValue.serverTimestamp(),
-          'cancelReason': reason.trim().isEmpty ? 'إلغاء بواسطة السائق' : reason.trim(),
+          'cancelReason': cancelReason,
           'cancellationPenaltyCharged': false,
         });
         return;
@@ -240,7 +244,7 @@ class OrderService {
       tx.update(orderRef, {
         'status': 'cancelled',
         'cancelledAt': FieldValue.serverTimestamp(),
-        'cancelReason': reason.trim().isEmpty ? 'إلغاء بواسطة السائق' : reason.trim(),
+        'cancelReason': cancelReason,
         'cancellationPenaltyCharged': true,
       });
       tx.update(walletRef, {
