@@ -1,24 +1,24 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import 'main.dart' as legacy;
 
-const _black = Color(0xFF0A0A0A);
-const _black2 = Color(0xFF131315);
-const _yellow = Color(0xFFF5C400);
-const _bg = Color(0xFFF5F3EE);
-const _muted = Color(0xFF6B6B6B);
+const ayezBlack = Color(0xFF0A0A0A);
+const ayezBlack2 = Color(0xFF131315);
+const ayezYellow = Color(0xFFF5C400);
+const ayezBg = Color(0xFFF5F3EE);
+const ayezMuted = Color(0xFF6B6B6B);
 
 class AyezHomeGate extends StatelessWidget {
   const AyezHomeGate({super.key});
-
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, auth) {
         if (auth.connectionState == ConnectionState.waiting) {
-          return const Scaffold(backgroundColor: _black, body: Center(child: CircularProgressIndicator(color: _yellow)));
+          return const Scaffold(backgroundColor: ayezBlack, body: Center(child: CircularProgressIndicator(color: ayezYellow)));
         }
         final user = auth.data;
         if (user == null) return const legacy.LoginPage();
@@ -26,38 +26,12 @@ class AyezHomeGate extends StatelessWidget {
           future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
           builder: (context, profile) {
             if (profile.connectionState == ConnectionState.waiting) {
-              return const Scaffold(backgroundColor: _black, body: Center(child: CircularProgressIndicator(color: _yellow)));
+              return const Scaffold(backgroundColor: ayezBlack, body: Center(child: CircularProgressIndicator(color: ayezYellow)));
             }
-            if (profile.hasError || !profile.hasData || !profile.data!.exists) {
-              return Scaffold(
-                backgroundColor: _black,
-                body: Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.person_off_rounded, color: _yellow, size: 46),
-                  const SizedBox(height: 12),
-                  const Text('تعذر تحميل الحساب', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 8),
-                  const Text('حاول تسجيل الخروج ثم الدخول مرة أخرى.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFB8B8B8))),
-                  const SizedBox(height: 18),
-                  FilledButton(onPressed: () => FirebaseAuth.instance.signOut(), child: const Text('تسجيل الخروج')),
-                ]))),
-              );
-            }
+            if (profile.hasError || !profile.hasData || !profile.data!.exists) return const _ProfileErrorPage();
             final data = profile.data!.data()!;
             final status = '${data['status'] ?? 'active'}';
-            if (status == 'suspended' || status == 'rejected') {
-              return Scaffold(
-                backgroundColor: _black,
-                body: Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.block_rounded, color: _yellow, size: 46),
-                  const SizedBox(height: 12),
-                  const Text('الحساب غير متاح حاليًا', style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 8),
-                  Text(status == 'rejected' ? 'تم رفض طلب الحساب.' : 'تم تعليق الحساب. تواصل مع الإدارة.', textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFFB8B8B8))),
-                  const SizedBox(height: 18),
-                  FilledButton(onPressed: () => FirebaseAuth.instance.signOut(), child: const Text('تسجيل الخروج')),
-                ]))),
-              );
-            }
+            if (status == 'suspended' || status == 'rejected') return _BlockedPage(status: status);
             return AyezAppShell(profile: data);
           },
         );
@@ -74,12 +48,11 @@ class AyezAppShell extends StatefulWidget {
 }
 
 class _AyezAppShellState extends State<AyezAppShell> {
-  int _index = 0;
-
+  int index = 0;
   String get role => '${widget.profile['role'] ?? 'customer'}';
   String get name => '${widget.profile['name'] ?? 'مستخدم عايز'}';
 
-  List<_NavItem> get _items {
+  List<_NavItem> get items {
     if (role == 'driver') {
       return const [
         _NavItem(Icons.home_rounded, 'الرئيسية'),
@@ -104,36 +77,30 @@ class _AyezAppShellState extends State<AyezAppShell> {
     ];
   }
 
-  Widget _page() {
+  Widget pageFor(int selected) {
     if (role == 'driver') {
-      switch (_index) {
-        case 1: return legacy.OrdersPage(profile: widget.profile);
-        case 2: return const _WalletPage();
-        case 3: return const _NotificationsBody();
-        default: return _DriverHome(profile: widget.profile);
-      }
+      if (selected == 1) return legacy.OrdersPage(profile: widget.profile);
+      if (selected == 2) return const AyezWalletPage();
+      if (selected == 3) return const AyezNotificationsPage();
+      return AyezDriverHome(profile: widget.profile);
     }
     if (role == 'admin' || role == 'super_admin' || role == 'office_manager') {
-      switch (_index) {
-        case 1: return const _AdminOrdersBody();
-        case 2: return const _AdminUsersBody();
-        case 3: return const _NotificationsBody();
-        default: return _AdminHome(profile: widget.profile);
-      }
+      if (selected == 1) return const legacy.AdminOrdersPage();
+      if (selected == 2) return const legacy.AdminUsersPage();
+      if (selected == 3) return const AyezNotificationsPage();
+      return AyezAdminHome(profile: widget.profile);
     }
-    switch (_index) {
-      case 1: return legacy.OrdersPage(profile: widget.profile);
-      case 2: return const _NotificationsBody();
-      case 3: return _AccountBody(profile: widget.profile);
-      default: return _CustomerHome(profile: widget.profile);
-    }
+    if (selected == 1) return legacy.OrdersPage(profile: widget.profile);
+    if (selected == 2) return const AyezNotificationsPage();
+    if (selected == 3) return AyezAccountPage(profile: widget.profile);
+    return AyezCustomerHome(profile: widget.profile);
   }
 
-  void _openCreateOrder() {
+  void openCreateOrder() {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: _bg,
+      backgroundColor: ayezBg,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (_) => legacy.CreateOrderSheet(profile: widget.profile),
     );
@@ -141,19 +108,18 @@ class _AyezAppShellState extends State<AyezAppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final items = _items;
-    final current = items[_index.clamp(0, items.length - 1)];
+    final nav = items;
+    final safeIndex = index.clamp(0, nav.length - 1);
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: _bg,
+        backgroundColor: ayezBg,
         appBar: AppBar(
-          backgroundColor: _black,
+          backgroundColor: ayezBlack,
           foregroundColor: Colors.white,
           elevation: 0,
-          titleSpacing: 18,
           title: Row(children: [
-            Container(width: 40, height: 40, padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: _yellow, borderRadius: BorderRadius.circular(12)), child: Image.asset('assets/branding/jawan-logo.png', fit: BoxFit.contain)),
+            Container(width: 40, height: 40, padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: ayezYellow, borderRadius: BorderRadius.circular(12)), child: Image.asset('assets/branding/jawan-logo.png', fit: BoxFit.contain)),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('عايز', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
@@ -161,257 +127,261 @@ class _AyezAppShellState extends State<AyezAppShell> {
             ])),
           ]),
           actions: [
-            Builder(builder: (ctx) => IconButton(onPressed: () => Scaffold.of(ctx).openEndDrawer(), icon: const Icon(Icons.menu_rounded))),
+            Builder(builder: (drawerContext) => IconButton(tooltip: 'القائمة', onPressed: () => Scaffold.of(drawerContext).openEndDrawer(), icon: const Icon(Icons.menu_rounded))),
           ],
         ),
-        endDrawer: _Drawer(profile: widget.profile, items: items, onSelect: (i) { Navigator.pop(context); setState(() => _index = i); }),
-        body: SafeArea(child: _page()),
+        endDrawer: AyezDrawer(profile: widget.profile, items: nav, onSelect: (value) { Navigator.pop(context); setState(() => index = value); }),
+        body: SafeArea(child: pageFor(safeIndex)),
         bottomNavigationBar: NavigationBar(
+          selectedIndex: safeIndex,
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
           indicatorColor: const Color(0x22F5C400),
-          selectedIndex: _index.clamp(0, items.length - 1),
-          onDestinationSelected: (value) => setState(() => _index = value),
-          destinations: items.map((e) => NavigationDestination(icon: Icon(e.icon), selectedIcon: Icon(e.icon, color: _black), label: e.label)).toList(),
+          onDestinationSelected: (value) => setState(() => index = value),
+          destinations: nav.map((item) => NavigationDestination(icon: Icon(item.icon), selectedIcon: Icon(item.icon, color: ayezBlack), label: item.label)).toList(),
         ),
-        floatingActionButton: role == 'customer' && _index == 0
-            ? FloatingActionButton.extended(backgroundColor: _yellow, foregroundColor: _black, onPressed: _openCreateOrder, icon: const Icon(Icons.add_rounded), label: const Text('طلب جديد', style: TextStyle(fontWeight: FontWeight.w900)))
+        floatingActionButton: role == 'customer' && safeIndex == 0
+            ? FloatingActionButton.extended(backgroundColor: ayezYellow, foregroundColor: ayezBlack, onPressed: openCreateOrder, icon: const Icon(Icons.add_rounded), label: const Text('طلب جديد', style: TextStyle(fontWeight: FontWeight.w900)))
             : null,
       ),
     );
   }
 }
 
-class _Drawer extends StatelessWidget {
+class AyezDrawer extends StatelessWidget {
   final Map<String, dynamic> profile;
   final List<_NavItem> items;
   final ValueChanged<int> onSelect;
-  const _Drawer({required this.profile, required this.items, required this.onSelect});
+  const AyezDrawer({super.key, required this.profile, required this.items, required this.onSelect});
   @override
   Widget build(BuildContext context) {
+    final elevated = profile['role'] == 'admin' || profile['role'] == 'super_admin' || profile['role'] == 'office_manager';
     return Drawer(
-      backgroundColor: _black,
-      child: SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(18, 18, 18, 14), child: Column(children: [
-        Row(children: [Container(width: 50, height: 50, padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: _yellow, borderRadius: BorderRadius.circular(15)), child: Image.asset('assets/branding/jawan-logo.png', fit: BoxFit.contain)), const SizedBox(width: 12), const Text('عايز', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)), const Spacer(), IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: Colors.white))]),
-        const SizedBox(height: 22),
-        Container(width: double.infinity, padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: _black2, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0x18FFFFFF))), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Text('${profile['name'] ?? ''}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)), const SizedBox(height: 4), Text('${profile['phone'] ?? ''}', style: const TextStyle(color: Color(0xFF9C9C9C), fontSize: 12)), const SizedBox(height: 5), Text('${profile['role'] ?? ''} • ${profile['status'] ?? ''}', style: const TextStyle(color: _yellow, fontSize: 12, fontWeight: FontWeight.w800))])),
-        const SizedBox(height: 16),
-        Expanded(child: ListView(children: [for (var i = 0; i < items.length; i++) ListTile(leading: Icon(items[i].icon, color: _yellow), title: Text(items[i].label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), onTap: () => onSelect(i)),
-          if (profile['role'] == 'admin' || profile['role'] == 'super_admin' || profile['role'] == 'office_manager') ...[
-            ListTile(leading: const Icon(Icons.account_balance_wallet_outlined, color: _yellow), title: const Text('طلبات الشحن', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const legacy.AdminTopupsPage())); }),
-          ],
-          ListTile(leading: const Icon(Icons.support_agent_rounded, color: _yellow), title: const Text('الدعم عبر واتساب', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)), subtitle: const Text('فتح المحادثة مباشرة', style: TextStyle(color: Color(0xFF858585), fontSize: 11)), onTap: () { Navigator.pop(context); legacy.openJawanWhatsApp(context); }),
-        ])),
-        const Divider(color: Color(0x22FFFFFF)),
-        ListTile(leading: const Icon(Icons.logout_rounded, color: Colors.redAccent), title: const Text('تسجيل الخروج', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)), onTap: () => FirebaseAuth.instance.signOut()),
-      ])),
+      backgroundColor: ayezBlack,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(children: [
+            Row(children: [
+              Container(width: 50, height: 50, padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: ayezYellow, borderRadius: BorderRadius.circular(15)), child: Image.asset('assets/branding/jawan-logo.png', fit: BoxFit.contain)),
+              const SizedBox(width: 12),
+              const Text('عايز', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+              const Spacer(),
+              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: Colors.white)),
+            ]),
+            const SizedBox(height: 18),
+            Container(width: double.infinity, padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: ayezBlack2, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0x18FFFFFF))), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text('${profile['name'] ?? ''}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 4),
+              Text('${profile['phone'] ?? ''}', style: const TextStyle(color: Color(0xFF9C9C9C), fontSize: 12)),
+              const SizedBox(height: 4),
+              Text('${profile['role'] ?? ''} • ${profile['status'] ?? ''}', style: const TextStyle(color: ayezYellow, fontSize: 12, fontWeight: FontWeight.w800)),
+            ])),
+            const SizedBox(height: 12),
+            Expanded(child: ListView(children: [
+              for (var i = 0; i < items.length; i++) ListTile(leading: Icon(items[i].icon, color: ayezYellow), title: Text(items[i].label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)), onTap: () => onSelect(i)),
+              if (elevated) ListTile(leading: const Icon(Icons.account_balance_wallet_outlined, color: ayezYellow), title: const Text('طلبات الشحن', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const legacy.AdminTopupsPage())); }),
+              ListTile(leading: const Icon(Icons.support_agent_rounded, color: ayezYellow), title: const Text('الدعم عبر واتساب', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)), subtitle: const Text('فتح المحادثة مباشرة', style: TextStyle(color: Color(0xFF858585), fontSize: 11)), onTap: () { Navigator.pop(context); legacy.openJawanWhatsApp(context); }),
+            ])),
+            const Divider(color: Color(0x22FFFFFF)),
+            ListTile(leading: const Icon(Icons.logout_rounded, color: Colors.redAccent), title: const Text('تسجيل الخروج', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)), onTap: () => FirebaseAuth.instance.signOut()),
+          ]),
+        ),
+      ),
     );
   }
 }
 
-class _NavItem {
-  final IconData icon;
-  final String label;
-  const _NavItem(this.icon, this.label);
-}
+class _NavItem { final IconData icon; final String label; const _NavItem(this.icon, this.label); }
 
-class _CustomerHome extends StatelessWidget {
+class AyezCustomerHome extends StatelessWidget {
   final Map<String, dynamic> profile;
-  const _CustomerHome({required this.profile});
+  const AyezCustomerHome({super.key, required this.profile});
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     return ListView(padding: const EdgeInsets.fromLTRB(18, 20, 18, 30), children: [
-      _Hero(title: 'أهلاً ${profile['name'] ?? ''}', text: 'اطلب خدمتك وتابع الطلب والتفاوض من مكان واحد.'),
+      const _HeroCard(eyebrow: 'منصة سودانية للتوصيل والنقل', title: 'توصيلك يبدأ من هنا', body: 'اطلب، تفاوض، تابع، وتواصل بسهولة من تطبيق واحد.'),
       const SizedBox(height: 16),
-      Row(children: [Expanded(child: _StatCard(icon: Icons.local_shipping_outlined, title: 'خدمة', value: 'نقل وتوصيل')), const SizedBox(width: 10), Expanded(child: _StatCard(icon: Icons.speed_rounded, title: 'مباشر', value: 'متابعة الطلب'))]),
+      const Row(children: [Expanded(child: _MiniCard(icon: Icons.speed_rounded, title: 'سريع', value: 'متابعة مباشرة')), SizedBox(width: 10), Expanded(child: _MiniCard(icon: Icons.local_shipping_outlined, title: 'مرن', value: 'ركاب وبضائع'))]),
       const SizedBox(height: 16),
-      _SectionTitle(title: 'ابدأ الآن', action: 'طلب جديد', onTap: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: _bg, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))), builder: (_) => legacy.CreateOrderSheet(profile: profile))),
-      const SizedBox(height: 10),
-      _ActionCard(icon: Icons.add_road_rounded, title: 'إنشاء طلب', text: 'حدد المركبة والاستلام والوجهة والتفاصيل.', onTap: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: _bg, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))), builder: (_) => legacy.CreateOrderSheet(profile: profile))),
-      const SizedBox(height: 10),
-      _ActionCard(icon: Icons.history_rounded, title: 'طلباتك السابقة', text: 'راجع آخر الطلبات وحالة كل طلب.', onTap: () => DefaultTabController.of(context)?.animateTo(1)),
-      const SizedBox(height: 14),
-      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: FirebaseFirestore.instance.collection('orders').where('customerId', isEqualTo: uid).orderBy('createdAt', descending: true).limit(3).snapshots(), builder: (context, snap) {
-        if (snap.hasError) return _InfoBox(text: 'تعذر تحميل أحدث الطلبات.');
-        final docs = snap.data?.docs ?? const [];
-        if (docs.isEmpty) return const _InfoBox(text: 'لا توجد طلبات حتى الآن. ابدأ بطلب جديد.');
-        return Column(children: [const Align(alignment: Alignment.centerRight, child: Text('أحدث طلباتك', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900))), const SizedBox(height: 8), ...docs.map((d) => legacy.OrderCard(order: {'id': d.id, ...d.data()}, profile: profile))]);
-      }),
+      const Text('أحدث طلباتك', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+      const SizedBox(height: 8),
+      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance.collection('orders').where('customerId', isEqualTo: uid).orderBy('createdAt', descending: true).limit(3).snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) return const _InfoCard(text: 'تعذر تحميل الطلبات الآن.');
+          final docs = snapshot.data?.docs ?? const [];
+          if (docs.isEmpty) return const _InfoCard(text: 'لا توجد طلبات حتى الآن. اضغط «طلب جديد» للبدء.');
+          return Column(children: docs.map((doc) => legacy.OrderCard(order: {'id': doc.id, ...doc.data()}, profile: profile)).toList());
+        },
+      ),
     ]);
   }
 }
 
-class _DriverHome extends StatelessWidget {
+class AyezDriverHome extends StatelessWidget {
   final Map<String, dynamic> profile;
-  const _DriverHome({required this.profile});
+  const AyezDriverHome({super.key, required this.profile});
   @override
   Widget build(BuildContext context) {
     final state = '${profile['state'] ?? ''}';
     return ListView(padding: const EdgeInsets.fromLTRB(18, 20, 18, 30), children: [
-      _Hero(title: 'لوحة السائق', text: 'الطلبات المتاحة في ${state.isEmpty ? 'ولايتك' : state} تظهر هنا.'),
+      const _HeroCard(eyebrow: 'مساحة السائق', title: 'كن جاهزًا للطلب التالي', body: 'الطلبات المتاحة في ولايتك تظهر هنا بنفس نموذج النظام.'),
       const SizedBox(height: 14),
-      if ('${profile['status']}' != 'active') const _InfoBox(text: 'حسابك بانتظار اعتماد الإدارة. ستظهر الطلبات بعد الاعتماد.'),
+      if ('${profile['status']}' != 'active') const _InfoCard(text: 'حساب السائق بانتظار اعتماد الإدارة.'),
       const SizedBox(height: 10),
-      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: legacy.OrderService().availableOrders(state), builder: (context, snap) {
-        final count = snap.data?.docs.length ?? 0;
-        return _StatCard(icon: Icons.inbox_rounded, title: 'الطلبات المتاحة', value: '$count طلب');
-      }),
+      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: legacy.OrderService().availableOrders(state), builder: (context, snapshot) => _MiniCard(icon: Icons.inbox_rounded, title: 'الطلبات المتاحة', value: '${snapshot.data?.docs.length ?? 0} طلب')),
       const SizedBox(height: 14),
-      _ActionCard(icon: Icons.account_balance_wallet_rounded, title: 'المحفظة', text: 'راجع رصيدك والعمولات وحركات المحفظة.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const _WalletPage()))),
-      const SizedBox(height: 10),
-      _ActionCard(icon: Icons.support_agent_rounded, title: 'الدعم', text: 'تواصل مع الدعم عبر واتساب مباشرة.', onTap: () => legacy.openJawanWhatsApp(context)),
-      const SizedBox(height: 14),
-      const Align(alignment: Alignment.centerRight, child: Text('الطلبات المتاحة الآن', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900))),
+      const Text('الطلبات المتاحة الآن', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
       const SizedBox(height: 8),
-      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: legacy.OrderService().availableOrders(state), builder: (context, snap) {
-        if (snap.hasError) return _InfoBox(text: 'تعذر تحميل الطلبات المتاحة.');
-        final docs = snap.data?.docs ?? const [];
-        if (docs.isEmpty) return const _InfoBox(text: 'لا توجد طلبات متاحة حاليًا.');
-        return Column(children: docs.map((d) => legacy.OrderCard(order: {'id': d.id, ...d.data()}, profile: profile, showAccept: true)).toList());
+      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: legacy.OrderService().availableOrders(state), builder: (context, snapshot) {
+        if (snapshot.hasError) return const _InfoCard(text: 'تعذر تحميل الطلبات الآن.');
+        final docs = snapshot.data?.docs ?? const [];
+        if (docs.isEmpty) return const _InfoCard(text: 'لا توجد طلبات متاحة حاليًا.');
+        return Column(children: docs.map((doc) => legacy.OrderCard(order: {'id': doc.id, ...doc.data()}, profile: profile, showAccept: true)).toList());
       }),
     ]);
   }
 }
 
-class _AdminHome extends StatelessWidget {
+class AyezAdminHome extends StatelessWidget {
   final Map<String, dynamic> profile;
-  const _AdminHome({required this.profile});
+  const AyezAdminHome({super.key, required this.profile});
   @override
-  Widget build(BuildContext context) {
-    return ListView(padding: const EdgeInsets.fromLTRB(18, 20, 18, 30), children: [
-      _Hero(title: 'لوحة الإدارة', text: 'مراقبة الطلبات والمستخدمين وإدارة التشغيل من مكان واحد.'),
-      const SizedBox(height: 14),
-      Row(children: [Expanded(child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: FirebaseFirestore.instance.collection('orders').limit(200).snapshots(), builder: (context, s) => _StatCard(icon: Icons.receipt_long_rounded, title: 'الطلبات', value: '${s.data?.docs.length ?? 0}'))), const SizedBox(width: 10), Expanded(child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: FirebaseFirestore.instance.collection('users').limit(300).snapshots(), builder: (context, s) => _StatCard(icon: Icons.people_alt_outlined, title: 'المستخدمون', value: '${s.data?.docs.length ?? 0}')))]),
-      const SizedBox(height: 14),
-      _ActionCard(icon: Icons.people_alt_outlined, title: 'إدارة المستخدمين', text: 'عرض المستخدمين وحالات الحسابات.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const legacy.AdminUsersPage()))),
-      const SizedBox(height: 10),
-      _ActionCard(icon: Icons.account_balance_wallet_outlined, title: 'طلبات الشحن', text: 'مراجعة طلبات شحن المحافظ.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const legacy.AdminTopupsPage()))),
-      const SizedBox(height: 10),
-      _ActionCard(icon: Icons.receipt_long_rounded, title: 'كل الطلبات', text: 'متابعة الطلبات وحالاتها.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const legacy.AdminOrdersPage()))),
-    ]);
-  }
+  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.fromLTRB(18, 20, 18, 30), children: [
+    const _HeroCard(eyebrow: 'لوحة الإدارة', title: 'إدارة عايز', body: 'متابعة الطلبات والمستخدمين وعمليات المحفظة من واجهة واحدة.'),
+    const SizedBox(height: 14),
+    Row(children: [Expanded(child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: FirebaseFirestore.instance.collection('orders').limit(200).snapshots(), builder: (context, s) => _MiniCard(icon: Icons.receipt_long_rounded, title: 'الطلبات', value: '${s.data?.docs.length ?? 0}'))), const SizedBox(width: 10), Expanded(child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: FirebaseFirestore.instance.collection('users').limit(300).snapshots(), builder: (context, s) => _MiniCard(icon: Icons.people_alt_outlined, title: 'المستخدمون', value: '${s.data?.docs.length ?? 0}')))]),
+    const SizedBox(height: 14),
+    _AdminAction(icon: Icons.people_alt_outlined, title: 'المستخدمون', text: 'إدارة المستخدمين وحالات الحسابات.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const legacy.AdminUsersPage()))),
+    _AdminAction(icon: Icons.account_balance_wallet_outlined, title: 'طلبات الشحن', text: 'مراجعة طلبات شحن المحافظ.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const legacy.AdminTopupsPage()))),
+    _AdminAction(icon: Icons.receipt_long_rounded, title: 'كل الطلبات', text: 'متابعة الطلبات والحالات.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const legacy.AdminOrdersPage()))),
+  ]);
 }
 
-class _AccountBody extends StatelessWidget {
+class AyezAccountPage extends StatelessWidget {
   final Map<String, dynamic> profile;
-  const _AccountBody({required this.profile});
+  const AyezAccountPage({super.key, required this.profile});
   @override
   Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(18), children: [
-    const _PageTitle(title: 'حسابي', subtitle: 'معلومات الحساب الحالية'),
+    const _PageHeading(title: 'حسابي', subtitle: 'معلومات الحساب الحالية'),
     const SizedBox(height: 12),
-    _InfoTile(title: 'الاسم', value: '${profile['name'] ?? ''}', icon: Icons.person_outline_rounded),
-    _InfoTile(title: 'الهاتف', value: '${profile['phone'] ?? ''}', icon: Icons.phone_outlined),
-    _InfoTile(title: 'الولاية', value: '${profile['state'] ?? ''}', icon: Icons.location_on_outlined),
-    _InfoTile(title: 'مكان السكن', value: '${profile['address'] ?? ''}', icon: Icons.home_outlined),
-    _InfoTile(title: 'حالة الحساب', value: '${profile['status'] ?? ''}', icon: Icons.verified_user_outlined),
-    const SizedBox(height: 10),
+    _InfoRow(title: 'الاسم', value: '${profile['name'] ?? ''}', icon: Icons.person_outline),
+    _InfoRow(title: 'الهاتف', value: '${profile['phone'] ?? ''}', icon: Icons.phone_outlined),
+    _InfoRow(title: 'الولاية', value: '${profile['state'] ?? ''}', icon: Icons.location_on_outlined),
+    _InfoRow(title: 'السكن', value: '${profile['address'] ?? ''}', icon: Icons.home_outlined),
+    _InfoRow(title: 'الحالة', value: '${profile['status'] ?? ''}', icon: Icons.verified_user_outlined),
+    const SizedBox(height: 12),
     FilledButton.icon(onPressed: () => legacy.openJawanWhatsApp(context), icon: const Icon(Icons.support_agent_rounded), label: const Text('التواصل مع الدعم')),
   ]);
 }
 
-class _WalletPage extends StatelessWidget {
-  const _WalletPage();
+class AyezWalletPage extends StatelessWidget {
+  const AyezWalletPage({super.key});
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(stream: FirebaseFirestore.instance.collection('wallets').doc(uid).snapshots(), builder: (context, wallet) {
-      final data = wallet.data?.data() ?? const <String, dynamic>{};
-      final balance = (data['balance'] as num?)?.toInt() ?? 0;
-      final commission = (data['totalCommission'] as num?)?.toInt() ?? 0;
-      final penalties = (data['totalCancellationPenalties'] as num?)?.toInt() ?? 0;
-      return ListView(padding: const EdgeInsets.fromLTRB(18, 20, 18, 30), children: [
-        const _PageTitle(title: 'المحفظة', subtitle: 'رصيدك وحركاتك المالية'),
-        const SizedBox(height: 14),
-        Container(padding: const EdgeInsets.all(22), decoration: BoxDecoration(color: _black, borderRadius: BorderRadius.circular(24)), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [const Text('الرصيد الحالي', style: TextStyle(color: Color(0xFFB8B8B8))), const SizedBox(height: 4), Text('$balance ج.س', style: const TextStyle(color: _yellow, fontSize: 34, fontWeight: FontWeight.w900)), const SizedBox(height: 15), Row(children: [Expanded(child: Text('عمولات: $commission', style: const TextStyle(color: Colors.white))), Expanded(child: Text('غرامات: $penalties', style: const TextStyle(color: Colors.white)))] )]),
-        const SizedBox(height: 14),
-        const _InfoBox(text: 'طلبات الشحن والسحب تتم وفق صلاحيات الإدارة وقواعد النظام الحالية.'),
-        const SizedBox(height: 14),
-        StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: FirebaseFirestore.instance.collection('walletTransactions').where('userId', isEqualTo: uid).orderBy('createdAt', descending: true).limit(30).snapshots(), builder: (context, txs) {
-          if (txs.hasError) return const _InfoBox(text: 'تعذر تحميل الحركات المالية.');
-          final docs = txs.data?.docs ?? const [];
-          if (docs.isEmpty) return const _InfoBox(text: 'لا توجد حركات مالية حتى الآن.');
-          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [const Text('آخر الحركات', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)), const SizedBox(height: 8), ...docs.map((d) { final x = d.data(); return Card(child: ListTile(leading: const Icon(Icons.swap_vert_rounded), title: Text('${x['type'] ?? ''}'), subtitle: Text('${x['createdAt'] ?? ''}'), trailing: Text('${x['amount'] ?? 0} ج.س', style: const TextStyle(fontWeight: FontWeight.w900))); })]);
-        }),
-      ]);
-    });
+    return ListView(padding: const EdgeInsets.fromLTRB(18, 20, 18, 30), children: [
+      const _PageHeading(title: 'المحفظة', subtitle: 'الرصيد والعمولات وحركات الحساب'),
+      const SizedBox(height: 12),
+      StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(stream: FirebaseFirestore.instance.collection('wallets').doc(uid).snapshots(), builder: (context, snapshot) {
+        final data = snapshot.data?.data() ?? const <String, dynamic>{};
+        final balance = (data['balance'] as num?)?.toInt() ?? 0;
+        final commission = (data['totalCommission'] as num?)?.toInt() ?? 0;
+        final penalties = (data['totalCancellationPenalties'] as num?)?.toInt() ?? 0;
+        return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: ayezBlack, borderRadius: BorderRadius.circular(24)), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [const Text('الرصيد الحالي', style: TextStyle(color: Color(0xFFB8B8B8))), const SizedBox(height: 4), Text('$balance ج.س', style: const TextStyle(color: ayezYellow, fontSize: 34, fontWeight: FontWeight.w900)), const SizedBox(height: 12), Text('العمولات: $commission', style: const TextStyle(color: Colors.white)), Text('غرامات الإلغاء: $penalties', style: const TextStyle(color: Colors.white))]));
+      }),
+      const SizedBox(height: 14),
+      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: FirebaseFirestore.instance.collection('walletTransactions').where('userId', isEqualTo: uid).orderBy('createdAt', descending: true).limit(30).snapshots(), builder: (context, snapshot) {
+        if (snapshot.hasError) return const _InfoCard(text: 'تعذر تحميل الحركات المالية.');
+        final docs = snapshot.data?.docs ?? const [];
+        if (docs.isEmpty) return const _InfoCard(text: 'لا توجد حركات مالية حتى الآن.');
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [const Text('آخر الحركات', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)), const SizedBox(height: 8), ...docs.map((doc) { final item = doc.data(); return Card(elevation: 0, child: ListTile(leading: const Icon(Icons.swap_vert_rounded), title: Text('${item['type'] ?? ''}'), subtitle: Text('${item['createdAt'] ?? ''}'), trailing: Text('${item['amount'] ?? 0} ج.س', style: const TextStyle(fontWeight: FontWeight.w900)))); })]);
+      }),
+    ]);
   }
 }
 
-class _NotificationsBody extends StatelessWidget {
-  const _NotificationsBody();
+class AyezNotificationsPage extends StatelessWidget {
+  const AyezNotificationsPage({super.key});
   @override
-  Widget build(BuildContext context) => const legacy.NotificationsPage();
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    return ListView(padding: const EdgeInsets.all(18), children: [
+      const _PageHeading(title: 'الإشعارات', subtitle: 'آخر التنبيهات الخاصة بحسابك'),
+      const SizedBox(height: 12),
+      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: FirebaseFirestore.instance.collection('notifications').where('userId', isEqualTo: uid).orderBy('createdAt', descending: true).limit(100).snapshots(), builder: (context, snapshot) {
+        if (snapshot.hasError) return const _InfoCard(text: 'تعذر تحميل الإشعارات.');
+        final docs = snapshot.data?.docs ?? const [];
+        if (docs.isEmpty) return const _InfoCard(text: 'لا توجد إشعارات جديدة.');
+        return Column(children: docs.map((doc) { final item = doc.data(); return Card(elevation: 0, child: ListTile(leading: const Icon(Icons.notifications_none_rounded), title: Text('${item['title'] ?? 'عايز'}'), subtitle: Text('${item['body'] ?? ''}'), onTap: () => doc.reference.update({'read': true}))); }).toList());
+      }),
+    ]);
+  }
 }
 
-class _AdminOrdersBody extends StatelessWidget {
-  const _AdminOrdersBody();
-  @override
-  Widget build(BuildContext context) => const legacy.AdminOrdersPage();
-}
-
-class _AdminUsersBody extends StatelessWidget {
-  const _AdminUsersBody();
-  @override
-  Widget build(BuildContext context) => const legacy.AdminUsersPage();
-}
-
-class _Hero extends StatelessWidget {
+class _HeroCard extends StatelessWidget {
+  final String eyebrow;
   final String title;
-  final String text;
-  const _Hero({required this.title, required this.text});
+  final String body;
+  const _HeroCard({required this.eyebrow, required this.title, required this.body});
   @override
-  Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(22), decoration: BoxDecoration(color: _black, borderRadius: BorderRadius.circular(26), boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 24, offset: Offset(0, 10))]), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [const Text('منصة سودانية للتوصيل والنقل', style: TextStyle(color: _yellow, fontSize: 13, fontWeight: FontWeight.w800)), const SizedBox(height: 6), Text(title, style: const TextStyle(color: Colors.white, fontSize: 27, fontWeight: FontWeight.w900)), const SizedBox(height: 7), Text(text, style: const TextStyle(color: Color(0xFFB8B8B8), height: 1.7))]);
+  Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(22), decoration: BoxDecoration(color: ayezBlack, borderRadius: BorderRadius.circular(26), boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 24, offset: Offset(0, 10))]), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Text(eyebrow, style: const TextStyle(color: ayezYellow, fontWeight: FontWeight.w800, fontSize: 12)), const SizedBox(height: 7), Text(title, style: const TextStyle(color: Colors.white, fontSize: 27, fontWeight: FontWeight.w900)), const SizedBox(height: 8), Text(body, style: const TextStyle(color: Color(0xFFB8B8B8), height: 1.7))]);
 }
 
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final String action;
-  final VoidCallback onTap;
-  const _SectionTitle({required this.title, required this.action, required this.onTap});
-  @override
-  Widget build(BuildContext context) => Row(children: [Expanded(child: Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900))), TextButton(onPressed: onTap, child: Text(action, style: const TextStyle(color: _black, fontWeight: FontWeight.w900))) ]);
-}
-
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String text;
-  final VoidCallback onTap;
-  const _ActionCard({required this.icon, required this.title, required this.text, required this.onTap});
-  @override
-  Widget build(BuildContext context) => Card(elevation: 0, child: InkWell(borderRadius: BorderRadius.circular(20), onTap: onTap, child: Padding(padding: const EdgeInsets.all(16), child: Row(children: [Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0x12F5C400), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: _black)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w900)), const SizedBox(height: 3), Text(text, style: const TextStyle(color: _muted, fontSize: 12, height: 1.45))])), const Icon(Icons.chevron_left_rounded, color: _muted)])));
-}
-
-class _StatCard extends StatelessWidget {
+class _MiniCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String value;
-  const _StatCard({required this.icon, required this.title, required this.value});
+  const _MiniCard({required this.icon, required this.title, required this.value});
   @override
-  Widget build(BuildContext context) => Card(elevation: 0, child: Padding(padding: const EdgeInsets.all(15), child: Row(children: [Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0x12F5C400), borderRadius: BorderRadius.circular(13)), child: Icon(icon, color: _black)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Text(title, style: const TextStyle(color: _muted, fontSize: 12)), const SizedBox(height: 2), Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15))]))]));
+  Widget build(BuildContext context) => Card(elevation: 0, child: Padding(padding: const EdgeInsets.all(15), child: Row(children: [Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0x12F5C400), borderRadius: BorderRadius.circular(13)), child: Icon(icon, color: ayezBlack)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Text(title, style: const TextStyle(color: ayezMuted, fontSize: 12)), const SizedBox(height: 2), Text(value, style: const TextStyle(fontWeight: FontWeight.w900))]))]));
 }
 
-class _InfoBox extends StatelessWidget {
+class _InfoCard extends StatelessWidget {
   final String text;
-  const _InfoBox({required this.text});
+  const _InfoCard({required this.text});
   @override
-  Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE9E6DF))), child: Row(children: [const Icon(Icons.info_outline_rounded, color: _yellow), const SizedBox(width: 10), Expanded(child: Text(text, style: const TextStyle(color: _muted, height: 1.6)))]));
+  Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE9E6DF))), child: Row(children: [const Icon(Icons.info_outline_rounded, color: ayezYellow), const SizedBox(width: 10), Expanded(child: Text(text, style: const TextStyle(color: ayezMuted, height: 1.6)))]));
 }
 
-class _InfoTile extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  const _InfoTile({required this.title, required this.value, required this.icon});
-  @override
-  Widget build(BuildContext context) => Card(elevation: 0, child: ListTile(leading: Icon(icon), title: Text(title, style: const TextStyle(fontSize: 12, color: _muted)), subtitle: Text(value, style: const TextStyle(fontWeight: FontWeight.w800))));
-}
-
-class _PageTitle extends StatelessWidget {
+class _PageHeading extends StatelessWidget {
   final String title;
   final String subtitle;
-  const _PageTitle({required this.title, required this.subtitle});
+  const _PageHeading({required this.title, required this.subtitle});
   @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)), const SizedBox(height: 3), Text(subtitle, style: const TextStyle(color: _muted))]);
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)), const SizedBox(height: 3), Text(subtitle, style: const TextStyle(color: ayezMuted))]);
+}
+
+class _InfoRow extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  const _InfoRow({required this.title, required this.value, required this.icon});
+  @override
+  Widget build(BuildContext context) => Card(elevation: 0, child: ListTile(leading: Icon(icon), title: Text(title, style: const TextStyle(fontSize: 12, color: ayezMuted)), subtitle: Text(value, style: const TextStyle(fontWeight: FontWeight.w800))));
+}
+
+class _AdminAction extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String text;
+  final VoidCallback onTap;
+  const _AdminAction({required this.icon, required this.title, required this.text, required this.onTap});
+  @override
+  Widget build(BuildContext context) => Card(elevation: 0, child: ListTile(leading: Icon(icon), title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)), subtitle: Text(text), trailing: const Icon(Icons.chevron_left_rounded), onTap: onTap));
+}
+
+class _ProfileErrorPage extends StatelessWidget {
+  const _ProfileErrorPage();
+  @override
+  Widget build(BuildContext context) => Scaffold(backgroundColor: ayezBlack, body: Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.person_off_rounded, color: ayezYellow, size: 48), const SizedBox(height: 12), const Text('تعذر تحميل الحساب', style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900)), const SizedBox(height: 8), const Text('سجّل الخروج ثم أعد تسجيل الدخول.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFB8B8B8))), const SizedBox(height: 16), FilledButton(onPressed: () => FirebaseAuth.instance.signOut(), child: const Text('تسجيل الخروج'))])));
+}
+
+class _BlockedPage extends StatelessWidget {
+  final String status;
+  const _BlockedPage({required this.status});
+  @override
+  Widget build(BuildContext context) => Scaffold(backgroundColor: ayezBlack, body: Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.block_rounded, color: ayezYellow, size: 48), const SizedBox(height: 12), const Text('الحساب غير متاح حاليًا', style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900)), const SizedBox(height: 8), Text(status == 'rejected' ? 'تم رفض الحساب.' : 'تم تعليق الحساب. تواصل مع الإدارة.', textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFFB8B8B8))), const SizedBox(height: 16), FilledButton(onPressed: () => FirebaseAuth.instance.signOut(), child: const Text('تسجيل الخروج'))])));
 }
