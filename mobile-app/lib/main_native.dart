@@ -42,7 +42,9 @@ class _AyezNativeBootstrapState extends State<AyezNativeBootstrap> {
       }
       try {
         await FirebaseAppCheck.instance.activate(
-          providerAndroid: const bool.fromEnvironment('JAWAN_APPCHECK_DEBUG', defaultValue: false) ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+          providerAndroid: const bool.fromEnvironment('JAWAN_APPCHECK_DEBUG', defaultValue: false)
+              ? AndroidDebugProvider()
+              : AndroidPlayIntegrityProvider(),
         );
       } catch (_) {}
       try {
