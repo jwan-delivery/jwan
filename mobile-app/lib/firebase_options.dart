@@ -1,15 +1,23 @@
 import 'package:firebase_core/firebase_core.dart';
 
-/// Firebase configuration for the Jawan Delivery project.
+/// Shared Firebase project configuration.
 ///
-/// Android production builds should additionally contain the Firebase-generated
-/// google-services.json for the registered Android app. The values below allow
-/// the Dart SDK to use the same Firebase project as the web application.
+/// Supply FIREBASE_ANDROID_APP_ID at build time after registering the Android
+/// package in Firebase. Do not commit generated signing credentials or other
+/// private secrets to source control.
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
+    const appId = String.fromEnvironment('FIREBASE_ANDROID_APP_ID');
+    if (appId.isEmpty) {
+      throw StateError(
+        'Missing FIREBASE_ANDROID_APP_ID. Register the Android app in Firebase '
+        'and pass its app id with --dart-define.',
+      );
+    }
+
     return const FirebaseOptions(
       apiKey: 'AIzaSyDQKVd7QlaLfNyZyIdtHbS91wVtSd1QeuM',
-      appId: '1:22978141935:android:REPLACE_WITH_ANDROID_APP_ID',
+      appId: appId,
       messagingSenderId: '22978141935',
       projectId: 'jwan-delivery-c930d-72911',
       storageBucket: 'jwan-delivery-c930d-72911.firebasestorage.app',
