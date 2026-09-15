@@ -154,6 +154,9 @@ class OrderService {
   }) async {
     final originText = origin.trim();
     final destinationText = destination.trim();
+    final cargoTypeText = cargoType.trim();
+    final cargoDescriptionText = cargoDescription.trim();
+    final luggageDescriptionText = luggageDescription.trim();
     if (originText.isEmpty || destinationText.isEmpty) throw Exception('مكان الاستلام والوجهة مطلوبان');
     if (originText == destinationText) throw Exception('مكان الاستلام والوجهة يجب أن يكونا مختلفين');
     final isPassenger = passenger.contains(vehicleType);
@@ -162,16 +165,20 @@ class OrderService {
     if (isPassenger && (passengerCount == null || passengerCount < 1 || passengerCount > 100)) {
       throw Exception('عدد الركاب يجب أن يكون بين 1 و100');
     }
-    if (isCargo && cargoType.trim().isEmpty) throw Exception('نوع البضاعة مطلوب');
+    if (isPassenger && hasLuggage && luggageDescriptionText.isEmpty) {
+      throw Exception('اكتب وصف الأمتعة');
+    }
+    if (isCargo && cargoTypeText.isEmpty) throw Exception('نوع البضاعة مطلوب');
+    if (isCargo && cargoDescriptionText.isEmpty) throw Exception('وصف البضاعة مطلوب');
 
     final ref = await db.collection('orders').add({
       'customerId': uid, 'driverId': null, 'state': state,
       'vehicleType': vehicleType, 'serviceCategory': isPassenger ? 'passenger' : 'cargo',
       'passengerCount': isPassenger ? passengerCount : null,
       'hasLuggage': isPassenger ? hasLuggage : null,
-      'luggageDescription': isPassenger && hasLuggage ? luggageDescription.trim() : null,
-      'cargoType': isCargo ? cargoType.trim() : null,
-      'cargoDescription': isCargo ? cargoDescription.trim() : null,
+      'luggageDescription': isPassenger && hasLuggage ? luggageDescriptionText : null,
+      'cargoType': isCargo ? cargoTypeText : null,
+      'cargoDescription': isCargo ? cargoDescriptionText : null,
       'description': description.trim().length > 1000 ? description.trim().substring(0, 1000) : description.trim(),
       'origin': originText, 'destination': destinationText,
       'deliveryFee': null,
@@ -335,10 +342,15 @@ class OrderService {
   Future<void> rate(String orderId, String customerId, int stars, String comment) async {
     if (stars < 1 || stars > 5) throw Exception('التقييم بين 1 و5');
     final order = await db.collection('orders').doc(orderId).get();
-    final driverId = order.data()?['driverId'];
-    await db.collection('ratings').doc(orderId).set({
+    final orderData = order.data();
+    if (orderData == null) throw Exception('الطلب غير موجود');
+    if (orderData['customerId'] != customerId || orderData['status'] != 'completed') {
+      throw Exception('يمكن تقييم الطلب بعد اكتماله وبواسطة العميل فقط');
+    }
+    final driverId = orderData['driverId'];
+    await db.collection('ratings').doc('${orderId}_$customerId').set({
       'orderId': orderId, 'customerId': customerId, 'driverId': driverId,
-      'stars': stars, 'comment': comment.trim().length > 500 ? comment.trim().substring(0, 500) : comment.trim(),
+      'rating': stars, 'comment': comment.trim().length > 500 ? comment.trim().substring(0, 500) : comment.trim(),
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -461,7 +473,7 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 16), TextField(controller: name, decoration: const InputDecoration(labelText: 'الاسم الكامل')),
             const SizedBox(height: 10), DropdownButtonFormField<String>(initialValue: state, items: states.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), onChanged: (v) => setState(() => state = v!), decoration: const InputDecoration(labelText: 'الولاية')),
             const SizedBox(height: 10), TextField(controller: address, decoration: const InputDecoration(labelText: 'مكان السكن')),
-            CheckboxListTile(title: const Text('تسجيل كسائق'), value: driver, onChanged: (v) => setState(() => driver = v ?? false), contentPadding: EdgeInsets.zero),
+            CheckboxListTile(title: const Text('تسجيل كسائق'), value: driver, onChanged: (v) => setState(() => driver = v ?? false)),
             if (driver) ...[
               TextField(controller: age, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'العمر')),
               const SizedBox(height: 10), DropdownButtonFormField<String>(initialValue: vehicle, items: [...OrderService.passenger, ...OrderService.cargo]
@@ -726,12 +738,12 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                   child: const Text('إكمال الطلب واحتساب العمولة'),
                 ),
               ],
-              if (data['customerConfirmedAt'] != null) ...[
+              if (data['customerConfirmedAt'] != null && role == 'customer') ...[
                 DropdownButtonFormField<int>(initialValue: stars, items: List.generate(5, (i) => i + 1).map((v) => DropdownMenuItem(value: v, child: Text('$v نجوم'))).toList(), onChanged: (v) { if (v != null) setState(() => stars = v); }, decoration: const InputDecoration(labelText: 'التقييم')),
                 const SizedBox(height: 8),
                 TextField(controller: comment, decoration: const InputDecoration(labelText: 'تعليق مختصر')),
                 const SizedBox(height: 8),
-                if (role == 'customer') FilledButton(onPressed: busy ? null : () => run(() => service.rate(widget.orderId, uid, stars, comment.text)), child: const Text('حفظ التقييم')),
+                FilledButton(onPressed: busy ? null : () => run(() => service.rate(widget.orderId, uid, stars, comment.text)), child: const Text('حفظ التقييم')),
               ],
             ]))),
           ]));
