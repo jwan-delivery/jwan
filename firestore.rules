@@ -502,7 +502,7 @@ service cloud.firestore {
         && request.resource.data.totalCancellationPenalties == resource.data.totalCancellationPenalties + cancellationPenaltyFor(getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastCancellationOrderId)).data.deliveryFee);
 
       allow update: if isAdmin()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance','totalCommission','totalCancellationPenalties','totalTopups','totalWithdrawals','updatedAt','lastManualTopupId','lastWithdrawalRequestId'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance','totalCommission','totalCancellationPenalties','totalTopups','totalWithdrawals','updatedAt','lastManualTopupId','lastTopupRequestId','lastWithdrawalRequestId'])
         && request.resource.data.balance is number
         && request.resource.data.totalCommission is number
         && request.resource.data.totalCancellationPenalties is number
@@ -556,6 +556,12 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.type in ['topup','withdrawal']
         && request.resource.data.amount != 0
+        && (request.resource.data.type == 'withdrawal' || (
+          request.resource.data.topupRequestId is string
+          && getAfter(/databases/$(database)/documents/topupRequests/$(request.resource.data.topupRequestId)).data.status == 'approved'
+          && getAfter(/databases/$(database)/documents/topupRequests/$(request.resource.data.topupRequestId)).data.driverId == request.resource.data.userId
+          && getAfter(/databases/$(database)/documents/wallets/$(request.resource.data.userId)).data.lastTopupRequestId == request.resource.data.topupRequestId
+        ))
         && request.resource.data.balanceBefore is number
         && request.resource.data.balanceAfter is number
         && request.resource.data.keys().hasOnly(['userId','type','amount','balanceBefore','balanceAfter','orderId','topupRequestId','withdrawalRequestId','manualTopupId','note','createdAt','createdBy']);
