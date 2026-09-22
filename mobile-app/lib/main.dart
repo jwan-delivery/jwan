@@ -13,6 +13,7 @@ import 'services/jawan_auth_service.dart';
 import 'services/negotiation_service.dart';
 import 'services/notification_service.dart';
 import 'services/order_service.dart';
+import 'screens/admin_page.dart';
 
 const kYellow = Color(0xFFFFC400);
 const kBlack = Color(0xFF111111);
