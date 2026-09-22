@@ -114,6 +114,7 @@ class _AyezForcePasswordChangePageState extends State<AyezForcePasswordChangePag
       FilledButton(onPressed: busy ? null : submit, child: Text(busy ? 'جارٍ التغيير...' : 'تغيير كلمة المرور')),
       TextButton(onPressed: () => FirebaseAuth.instance.signOut(), child: const Text('تسجيل الخروج')),
     ]))))),
+    )),
   );
 }
 class AyezAppShell extends StatefulWidget {
