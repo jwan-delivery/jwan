@@ -246,13 +246,14 @@ class OrderService {
       if (order['status'] != 'accepted' || neg['status'] != 'open') throw Exception('التفاوض غير متاح الآن');
       if (role == 'customer' && order['customerId'] != uid) throw Exception('ليس لديك صلاحية');
       if (role == 'driver' && order['driverId'] != uid) throw Exception('ليس لديك صلاحية');
-      if (role == 'driver' && neg['currentOffer'] != null && neg['offeredBy'] == uid) throw Exception('انتظر رد العميل');
+      if (role == 'driver' && neg['currentOffer'] != null) throw Exception('يوجد عرض حالي بالفعل');
       if (role == 'customer' && neg['offeredBy'] == uid) throw Exception('انتظر رد السائق');
       if (neg['currentOffer'] == null && neg['expiresAt'] == null && role != 'driver') throw Exception('السائق يبدأ العرض الأول');
 
       Timestamp expiry;
       final existingExpiry = neg['expiresAt'];
-      if (existingExpiry is Timestamp && existingExpiry.toDate().isAfter(DateTime.now())) {
+      if (existingExpiry is Timestamp) {
+        if (!existingExpiry.toDate().isAfter(DateTime.now())) throw Exception('انتهت مدة التفاوض');
         expiry = existingExpiry;
       } else {
         expiry = Timestamp.fromDate(DateTime.now().add(const Duration(minutes: 30)));
@@ -288,6 +289,8 @@ class OrderService {
       if (neg['offeredBy'] == uid) throw Exception('لا يمكنك قبول عرضك أنت');
       final offer = (neg['currentOffer'] as num?)?.toInt();
       if (offer == null || offer <= 0) throw Exception('العرض الحالي غير صالح');
+      final responseExpiry = neg['expiresAt'];
+      if (responseExpiry is Timestamp && !responseExpiry.toDate().isAfter(DateTime.now())) throw Exception('انتهت مدة التفاوض');
       final messageRef = negRef.collection('messages').doc();
 
       if (!accept) {
@@ -326,17 +329,21 @@ class OrderService {
   }
 
   Future<void> updateStatus(String orderId, String status) async {
-    const allowed = ['picked_up', 'delivering', 'awaiting_confirmation'];
-    if (!allowed.contains(status)) throw Exception('حالة الطلب غير صحيحة');
+    const transitions = {
+      'picked_up': 'accepted',
+      'delivering': 'picked_up',
+      'awaiting_confirmation': 'delivering',
+    };
+    final currentExpected = transitions[status];
+    if (currentExpected == null) throw Exception('حالة الطلب غير صحيحة');
     await db.runTransaction((tx) async {
       final ref = db.collection('orders').doc(orderId);
       final snap = await tx.get(ref);
       if (!snap.exists) throw Exception('الطلب غير موجود');
       final data = snap.data()!;
-      if (data['driverId'] != FirebaseAuth.instance.currentUser?.uid) throw Exception('ليس لديك صلاحية');
-      final current = data['status'];
-      final expected = {'picked_up': 'accepted', 'delivering': 'picked_up', 'awaiting_confirmation': 'delivering'}[status];
-      if (current != expected) throw Exception('لا يمكن الانتقال من الحالة الحالية');
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      if (data['driverId'] != uid) throw Exception('ليس لديك صلاحية');
+      if (data['status'] != currentExpected) throw Exception('لا يمكن الانتقال من الحالة الحالية');
       if (status == 'picked_up' && data['negotiationStatus'] != 'agreed') throw Exception('يجب الاتفاق على السعر أولًا');
       final patch = <String, dynamic>{'status': status};
       if (status == 'picked_up') patch['pickedUpAt'] = FieldValue.serverTimestamp();
@@ -352,103 +359,68 @@ class OrderService {
       final snap = await tx.get(ref);
       if (!snap.exists) throw Exception('الطلب غير موجود');
       final data = snap.data()!;
-      if (data['customerId'] != FirebaseAuth.instance.currentUser?.uid) throw Exception('ليس لديك صلاحية');
+      if (data['customerId'] != FirebaseAuth.instance.currentUser!.uid) throw Exception('ليس لديك صلاحية');
       if (data['status'] != 'awaiting_confirmation' || data['customerConfirmedAt'] != null) throw Exception('لا يمكن تأكيد الطلب الآن');
       tx.update(ref, {'customerConfirmedAt': FieldValue.serverTimestamp()});
     });
   }
 
-  Future<void> customerCancelOrder(String orderId, String customerId) async {
+  Future<void> customerCancelOrder(String orderId) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
     await db.runTransaction((tx) async {
       final ref = db.collection('orders').doc(orderId);
       final snap = await tx.get(ref);
       if (!snap.exists) throw Exception('الطلب غير موجود');
       final data = snap.data()!;
-      if (data['customerId'] != customerId) throw Exception('ليس لديك صلاحية');
-      if (data['status'] != 'pending' || data['driverId'] != null || (data['negotiationStatus'] ?? 'none') != 'none') {
-        throw Exception('لا يمكن إلغاء الطلب بعد بدء التفاوض أو تعيين سائق');
-      }
-      tx.update(ref, {
-        'status': 'cancelled',
-        'cancelledAt': FieldValue.serverTimestamp(),
-        'cancelReason': 'إلغاء بواسطة العميل',
-        'cancellationPenaltyCharged': false,
-        'driverId': null,
-        'negotiationStatus': 'none',
-      });
+      if (data['customerId'] != uid) throw Exception('ليس لديك صلاحية');
+      if (data['status'] != 'pending' || data['driverId'] != null || (data['negotiationStatus'] ?? 'none') != 'none') throw Exception('لا يمكن إلغاء الطلب بعد بدء التفاوض');
+      tx.update(ref, {'status':'cancelled','cancelledAt':FieldValue.serverTimestamp(),'cancelReason':'إلغاء بواسطة العميل','cancellationPenaltyCharged':false,'driverId':null,'negotiationStatus':'none'});
     });
   }
 
-  Future<void> customerReportNotDelivered(String orderId, String customerId) async {
+  Future<void> customerReportNotDelivered(String orderId) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
     await db.runTransaction((tx) async {
       final ref = db.collection('orders').doc(orderId);
       final snap = await tx.get(ref);
       if (!snap.exists) throw Exception('الطلب غير موجود');
       final data = snap.data()!;
-      if (data['customerId'] != customerId) throw Exception('ليس لديك صلاحية');
-      if (data['status'] != 'awaiting_confirmation' || data['customerConfirmedAt'] != null) {
-        throw Exception('الطلب ليس في مرحلة تأكيد التوصيل');
-      }
+      if (data['customerId'] != uid) throw Exception('ليس لديك صلاحية');
+      if (data['status'] != 'awaiting_confirmation' || data['customerConfirmedAt'] != null) throw Exception('لا يمكن الإبلاغ الآن');
       final created = data['createdAt'];
-      if (created is! Timestamp || DateTime.now().difference(created.toDate()) < const Duration(hours: 1)) {
-        throw Exception('يمكن الإبلاغ عن عدم الوصول بعد مرور ساعة من إنشاء الطلب');
-      }
-      tx.update(ref, {'status': 'not_delivered', 'notDeliveredAt': FieldValue.serverTimestamp()});
+      if (created is! Timestamp || DateTime.now().difference(created.toDate()) < const Duration(hours:1)) throw Exception('يمكن الإبلاغ بعد مرور ساعة من إنشاء الطلب');
+      tx.update(ref, {'status':'not_delivered','notDeliveredAt':FieldValue.serverTimestamp()});
     });
   }
 
-  Future<void> driverCancelOrder(String orderId, String driverId) async {
+  Future<void> driverCancelOrder(String orderId) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
     await db.runTransaction((tx) async {
       final orderRef = db.collection('orders').doc(orderId);
-      final walletRef = db.collection('wallets').doc(driverId);
+      final walletRef = db.collection('wallets').doc(uid);
       final snap = await tx.get(orderRef);
       if (!snap.exists) throw Exception('الطلب غير موجود');
       final order = snap.data()!;
-      if (order['driverId'] != driverId) throw Exception('ليس لديك صلاحية');
+      if (order['driverId'] != uid) throw Exception('ليس لديك صلاحية');
       if (order['status'] != 'accepted' && order['status'] != 'picked_up') throw Exception('لا يمكن إلغاء الطلب في هذه المرحلة');
-      if (order['cancellationPenaltyCharged'] == true) throw Exception('تم احتساب غرامة الإلغاء مسبقًا');
-
-      final common = {
-        'status': 'cancelled',
-        'cancelledAt': FieldValue.serverTimestamp(),
-        'cancelReason': 'إلغاء بواسطة السائق',
-      };
-
       if (order['negotiationStatus'] != 'agreed') {
-        tx.update(orderRef, {...common, 'cancellationPenaltyCharged': false});
+        tx.update(orderRef, {'status':'cancelled','cancelledAt':FieldValue.serverTimestamp(),'cancelReason':'إلغاء بواسطة السائق','cancellationPenaltyCharged':false});
         return;
       }
-
-      final fee = (order['deliveryFee'] as num?)?.toDouble() ?? 0;
+      if (order['cancellationPenaltyCharged'] == true) throw Exception('تم احتساب الغرامة مسبقًا');
+      final fee = (order['deliveryFee'] as num?)?.toInt() ?? 0;
       final penalty = (fee * 0.10).round();
       if (penalty <= 0) throw Exception('قيمة الغرامة غير صحيحة');
       final walletSnap = await tx.get(walletRef);
       if (!walletSnap.exists) throw Exception('محفظة السائق غير موجودة');
       final wallet = walletSnap.data()!;
-      final before = (wallet['balance'] as num?)?.toDouble() ?? 0;
+      final before = (wallet['balance'] as num?)?.toInt() ?? 0;
       if (before < penalty) throw Exception('رصيد المحفظة لا يكفي لغرامة الإلغاء');
       final after = before - penalty;
       final txRef = db.collection('walletTransactions').doc();
-
-      tx.update(orderRef, {...common, 'cancellationPenaltyCharged': true});
-      tx.update(walletRef, {
-        'balance': after,
-        'totalCancellationPenalties': ((wallet['totalCancellationPenalties'] as num?)?.toDouble() ?? 0) + penalty,
-        'updatedAt': FieldValue.serverTimestamp(),
-        'lastCancellationOrderId': orderId,
-      });
-      tx.set(txRef, {
-        'userId': driverId,
-        'type': 'cancellation_penalty',
-        'amount': -penalty,
-        'balanceBefore': before,
-        'balanceAfter': after,
-        'orderId': orderId,
-        'topupRequestId': null,
-        'withdrawalRequestId': null,
-        'createdAt': FieldValue.serverTimestamp(),
-        'createdBy': driverId,
-      });
+      tx.update(orderRef, {'status':'cancelled','cancelledAt':FieldValue.serverTimestamp(),'cancelReason':'إلغاء بواسطة السائق','cancellationPenaltyCharged':true});
+      tx.update(walletRef, {'balance':after,'totalCancellationPenalties':((wallet['totalCancellationPenalties'] as num?)?.toInt() ?? 0)+penalty,'updatedAt':FieldValue.serverTimestamp(),'lastCancellationOrderId':orderId});
+      tx.set(txRef, {'userId':uid,'type':'cancellation_penalty','amount':-penalty,'balanceBefore':before,'balanceAfter':after,'orderId':orderId,'topupRequestId':null,'withdrawalRequestId':null,'createdAt':FieldValue.serverTimestamp(),'createdBy':uid});
     });
   }
 
@@ -712,6 +684,17 @@ class _CreateOrderSheetState extends State<CreateOrderSheet> {
   int passengers = 1;
   bool luggage = false, busy = false;
   @override
+  void dispose() {
+    origin.dispose();
+    destination.dispose();
+    description.dispose();
+    cargo.dispose();
+    cargoDescription.dispose();
+    luggageDescription.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isPassenger = OrderService.passenger.contains(vehicle);
     return Padding(padding: EdgeInsets.only(left: 18, right: 18, top: 18, bottom: MediaQuery.of(context).viewInsets.bottom + 18), child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -755,13 +738,6 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   bool busy = false;
   final service = OrderService();
 
-  @override
-  void dispose() {
-    amount.dispose();
-    comment.dispose();
-    super.dispose();
-  }
-
   Future<void> run(Future<void> Function() action) async {
     setState(() => busy = true);
     try { await action(); if (mounted) setState(() {}); }
@@ -770,7 +746,14 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   }
 
   @override
-  Widget build(BuildContext context) => StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+  void dispose() {
+    amount.dispose();
+    comment.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>((
         stream: FirebaseFirestore.instance.collection('orders').doc(widget.orderId).snapshots(),
         builder: (context, snapshot) {
           final data = snapshot.data?.data();
@@ -808,18 +791,9 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
               if (data['status'] == 'picked_up' && role == 'driver') FilledButton(onPressed: busy ? null : () => run(() => service.updateStatus(widget.orderId, 'delivering')), child: const Text('بدء التوصيل')),
               if (data['status'] == 'delivering' && role == 'driver') FilledButton(onPressed: busy ? null : () => run(() => service.updateStatus(widget.orderId, 'awaiting_confirmation')), child: const Text('تم التسليم')),
               if (data['status'] == 'awaiting_confirmation' && role == 'customer') FilledButton(onPressed: busy ? null : () => run(() => service.customerConfirm(widget.orderId)), child: const Text('تأكيد الاستلام')),
-              if (data['status'] == 'pending' && role == 'customer' && data['driverId'] == null) ...[
-                const SizedBox(height: 8),
-                OutlinedButton(onPressed: busy ? null : () => run(() => service.customerCancelOrder(widget.orderId, uid)), child: const Text('إلغاء الطلب')),
-              ],
-              if (data['status'] == 'awaiting_confirmation' && role == 'customer' && data['customerConfirmedAt'] == null) ...[
-                const SizedBox(height: 8),
-                OutlinedButton(onPressed: busy ? null : () => run(() => service.customerReportNotDelivered(widget.orderId, uid)), child: const Text('الإبلاغ عن عدم الوصول')),
-              ],
-              if ((data['status'] == 'accepted' || data['status'] == 'picked_up') && role == 'driver') ...[
-                const SizedBox(height: 8),
-                OutlinedButton(onPressed: busy ? null : () => run(() => service.driverCancelOrder(widget.orderId, uid)), child: const Text('إلغاء الطلب')),
-              ],
+              if (data['status'] == 'pending' && role == 'customer' && data['driverId'] == null) OutlinedButton(onPressed: busy ? null : () => run(() => service.customerCancelOrder(widget.orderId)), child: const Text('إلغاء الطلب')),
+              if (data['status'] == 'awaiting_confirmation' && role == 'customer' && data['customerConfirmedAt'] == null) OutlinedButton(onPressed: busy ? null : () => run(() => service.customerReportNotDelivered(widget.orderId)), child: const Text('الإبلاغ عن عدم الوصول')),
+              if ((data['status'] == 'accepted' || data['status'] == 'picked_up') && role == 'driver') OutlinedButton(onPressed: busy ? null : () => run(() => service.driverCancelOrder(widget.orderId)), child: const Text('إلغاء الطلب')),
               if (data['status'] == 'awaiting_confirmation' && role == 'driver' && data['customerConfirmedAt'] != null) ...[
                 FilledButton(
                   onPressed: busy
@@ -944,9 +918,8 @@ class NotificationsPage extends StatelessWidget {
     if (!states.contains(state.trim())) throw Exception('اختر ولاية صحيحة');
     if (address.trim().isEmpty || address.trim().length > 250) throw Exception('مكان السكن غير صحيح');
     if (role == 'driver') {
-      const vehicles = ['car','rickshaw','motorcycle','tuk_tuk','truck','bus','amjad','kreez','taxi','tanker','crane','tow_truck','lorry','limousine'];
       if ((age ?? 0) < 18 || (age ?? 0) > 100) throw Exception('يجب أن يكون عمر السائق بين 18 و100 سنة');
-      if (vehicleType == null || !vehicles.contains(vehicleType)) throw Exception('اختر نوع المركبة');
+      if (vehicleType == null || (!OrderService.passenger.contains(vehicleType) && !OrderService.cargo.contains(vehicleType))) throw Exception('اختر نوع المركبة');
     }
 
     final credential = await auth.createUserWithEmailAndPassword(
