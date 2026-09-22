@@ -1249,7 +1249,7 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 16),
           TextField(controller: name, decoration: const InputDecoration(labelText: 'الاسم')),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(value: state, isExpanded: true, decoration: const InputDecoration(labelText: 'الولاية'), items: sudanStates.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), onChanged: (v) => setState(() => state = v ?? state)),
+          InputDecorator(decoration: const InputDecoration(labelText: 'الولاية'), child: Text(state)),
           const SizedBox(height: 12),
           TextField(controller: address, maxLines: 2, decoration: const InputDecoration(labelText: 'العنوان')),
           const SizedBox(height: 18),
