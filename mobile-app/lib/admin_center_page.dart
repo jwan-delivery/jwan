@@ -120,7 +120,7 @@ class _AdminUsersState extends State<_AdminUsers> {
                         if (status != 'active') _action('تفعيل', () => _approve(context, doc.id, user)),
                         if (status != 'suspended') _action('إيقاف', () => _setStatus(context, doc.id, 'suspended')),
                         if (status != 'rejected') _action('رفض', () => _setStatus(context, doc.id, 'rejected')),
-                        if (role == 'customer' || role == 'driver') _action('طلب تغيير كلمة المرور', () => _requestPasswordChange(context, doc.id)),
+                        if (status == 'active' && role == 'driver') _action('شحن يدوي', () => _manualTopup(context, doc.id, user['name']?.toString() ?? 'السائق')),\n                        if (role == 'customer' || role == 'driver') _action('طلب تغيير كلمة المرور', () => _requestPasswordChange(context, doc.id)),
                         if (widget.superAdmin && !isSelf && user['role'] != 'super_admin') _action('حذف', () => _delete(context, doc.id), danger: true),
                       ]),
                     ]),
@@ -186,6 +186,51 @@ class _AdminUsersState extends State<_AdminUsers> {
     }
   }
 }
+  static Future<void> _manualTopup(BuildContext context, String driverId, String name) async {
+    final amount = TextEditingController();
+    final note = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('شحن يدوي — $name'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: amount, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'المبلغ')),
+          const SizedBox(height: 8),
+          TextField(controller: note, decoration: const InputDecoration(labelText: 'ملاحظة')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('شحن')),
+        ],
+      ),
+    );
+    if (ok != true) { amount.dispose(); note.dispose(); return; }
+    try {
+      final value = num.tryParse(amount.text.trim()) ?? 0;
+      if (value <= 0) throw StateError('أدخل مبلغًا صحيحًا');
+      final adminUid = FirebaseAuth.instance.currentUser!.uid;
+      await FirebaseFirestore.instance.runTransaction((tx) async {
+        final userRef = FirebaseFirestore.instance.collection('users').doc(driverId);
+        final walletRef = FirebaseFirestore.instance.collection('wallets').doc(driverId);
+        final txRef = FirebaseFirestore.instance.collection('walletTransactions').doc();
+        final userSnap = await tx.get(userRef);
+        final walletSnap = await tx.get(walletRef);
+        if (!userSnap.exists || userSnap.data()?['role'] != 'driver' || userSnap.data()?['status'] != 'active') throw StateError('السائق غير نشط أو غير موجود');
+        if (!walletSnap.exists) throw StateError('محفظة السائق غير موجودة');
+        final wallet = walletSnap.data()!;
+        final before = (wallet['balance'] as num?)?.toDouble() ?? 0;
+        final v = value.toDouble();
+        tx.update(walletRef, {'balance': before + v, 'totalTopups': ((wallet['totalTopups'] as num?)?.toDouble() ?? 0) + v, 'updatedAt': FieldValue.serverTimestamp(), 'lastManualTopupId': txRef.id});
+        tx.set(txRef, {'userId':driverId,'type':'manual_topup','amount':v,'balanceBefore':before,'balanceAfter':before+v,'orderId':null,'topupRequestId':null,'withdrawalRequestId':null,'manualTopupId':txRef.id,'note':note.text.trim(),'createdAt':FieldValue.serverTimestamp(),'createdBy':adminUid});
+      });
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم شحن المحفظة')));
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      amount.dispose();
+      note.dispose();
+    }
+  }
 class _AdminFinance extends StatelessWidget {
   const _AdminFinance();
   @override Widget build(BuildContext context)=>DefaultTabController(length:2,child:Column(children:[const TabBar(tabs:[Tab(text:'الشحن'),Tab(text:'السحب')]),Expanded(child:TabBarView(children:[_topups(),_withdrawals()]))]));
