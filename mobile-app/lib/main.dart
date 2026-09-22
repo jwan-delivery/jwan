@@ -1303,23 +1303,77 @@ class BrandHeader extends StatelessWidget {
   Widget build(BuildContext context) => const Column(children: [Text('عايز', style: TextStyle(fontSize: 54, fontWeight: FontWeight.w900, color: kBlack)), Text('للتوصيل', style: TextStyle(fontSize: 16, color: Colors.black54, fontWeight: FontWeight.w700))]);
 }
 
+
 Future<void> showMoneyRequest(BuildContext context, String uid, bool topup) async {
   final amount = TextEditingController();
-  final bank = TextEditingController();
+  final account = TextEditingController();
+  String paymentMethod = 'بنكك';
+
   try {
-    final ok = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text(topup ? 'طلب شحن' : 'طلب سحب'), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: amount, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'المبلغ')), if (!topup) ...[const SizedBox(height: 10), TextField(controller: bank, decoration: const InputDecoration(labelText: 'تفاصيل وسيلة الاستلام'))]], actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('إرسال'))]));
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(topup ? 'طلب شحن' : 'طلب سحب'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: amount,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'المبلغ'),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  value: paymentMethod,
+                  decoration: const InputDecoration(labelText: 'طريقة التحويل'),
+                  items: const ['بنكك', 'فوري', 'أوكاش', 'ماي كاشي']
+                      .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                      .toList(),
+                  onChanged: (v) => setDialogState(() => paymentMethod = v ?? paymentMethod),
+                ),
+                if (!topup) ...[
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: account,
+                    decoration: const InputDecoration(labelText: 'رقم الحساب/المحفظة المستلمة'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('إلغاء')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('إرسال')),
+          ],
+        ),
+      ),
+    );
+
     if (ok != true) return;
     final value = int.tryParse(amount.text.trim()) ?? 0;
     if (value <= 0) throw StateError('أدخل مبلغًا صحيحًا');
+
     final service = AppDataService();
     if (topup) {
-      await service.createTopupRequest(uid: uid, amount: value);
+      await service.createTopupRequest(uid: uid, amount: value, paymentMethod: paymentMethod);
     } else {
-      if (bank.text.trim().isEmpty) throw StateError('أدخل تفاصيل وسيلة الاستلام');
-      await service.createWithdrawalRequest(uid: uid, amount: value, bankDetails: {'method': bank.text.trim()});
+      await service.createWithdrawalRequest(
+        uid: uid,
+        amount: value,
+        paymentMethod: paymentMethod,
+        accountReference: account.text,
+      );
     }
+
     if (context.mounted) showInfo(context, 'تم إرسال الطلب للإدارة للمراجعة');
-  } catch (e) { if (context.mounted) showError(context, cleanException(e)); } finally { amount.dispose(); bank.dispose(); }
+  } catch (e) {
+    if (context.mounted) showError(context, cleanException(e));
+  } finally {
+    amount.dispose();
+    account.dispose();
+  }
 }
 
 Future<void> showRatingDialog(BuildContext context, {required String orderId, required String customerId}) async {
