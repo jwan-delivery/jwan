@@ -65,15 +65,127 @@ class _AdminOrders extends StatelessWidget {
   }
 }
 
-class _AdminUsers extends StatefulWidget { const _AdminUsers({this.superAdmin = false}); final bool superAdmin; @override State<_AdminUsers> createState()=>_AdminUsersState(); }
-class _AdminUsersState extends State<_AdminUsers> {
-  bool drivers=true;
-  @override Widget build(BuildContext context){final role=drivers?'driver':'customer';return Column(children:[Padding(padding:const EdgeInsets.all(12),child:SegmentedButton<bool>(segments:const[ButtonSegment(value:true,label:Text('السائقون')),ButtonSegment(value:false,label:Text('العملاء'))],selected:{drivers},onSelectionChanged:(s)=>setState(()=>drivers=s.first))),Expanded(child:StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('users').where('role',isEqualTo:role).limit(300).snapshots(),builder:(_,s){if(s.hasError)return Center(child:Text('${s.error}'));final docs=s.data?.docs??const[];return ListView.separated(padding:const EdgeInsets.all(12),itemCount:docs.length,separatorBuilder:(_,__)=>const SizedBox(height:8),itemBuilder:(_,i){final d=docs[i];final u=d.data();final status='${u['status']??''}';return Card(child:ListTile(title:Text('${u['name']??'-'}'),subtitle:Text('${u['phone']??'-'} • ${u['state']??'-'} • $status'),trailing:PopupMenuButton<String>(onSelected:(v)=>_setStatus(context,d.id,v),itemBuilder:(_)=>const[PopupMenuItem(value:'active',child:Text('تفعيل')),PopupMenuItem(value:'suspended',child:Text('إيقاف')),PopupMenuItem(value:'rejected',child:Text('رفض'))])));});})))];}
-  static Future<void> _setStatus(BuildContext context,String id,String status) async {try{await FirebaseFirestore.instance.collection('users').doc(id).update({'status':status});if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تم تحديث الحالة')));}catch(e){if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}}
-  static Future<void> _approve(BuildContext context,String id,Map<String,dynamic> u) async {try{await FirebaseFirestore.instance.collection('users').doc(id).update({'status':'active'});if(u['role']=='driver'){final w=FirebaseFirestore.instance.collection('wallets').doc(id);final s=await w.get();if(!s.exists)await w.set({'balance':10000,'totalCommission':0,'totalCancellationPenalties':0,'totalTopups':0,'totalWithdrawals':0,'updatedAt':FieldValue.serverTimestamp()});}if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تم التفعيل')));}catch(e){if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}}
-  static Future<void> _delete(BuildContext context,String id) async {final ok=await showDialog<bool>(context:context,builder:(_)=>AlertDialog(title:const Text('حذف الحساب'),content:const Text('حذف ملف الحساب؟'),actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('حذف'))]));if(ok!=true)return;try{await FirebaseFirestore.instance.collection('users').doc(id).delete();await FirebaseFirestore.instance.collection('wallets').doc(id).delete().catchError((_){});if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تم حذف ملف الحساب')));}catch(e){if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}}
+class _AdminUsers extends StatefulWidget {
+  const _AdminUsers({this.superAdmin = false});
+  final bool superAdmin;
+  @override State<_AdminUsers> createState() => _AdminUsersState();
 }
 
+class _AdminUsersState extends State<_AdminUsers> {
+  bool drivers = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final role = drivers ? 'driver' : 'customer';
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.all(12),
+        child: SegmentedButton<bool>(
+          segments: const [
+            ButtonSegment(value: true, label: Text('السائقون')),
+            ButtonSegment(value: false, label: Text('العملاء')),
+          ],
+          selected: {drivers},
+          onSelectionChanged: (set) => setState(() => drivers = set.first),
+        ),
+      ),
+      Expanded(
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: role).limit(300).snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) return Center(child: Text(snapshot.error.toString()));
+            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+            final docs = snapshot.data?.docs ?? const [];
+            if (docs.isEmpty) return const Center(child: Text('لا توجد حسابات.'));
+            return ListView.separated(
+              padding: const EdgeInsets.all(12),
+              itemCount: docs.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final doc = docs[index];
+                final user = doc.data();
+                final status = user['status']?.toString() ?? '';
+                final isSelf = doc.id == FirebaseAuth.instance.currentUser?.uid;
+                return Card(
+                  elevation: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(user['name']?.toString() ?? '-', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
+                      const SizedBox(height: 4),
+                      Text((user['phone']?.toString() ?? '-') + ' • ' + (user['state']?.toString() ?? '-') + ' • ' + status),
+                      if (role == 'driver') Text('المركبة: ' + (user['vehicleType']?.toString() ?? '-')),
+                      const SizedBox(height: 8),
+                      Wrap(spacing: 6, runSpacing: 6, children: [
+                        if (status != 'active') _action('تفعيل', () => _approve(context, doc.id, user)),
+                        if (status != 'suspended') _action('إيقاف', () => _setStatus(context, doc.id, 'suspended')),
+                        if (status != 'rejected') _action('رفض', () => _setStatus(context, doc.id, 'rejected')),
+                        if (role == 'customer' || role == 'driver') _action('طلب تغيير كلمة المرور', () => _requestPasswordChange(context, doc.id)),
+                        if (widget.superAdmin && !isSelf && user['role'] != 'super_admin') _action('حذف', () => _delete(context, doc.id), danger: true),
+                      ]),
+                    ]),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    ]);
+  }
+
+  static Future<void> _setStatus(BuildContext context, String id, String status) async {
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(id).update({'status': status});
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث الحالة')));
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  static Future<void> _approve(BuildContext context, String id, Map<String,dynamic> user) async {
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(id).update({'status':'active'});
+      if (user['role'] == 'driver') {
+        final wallet = FirebaseFirestore.instance.collection('wallets').doc(id);
+        final snap = await wallet.get();
+        if (!snap.exists) await wallet.set({'balance':10000,'totalCommission':0,'totalCancellationPenalties':0,'totalTopups':0,'totalWithdrawals':0,'updatedAt':FieldValue.serverTimestamp()});
+      }
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم التفعيل')));
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  static Future<void> _requestPasswordChange(BuildContext context, String id) async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      await FirebaseFirestore.instance.collection('users').doc(id).update({'mustChangePassword':true,'passwordChangeRequestedAt':FieldValue.serverTimestamp(),'passwordChangeRequestedBy':uid});
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم طلب تغيير كلمة المرور')));
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  static Future<void> _delete(BuildContext context, String id) async {
+    final ok = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
+      title: const Text('حذف الحساب'),
+      content: const Text('سيتم حذف ملف الحساب ومحفظته من Firestore. سجلات الطلبات لا تُحذف.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+        FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('حذف')),
+      ],
+    ));
+    if (ok != true) return;
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(id).delete();
+      await FirebaseFirestore.instance.collection('wallets').doc(id).delete().catchError((_) {});
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حذف ملف الحساب')));
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+}
 class _AdminFinance extends StatelessWidget {
   const _AdminFinance();
   @override Widget build(BuildContext context)=>DefaultTabController(length:2,child:Column(children:[const TabBar(tabs:[Tab(text:'الشحن'),Tab(text:'السحب')]),Expanded(child:TabBarView(children:[_topups(),_withdrawals()]))]));
