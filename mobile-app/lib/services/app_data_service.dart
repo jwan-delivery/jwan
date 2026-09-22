@@ -76,9 +76,9 @@ class AppDataService {
     final cleanName = name.trim();
     final cleanState = state.trim();
     if (cleanName.length < 2 || cleanName.length > 100) throw ArgumentError('الاسم غير صحيح');
-    if (cleanState.isEmpty) throw ArgumentError('اختر الولاية');
+    if (cleanState.isEmpty) throw ArgumentError('الولاية غير محددة');
     await _db.collection('users').doc(uid).update({
-      'name': cleanName, 'state': cleanState, 'address': (address ?? '').trim(), 'lastActiveAt': FieldValue.serverTimestamp(),
+      'name': cleanName, 'address': (address ?? '').trim(), 'lastActiveAt': FieldValue.serverTimestamp(),
     });
   }
 }
