@@ -2,9 +2,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:jawan_flutter/main.dart';
 
 void main() {
-  testWidgets('Jawan app starts successfully', (WidgetTester tester) async {
-    await tester.pumpWidget(const JawanApp());
+  test('vehicle labels are mapped correctly', () {
+    expect(vehicleLabel('motorcycle'), 'موتر');
+    expect(vehicleLabel('rickshaw'), 'ركشة');
+    expect(vehicleLabel('lorry'), 'لوري');
+  });
 
-    expect(find.text('أهلاً بك في جوان'), findsOneWidget);
+  test('order status labels are mapped correctly', () {
+    expect(statusLabel('pending'), 'بانتظار سائق');
+    expect(statusLabel('completed'), 'مكتمل');
+    expect(statusLabel('cancelled'), 'ملغي');
   });
 }
