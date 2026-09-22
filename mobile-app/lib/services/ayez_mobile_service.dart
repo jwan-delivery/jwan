@@ -69,7 +69,7 @@ class AyezMobileService {
 
   Future<void> sendSupport({required String uid, required String role, required String message}) async {
     final clean = message.trim();
-    if (clean.isEmpty || clean.length > 3000) throw ArgumentError('الرسالة غير صحيحة');
+    if (clean.isEmpty || clean.length > 2000) throw ArgumentError('الرسالة غير صحيحة');
     await db.collection('supportMessages').add({
       'userId': uid,
       'message': clean,
