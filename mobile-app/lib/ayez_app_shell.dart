@@ -1,7 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+import 'admin_center_page.dart';
+import 'services/ayez_mobile_service.dart';
 import 'main.dart' as legacy;
 
 const ayezBlack = Color(0xFF0A0A0A);
@@ -76,6 +81,34 @@ class AyezAppShell extends StatefulWidget {
 
 class _AyezAppShellState extends State<AyezAppShell> {
   int index = 0;
+  final _mobile = AyezMobileService();
+  StreamSubscription<String>? _tokenSubscription;
+  StreamSubscription<RemoteMessage>? _foregroundSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      _mobile.registerDevice(uid).catchError((_) {});
+      _tokenSubscription = _mobile.watchTokenRefresh(uid);
+      _foregroundSubscription = _mobile.foregroundMessages.listen((message) {
+        if (!mounted) return;
+        final title = message.notification?.title ?? 'إشعار جديد';
+        final body = message.notification?.body;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(body == null || body.isEmpty ? title : '$title: $body')),
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _tokenSubscription?.cancel();
+    _foregroundSubscription?.cancel();
+    super.dispose();
+  }
 
   String get role => '${widget.profile['role'] ?? 'customer'}';
   String get name => '${widget.profile['name'] ?? 'مستخدم عايز'}';
@@ -91,12 +124,18 @@ class _AyezAppShellState extends State<AyezAppShell> {
     }
 
     if (_isAdminRole(role)) {
-      return const [
-        _NavItem(Icons.dashboard_rounded, 'الإدارة'),
-        _NavItem(Icons.receipt_long_rounded, 'الطلبات'),
-        _NavItem(Icons.people_alt_outlined, 'المستخدمون'),
-        _NavItem(Icons.notifications_none_rounded, 'الإشعارات'),
+      final items = <_NavItem>[
+        const _NavItem(Icons.dashboard_rounded, 'الإدارة'),
+        const _NavItem(Icons.receipt_long_rounded, 'الطلبات'),
+        const _NavItem(Icons.people_alt_outlined, 'المستخدمون'),
+        const _NavItem(Icons.account_balance_wallet_rounded, 'الماليات'),
+        const _NavItem(Icons.support_agent_rounded, 'الدعم'),
+        const _NavItem(Icons.notifications_none_rounded, 'الإشعارات'),
       ];
+      if (role == 'super_admin') {
+        items.insert(5, const _NavItem(Icons.admin_panel_settings_rounded, 'المدراء'));
+      }
+      return items;
     }
 
     return const [
@@ -125,16 +164,13 @@ class _AyezAppShellState extends State<AyezAppShell> {
     }
 
     if (_isAdminRole(role)) {
-      switch (selected) {
-        case 1:
-          return const legacy.AdminOrdersPage();
-        case 2:
-          return const legacy.AdminUsersPage();
-        case 3:
-          return const AyezNotificationsPage();
-        default:
-          return AyezAdminHome(profile: widget.profile);
+      if (selected == (role == 'super_admin' ? 6 : 5)) {
+        return const AyezNotificationsPage();
       }
+      return AyezAdminCenterPage(
+        profile: widget.profile,
+        initialSection: selected,
+      );
     }
 
     switch (selected) {
@@ -684,6 +720,31 @@ class AyezAdminHome extends StatelessWidget {
   }
 }
 
+class AyezSupportPage extends StatefulWidget {
+  const AyezSupportPage({super.key, required this.role});
+  final String role;
+  @override State<AyezSupportPage> createState()=>_AyezSupportPageState();
+}
+
+class _AyezSupportPageState extends State<AyezSupportPage> {
+  final message=TextEditingController();
+  bool busy=false;
+  final mobile=AyezMobileService();
+  String get uid=>FirebaseAuth.instance.currentUser!.uid;
+
+  Future<void> send() async {
+    try{setState(()=>busy=true);await mobile.sendSupport(uid:uid,role:widget.role,message:message.text);message.clear();if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تم إرسال الرسالة')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}finally{if(mounted)setState(()=>busy=false);}
+  }
+  @override void dispose(){message.dispose();super.dispose();}
+  @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:const Text('الدعم')),body:ListView(padding:const EdgeInsets.all(18),children:[
+    TextField(controller:message,maxLines:6,maxLength:3000,decoration:const InputDecoration(labelText:'اكتب رسالتك')),
+    const SizedBox(height:10),
+    FilledButton(onPressed:busy?null:send,child:Text(busy?'جارٍ الإرسال...':'إرسال للدعم')),
+    const SizedBox(height:18),
+    const Text('رسائلي السابقة',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
+    StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:mobile.support(uid),builder:(context,snapshot){if(snapshot.hasError)return const _InfoCard(text:'تعذر تحميل رسائل الدعم.');final docs=snapshot.data?.docs??const[];if(docs.isEmpty)return const _InfoCard(text:'لا توجد رسائل سابقة.');return Column(children:[for(final d in docs){final x=d.data();Card(elevation:0,child:ListTile(title:Text('${x['message']??''}'),subtitle:Text(x['reply']==null?'الحالة: ${x['status']??'open'}':'رد الإدارة: ${x['reply']}')))}] );}),
+  ]));
+}
 class AyezAccountPage extends StatelessWidget {
   final Map<String, dynamic> profile;
 
@@ -726,123 +787,128 @@ class AyezAccountPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         FilledButton.icon(
-          onPressed: () => legacy.openJawanWhatsApp(context),
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AyezSupportPage(role: '${profile['role'] ?? 'customer'}'))),
           icon: const Icon(Icons.support_agent_rounded),
-          label: const Text('التواصل مع الدعم'),
+          label: const Text('الدعم داخل التطبيق'),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () => legacy.openJawanWhatsApp(context),
+          icon: const Icon(Icons.chat_outlined),
+          label: const Text('فتح واتساب'),
         ),
       ],
     );
   }
 }
 
-class AyezWalletPage extends StatelessWidget {
+class AyezWalletPage extends StatefulWidget {
   const AyezWalletPage({super.key});
+  @override State<AyezWalletPage> createState() => _AyezWalletPageState();
+}
+
+class _AyezWalletPageState extends State<AyezWalletPage> {
+  final mobile = AyezMobileService();
+  final methods = const ['بنكك','فوري','أوكاش','ماي كاشي'];
+
+  String get uid => FirebaseAuth.instance.currentUser!.uid;
+
+  Future<void> requestMoney({required bool topup}) async {
+    final amount = TextEditingController();
+    final account = TextEditingController();
+    String method = methods.first;
+    try {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Text(topup ? 'طلب شحن' : 'طلب سحب'),
+            content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(controller: amount, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'المبلغ')),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(value: method, items: methods.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(), onChanged: (v) => setDialogState(() => method = v ?? method), decoration: const InputDecoration(labelText: 'طريقة التحويل')),
+              if (!topup) ...[
+                const SizedBox(height: 10),
+                TextField(controller: account, decoration: const InputDecoration(labelText: 'رقم الحساب/المحفظة المستلمة')),
+              ],
+            ])),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('إلغاء')),
+              FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('إرسال')),
+            ],
+          ),
+        ),
+      );
+      if (ok != true) return;
+      final value = num.tryParse(amount.text.trim()) ?? 0;
+      if (topup) {
+        await mobile.createTopupRequest(driverId: uid, amount: value, paymentMethod: method);
+      } else {
+        await mobile.createWithdrawalRequest(driverId: uid, amount: value, paymentMethod: method, accountReference: account.text);
+      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إرسال الطلب للمراجعة')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      amount.dispose();
+      account.dispose();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 20, 18, 30),
       children: [
-        const _PageHeading(
-          title: 'المحفظة',
-          subtitle: 'الرصيد والعمولات وحركات الحساب',
-        ),
+        const _PageHeading(title: 'المحفظة', subtitle: 'الرصيد، الشحن، السحب، والعمولات'),
         const SizedBox(height: 12),
-        StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        StreamBuilder<DocumentSnapshot<Map<String,dynamic>>>(
           stream: FirebaseFirestore.instance.collection('wallets').doc(uid).snapshots(),
           builder: (context, snapshot) {
-            final data = snapshot.data?.data() ?? const <String, dynamic>{};
-            final balance = (data['balance'] as num?)?.toInt() ?? 0;
-            final commission = (data['totalCommission'] as num?)?.toInt() ?? 0;
-            final penalties =
-                (data['totalCancellationPenalties'] as num?)?.toInt() ?? 0;
-
-            return Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: ayezBlack,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'الرصيد الحالي',
-                    style: TextStyle(color: Color(0xFFB8B8B8)),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$balance ج.س',
-                    style: const TextStyle(
-                      color: ayezYellow,
-                      fontSize: 34,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'العمولات: $commission ج.س',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  Text(
-                    'غرامات الإلغاء: $penalties ج.س',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ],
-              ),
-            );
+            if (snapshot.hasError) return const _InfoCard(text: 'تعذر تحميل المحفظة.');
+            final data = snapshot.data?.data() ?? const <String,dynamic>{};
+            final balance = (data['balance'] as num?)?.toDouble() ?? 0;
+            final commission = (data['totalCommission'] as num?)?.toDouble() ?? 0;
+            final penalties = (data['totalCancellationPenalties'] as num?)?.toDouble() ?? 0;
+            return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: ayezBlack, borderRadius: BorderRadius.circular(24)), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              const Text('الرصيد الحالي', style: TextStyle(color: Color(0xFFB8B8B8))),
+              const SizedBox(height: 4), Text('${balance.toStringAsFixed(0)} ج.س', style: const TextStyle(color: ayezYellow,fontSize:34,fontWeight:FontWeight.w900)),
+              const SizedBox(height:12),
+              Text('العمولات: ${commission.toStringAsFixed(0)} ج.س',style:const TextStyle(color:Colors.white)),
+              Text('غرامات الإلغاء: ${penalties.toStringAsFixed(0)} ج.س',style:const TextStyle(color:Colors.white)),
+            ]));
           },
         ),
-        const SizedBox(height: 14),
-        StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: FirebaseFirestore.instance
-              .collection('walletTransactions')
-              .where('userId', isEqualTo: uid)
-              .orderBy('createdAt', descending: true)
-              .limit(30)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return const _InfoCard(text: 'تعذر تحميل الحركات المالية.');
-            }
-
-            final docs = snapshot.data?.docs ?? const [];
-            if (docs.isEmpty) {
-              return const _InfoCard(text: 'لا توجد حركات مالية حتى الآن.');
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'آخر الحركات',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 8),
-                for (final doc in docs)
-                  Card(
-                    elevation: 0,
-                    child: ListTile(
-                      leading: const Icon(Icons.swap_vert_rounded),
-                      title: Text('${doc.data()['type'] ?? ''}'),
-                      subtitle: Text(_formatDate(doc.data()['createdAt'])),
-                      trailing: Text(
-                        '${doc.data()['amount'] ?? 0} ج.س',
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          },
+        const SizedBox(height:12),
+        Row(children:[
+          Expanded(child:FilledButton.icon(onPressed:()=>requestMoney(topup:true),icon:const Icon(Icons.add),label:const Text('شحن'))),
+          const SizedBox(width:10),
+          Expanded(child:OutlinedButton.icon(onPressed:()=>requestMoney(topup:false),icon:const Icon(Icons.south),label:const Text('سحب'))),
+        ]),
+        const SizedBox(height:14),
+        const Text('حركات المحفظة',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
+        const SizedBox(height:8),
+        StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(
+          stream: FirebaseFirestore.instance.collection('walletTransactions').where('userId',isEqualTo:uid).orderBy('createdAt',descending:true).limit(50).snapshots(),
+          builder:(context,snapshot){if(snapshot.hasError)return const _InfoCard(text:'تعذر تحميل الحركات المالية.');final docs=snapshot.data?.docs??const[];if(docs.isEmpty)return const _InfoCard(text:'لا توجد حركات مالية بعد.');return Column(children:[for(final d in docs)Card(elevation:0,child:ListTile(leading:const Icon(Icons.swap_vert),title:Text('${d.data()['type']??'-'}'),subtitle:Text(_formatDate(d.data()['createdAt'])),trailing:Text('${d.data()['amount']??0} ج.س',style:const TextStyle(fontWeight:FontWeight.w900))))]);}
         ),
+        const SizedBox(height:14),
+        const Text('طلبات الشحن الأخيرة',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
+        StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:mobile.topups(uid),builder:(context,snapshot)=>_requestList(snapshot)),
+        const SizedBox(height:10),
+        const Text('طلبات السحب الأخيرة',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
+        StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:mobile.withdrawals(uid),builder:(context,snapshot)=>_requestList(snapshot)),
       ],
     );
   }
-}
 
+  Widget _requestList(AsyncSnapshot<QuerySnapshot<Map<String,dynamic>>> snapshot){
+    if(snapshot.hasError)return const _InfoCard(text:'تعذر تحميل الطلبات المالية.');
+    final docs=snapshot.data?.docs??const[];
+    if(docs.isEmpty)return const _InfoCard(text:'لا توجد طلبات سابقة.');
+    return Column(children:[for(final d in docs)Card(elevation:0,child:ListTile(title:Text('${d.data()['amount']??0} ج.س'),subtitle:Text('${d.data()['paymentMethod']??'-'} • ${d.data()['status']??'-'}')))]);
+  }
+}
 class AyezNotificationsPage extends StatelessWidget {
   const AyezNotificationsPage({super.key});
 
