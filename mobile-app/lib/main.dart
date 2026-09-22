@@ -68,33 +68,18 @@ class AuthService {
   }
 
   Future<void> login(String phone, String password) async {
-    if (!RegExp(r'^\d{10}$').hasMatch(phone.trim())) {
-      throw Exception('رقم الهاتف يجب أن يكون 10 أرقام فقط');
-    }
-    if (password.length < 6) throw Exception('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
-    final credential = await auth.signInWithEmailAndPassword(
-      email: phoneAlias(phone),
-      password: password,
-    );
-    await db.collection('users').doc(credential.user!.uid).set(
-      {'lastActiveAt': FieldValue.serverTimestamp()},
-      SetOptions(merge: true),
-    );
-  }
-
-  Future<void> register({
-    required String name,
-    required String phone,
-    required String password,
-    required String role,
-    required String state,
-    required String address,
-    int? age,
-    String? vehicleType,
-  }) async {
+    final cleanPhone = phone.trim();
     if (name.trim().isEmpty || name.trim().length > 500) throw Exception('الاسم الكامل غير صحيح');
-    if (!RegExp(r'^\d{10}
-
+    if (cleanPhone.length != 10 || int.tryParse(cleanPhone) == null) throw Exception('رقم الهاتف يجب أن يكون 10 أرقام فقط');
+    if (password.length < 6) throw Exception('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+    if (!['customer', 'driver'].contains(role)) throw Exception('نوع الحساب غير صحيح');
+    const states = ['الخرطوم','الجزيرة','القضارف','كسلا','البحر الأحمر','نهر النيل','الشمالية','النيل الأبيض','النيل الأزرق','سنار','شمال كردفان','جنوب كردفان','غرب كردفان','شمال دارفور','جنوب دارفور','غرب دارفور','وسط دارفور','شرق دارفور'];
+    if (!states.contains(state.trim())) throw Exception('اختر ولاية صحيحة');
+    if (address.trim().isEmpty || address.trim().length > 250) throw Exception('مكان السكن غير صحيح');
+    if (role == 'driver') {
+      if ((age ?? 0) < 18 || (age ?? 0) > 100) throw Exception('يجب أن يكون عمر السائق بين 18 و100 سنة');
+      if (vehicleType == null || (!OrderService.passenger.contains(vehicleType) && !OrderService.cargo.contains(vehicleType))) throw Exception('اختر نوع المركبة');
+    }
     final credential = await auth.createUserWithEmailAndPassword(
       email: phoneAlias(phone),
       password: password,
