@@ -33,22 +33,72 @@ class OrderService {
     String? cargoType,
     String? cargoDescription,
   }) async {
-    if (origin.trim().isEmpty || destination.trim().isEmpty) throw ArgumentError('أدخل نقطة الاستلام والوجهة');
-    if (origin.trim() == destination.trim()) throw ArgumentError('مكان الاستلام والوجهة يجب أن يكونا مختلفين');
-    final ref = await _orders.add({
+    final customerSnap = await _firestore.collection('users').doc(customerId).get();
+    if (!customerSnap.exists) throw StateError('حساب العميل غير موجود');
+    final customer = customerSnap.data()!;
+    if (customer['role'] != 'customer' || customer['status'] != 'active') {
+      throw StateError('حساب العميل غير نشط');
+    }
+
+    final originText = origin.trim();
+    final destinationText = destination.trim();
+    if (originText.isEmpty || destinationText.isEmpty) {
+      throw ArgumentError('أدخل نقطة الاستلام والوجهة');
+    }
+    if (originText == destinationText) {
+      throw ArgumentError('مكان الاستلام والوجهة يجب أن يكونا مختلفين');
+    }
+
+    final passenger = passengerVehicles.contains(vehicleType);
+    final cargo = cargoVehicles.contains(vehicleType);
+    if (!passenger && !cargo) throw ArgumentError('نوع المركبة غير صحيح');
+
+    int? cleanPassengers;
+    bool? cleanLuggage;
+    String? cleanLuggageDescription;
+    String? cleanCargoType;
+    String? cleanCargoDescription;
+
+    if (passenger) {
+      cleanPassengers = passengerCount;
+      if (cleanPassengers == null || cleanPassengers < 1 || cleanPassengers > 100) {
+        throw ArgumentError('عدد الركاب يجب أن يكون بين 1 و100');
+      }
+      cleanLuggage = hasLuggage ?? false;
+      if (cleanLuggage) {
+        cleanLuggageDescription = luggageDescription?.trim();
+        if (cleanLuggageDescription == null || cleanLuggageDescription!.isEmpty) {
+          throw ArgumentError('اكتب وصف الأمتعة');
+        }
+      }
+    } else {
+      cleanCargoType = cargoType?.trim();
+      cleanCargoDescription = cargoDescription?.trim();
+      if (cleanCargoType == null || cleanCargoType!.isEmpty) {
+        throw ArgumentError('نوع البضاعة مطلوب');
+      }
+      if (cleanCargoDescription == null || cleanCargoDescription!.isEmpty) {
+        throw ArgumentError('وصف البضاعة مطلوب');
+      }
+    }
+
+    final customerState = (customer['state'] ?? '').toString().trim();
+    if (customerState.isEmpty) throw StateError('الولاية غير محددة في حسابك');
+
+    await _firestore.collection('orders').add({
       'customerId': customerId,
       'driverId': null,
-      'state': state,
+      'state': customerState,
       'vehicleType': vehicleType,
-      'serviceCategory': serviceCategory,
-      'passengerCount': passengerCount,
-      'hasLuggage': hasLuggage,
-      'luggageDescription': luggageDescription,
-      'cargoType': cargoType,
-      'cargoDescription': cargoDescription,
+      'serviceCategory': passenger ? 'passenger' : 'cargo',
+      'passengerCount': cleanPassengers,
+      'hasLuggage': cleanLuggage,
+      'luggageDescription': cleanLuggageDescription,
+      'cargoType': cleanCargoType,
+      'cargoDescription': cleanCargoDescription,
       'description': description.trim().length > 1000 ? description.trim().substring(0, 1000) : description.trim(),
-      'origin': origin.trim(),
-      'destination': destination.trim(),
+      'origin': originText,
+      'destination': destinationText,
       'deliveryFee': null,
       'agreedFee': null,
       'status': 'pending',
@@ -70,7 +120,7 @@ class OrderService {
       'cancelReason': null,
       'driverComment': null,
     });
-    return ref.id;
+    return _orders.orderBy('createdAt').limitToLast(1).get().then((s) => s.docs.first.id);
   }
 
   Future<void> acceptOrder(String orderId, String driverId) async {
