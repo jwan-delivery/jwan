@@ -742,7 +742,7 @@ class _AyezSupportPageState extends State<AyezSupportPage> {
     FilledButton(onPressed:busy?null:send,child:Text(busy?'جارٍ الإرسال...':'إرسال للدعم')),
     const SizedBox(height:18),
     const Text('رسائلي السابقة',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
-    StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:mobile.support(uid),builder:(context,snapshot){if(snapshot.hasError)return const _InfoCard(text:'تعذر تحميل رسائل الدعم.');final docs=snapshot.data?.docs??const[];if(docs.isEmpty)return const _InfoCard(text:'لا توجد رسائل سابقة.');return Column(children:[for(final d in docs){final x=d.data();Card(elevation:0,child:ListTile(title:Text('${x['message']??''}'),subtitle:Text(x['reply']==null?'الحالة: ${x['status']??'open'}':'رد الإدارة: ${x['reply']}')))}] );}),
+    StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:mobile.support(uid),builder:(context,snapshot){if(snapshot.hasError)return const _InfoCard(text:'تعذر تحميل رسائل الدعم.');final docs=snapshot.data?.docs??const[];if(docs.isEmpty)return const _InfoCard(text:'لا توجد رسائل سابقة.');return Column(children:[for(final d in docs) Card(elevation:0,child:ListTile(title:Text('${d.data()['message']??''}'),subtitle:Text(d.data()['reply']==null?'الحالة: ${d.data()['status']??'open'}':'رد الإدارة: ${d.data()['reply']}'))) ]);}),
   ]));
 }
 class AyezAccountPage extends StatelessWidget {
