@@ -1141,6 +1141,7 @@ class NotificationsPage extends StatelessWidget {
       );
 }
 
+
 class SupportPage extends StatefulWidget {
   const SupportPage({super.key, required this.uid, required this.role});
   final String uid;
@@ -1150,40 +1151,69 @@ class SupportPage extends StatefulWidget {
 }
 
 class _SupportPageState extends State<SupportPage> {
-  final subject = TextEditingController();
-  final body = TextEditingController();
+  final message = TextEditingController();
   bool loading = false;
+
   Future<void> send() async {
     try {
       setState(() => loading = true);
-      await AppDataService().submitSupport(uid: widget.uid, role: widget.role, subject: subject.text, body: body.text);
-      subject.clear(); body.clear();
+      await AppDataService().submitSupport(uid: widget.uid, role: widget.role, message: message.text);
+      message.clear();
       if (mounted) showInfo(context, 'تم إرسال رسالتك للدعم');
     } catch (e) {
       if (mounted) showError(context, cleanException(e));
-    } finally { if (mounted) setState(() => loading = false); }
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
+
   @override
-  void dispose() { subject.dispose(); body.dispose(); super.dispose(); }
+  void dispose() {
+    message.dispose();
+    super.dispose();
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('الدعم')),
-        body: ListView(padding: const EdgeInsets.all(18), children: [
-          TextField(controller: subject, decoration: const InputDecoration(labelText: 'عنوان المشكلة')),
-          const SizedBox(height: 12),
-          TextField(controller: body, maxLines: 7, decoration: const InputDecoration(labelText: 'اكتب رسالتك')),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('الدعم')),
+      body: ListView(
+        padding: const EdgeInsets.all(18),
+        children: [
+          TextField(controller: message, maxLines: 7, maxLength: 3000, decoration: const InputDecoration(labelText: 'اكتب رسالتك')),
           const SizedBox(height: 16),
-          FilledButton(onPressed: loading ? null : send, style: FilledButton.styleFrom(backgroundColor: kBlack), child: loading ? const CircularProgressIndicator(color: Colors.white) : const Text('إرسال')),
+          FilledButton(
+            onPressed: loading ? null : send,
+            style: FilledButton.styleFrom(backgroundColor: kBlack),
+            child: loading ? const CircularProgressIndicator(color: Colors.white) : const Text('إرسال'),
+          ),
           const SizedBox(height: 24),
           const Text('رسائلي السابقة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
-          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: AppDataService().supportMessages(widget.uid), builder: (_, snap) {
-            if (snap.hasError) return Text('${snap.error}');
-            final docs = snap.data?.docs ?? [];
-            if (docs.isEmpty) return const Padding(padding: EdgeInsets.all(18), child: Text('لا توجد رسائل سابقة.'));
-            return Column(children: docs.map((d) { final x = d.data(); final replies = (x['replies'] as List?) ?? const []; return Card(elevation: 0, child: ExpansionTile(title: Text('${x['subject'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text('${x['body'] ?? ''}'), children: [for (final r in replies) ListTile(title: const Text('رد الإدارة'), subtitle: Text('${r['response'] ?? ''}'))])); }).toList());
-          }),
-        ]);
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: AppDataService().supportMessages(widget.uid),
+            builder: (_, snap) {
+              if (snap.hasError) return Text('${snap.error}');
+              final docs = snap.data?.docs ?? [];
+              if (docs.isEmpty) return const Padding(padding: EdgeInsets.all(18), child: Text('لا توجد رسائل سابقة.'));
+              return Column(
+                children: docs.map((d) {
+                  final x = d.data();
+                  return Card(
+                    elevation: 0,
+                    child: ListTile(
+                      title: Text('${x['message'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                      subtitle: Text(x['reply'] == null ? 'الحالة: ${x['status'] ?? 'open'}' : 'رد الإدارة: ${x['reply']}'),
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class ProfilePage extends StatefulWidget {
