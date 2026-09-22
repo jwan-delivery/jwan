@@ -85,7 +85,8 @@ class OrderService {
     final customerState = (customer['state'] ?? '').toString().trim();
     if (customerState.isEmpty) throw StateError('الولاية غير محددة في حسابك');
 
-    await _firestore.collection('orders').add({
+    final orderRef = _orders.doc();
+    await orderRef.set({
       'customerId': customerId,
       'driverId': null,
       'state': customerState,
@@ -120,7 +121,7 @@ class OrderService {
       'cancelReason': null,
       'driverComment': null,
     });
-    return _orders.orderBy('createdAt').limitToLast(1).get().then((s) => s.docs.first.id);
+    return orderRef.id;
   }
 
   Future<void> acceptOrder(String orderId, String driverId) async {
