@@ -103,19 +103,37 @@ class _AyezForcePasswordChangePageState extends State<AyezForcePasswordChangePag
     }
   }
   @override void dispose() { password.dispose(); super.dispose(); }
-  @override Widget build(BuildContext context) => Scaffold(
-    backgroundColor: ayezBg,
-    appBar: AppBar(title: const Text('تغيير كلمة المرور'), backgroundColor: ayezBlack, foregroundColor: Colors.white),
-    body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 520), child: Padding(padding: const EdgeInsets.all(20), child: Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(mainAxisSize: MainAxisSize.min, children: [
-      const Text('طلبت الإدارة تغيير كلمة المرور قبل متابعة الحساب.', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-      const SizedBox(height: 14),
-      TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور الجديدة')),
-      const SizedBox(height: 14),
-      FilledButton(onPressed: busy ? null : submit, child: Text(busy ? 'جارٍ التغيير...' : 'تغيير كلمة المرور')),
-      TextButton(onPressed: () => FirebaseAuth.instance.signOut(), child: const Text('تسجيل الخروج')),
-    ]))))),
-    )),
-  );
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: ayezBg,
+      appBar: AppBar(title: const Text('تغيير كلمة المرور'), backgroundColor: ayezBlack, foregroundColor: Colors.white),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('طلبت الإدارة تغيير كلمة المرور قبل متابعة الحساب.', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 14),
+                    TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور الجديدة')),
+                    const SizedBox(height: 14),
+                    FilledButton(onPressed: busy ? null : submit, child: Text(busy ? 'جارٍ التغيير...' : 'تغيير كلمة المرور')),
+                    TextButton(onPressed: () => FirebaseAuth.instance.signOut(), child: const Text('تسجيل الخروج')),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 class AyezAppShell extends StatefulWidget {
   final Map<String, dynamic> profile;
