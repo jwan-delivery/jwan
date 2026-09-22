@@ -738,7 +738,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   }
 
   @override
-  Widget build(BuildContext context) => StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>((
+  Widget build(BuildContext context) => StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance.collection('orders').doc(widget.orderId).snapshots(),
         builder: (context, snapshot) {
           final data = snapshot.data?.data();
