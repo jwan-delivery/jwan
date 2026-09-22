@@ -71,8 +71,9 @@ class AyezMobileService {
     final clean = message.trim();
     if (clean.isEmpty || clean.length > 3000) throw ArgumentError('الرسالة غير صحيحة');
     await db.collection('supportMessages').add({
-      'userId': uid, 'role': role, 'message': clean, 'reply': null, 'status': 'open',
-      'createdAt': FieldValue.serverTimestamp(), 'repliedAt': null, 'repliedBy': null,
+      'userId': uid,
+      'message': clean,
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
