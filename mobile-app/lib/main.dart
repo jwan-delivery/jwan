@@ -452,24 +452,33 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      DashboardPage(uid: widget.uid, role: widget.role, profile: profile),
-      MyOrdersPage(uid: widget.uid, role: widget.role),
-      WalletPage(uid: widget.uid, role: widget.role),
-      ProfilePage(uid: widget.uid, role: widget.role, profile: profile, onChanged: (p) => setState(() => profile = p)),
-    ];
+    if (widget.role == 'admin' || widget.role == 'super_admin') {
+      return AdminPage(uid: widget.uid, profile: profile, role: widget.role);
+    }
+
+    final isDriver = widget.role == 'driver';
+    final pages = isDriver
+        ? <Widget>[
+            DashboardPage(uid: widget.uid, role: widget.role, profile: profile),
+            MyOrdersPage(uid: widget.uid, role: widget.role),
+            WalletPage(uid: widget.uid, role: widget.role),
+            ProfilePage(uid: widget.uid, role: widget.role, profile: profile, onChanged: (p) => setState(() => profile = p)),
+          ]
+        : <Widget>[
+            DashboardPage(uid: widget.uid, role: widget.role, profile: profile),
+            MyOrdersPage(uid: widget.uid, role: widget.role),
+            ProfilePage(uid: widget.uid, role: widget.role, profile: profile, onChanged: (p) => setState(() => profile = p)),
+          ];
+
+    final titles = isDriver ? const ['الرئيسية', 'طلباتي', 'المحفظة', 'حسابي'] : const ['الرئيسية', 'طلباتي', 'حسابي'];
     return Scaffold(
       appBar: AppBar(
-        title: Text(index == 0 ? 'مرحباً $name' : ['الرئيسية', 'طلباتي', 'المحفظة', 'حسابي'][index], style: const TextStyle(fontWeight: FontWeight.w900)),
+        title: Text(index == 0 ? 'مرحباً $name' : titles[index], style: const TextStyle(fontWeight: FontWeight.w900)),
         centerTitle: true,
         backgroundColor: kBlack,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            tooltip: 'الإشعارات',
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsPage(uid: widget.uid))),
-            icon: const Icon(Icons.notifications_none),
-          ),
+          IconButton(tooltip: 'الإشعارات', onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsPage(uid: widget.uid))), icon: const Icon(Icons.notifications_none)),
           PopupMenuButton<String>(
             onSelected: (v) {
               if (v == 'support') Navigator.push(context, MaterialPageRoute(builder: (_) => SupportPage(uid: widget.uid, role: widget.role)));
@@ -486,12 +495,18 @@ class _HomeShellState extends State<HomeShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (v) => setState(() => index = v),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'الرئيسية'),
-          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'الطلبات'),
-          NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'المحفظة'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'حسابي'),
-        ],
+        destinations: isDriver
+            ? const [
+                NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'الرئيسية'),
+                NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'الطلبات'),
+                NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'المحفظة'),
+                NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'حسابي'),
+              ]
+            : const [
+                NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'الرئيسية'),
+                NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'الطلبات'),
+                NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'حسابي'),
+              ],
       ),
     );
   }
