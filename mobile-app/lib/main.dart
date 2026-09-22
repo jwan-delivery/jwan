@@ -164,6 +164,12 @@ class _ProfileGateState extends State<ProfileGate> {
   void initState() {
     super.initState();
     _fcm.initializeForUser(widget.uid).catchError((_) {});
+    _foreground = _fcm.foregroundMessages.listen((message) {
+      if (!mounted) return;
+      final title = message.notification?.title ?? 'إشعار جديد';
+      final body = message.notification?.body;
+      showInfo(context, body == null || body.isEmpty ? title : '$title: $body');
+    });
   }
 
   @override
@@ -300,14 +306,26 @@ class _RegisterPageState extends State<RegisterPage> {
   final name = TextEditingController();
   final phone = TextEditingController();
   final password = TextEditingController();
+  final address = TextEditingController();
+  final age = TextEditingController();
   String role = 'customer';
   String state = sudanStates.first;
   String vehicleType = passengerVehicles.keys.first;
+  bool acceptedPolicies = false;
   bool loading = false;
 
   Future<void> submit() async {
-    if (name.text.trim().length < 2 || phone.text.trim().isEmpty || password.text.length < 6) {
-      showError(context, 'تأكد من الاسم ورقم الهاتف وكلمة المرور (6 أحرف على الأقل)');
+    final parsedAge = int.tryParse(age.text.trim());
+    if (name.text.trim().length < 2 || phone.text.trim().isEmpty || password.text.length < 6 || address.text.trim().isEmpty) {
+      showError(context, 'تأكد من الاسم ورقم الهاتف وكلمة المرور والعنوان');
+      return;
+    }
+    if (role == 'driver' && (parsedAge == null || parsedAge < 18 || parsedAge > 100)) {
+      showError(context, 'عمر السائق يجب أن يكون بين 18 و100 سنة');
+      return;
+    }
+    if (!acceptedPolicies) {
+      showError(context, 'يجب الموافقة على سياسة الخصوصية والشروط والأحكام');
       return;
     }
     setState(() => loading = true);
@@ -318,6 +336,9 @@ class _RegisterPageState extends State<RegisterPage> {
         name: name.text,
         state: state,
         role: role,
+        address: address.text,
+        acceptedPolicies: acceptedPolicies,
+        age: role == 'driver' ? parsedAge : null,
         vehicleType: role == 'driver' ? vehicleType : null,
       );
       if (mounted) {
@@ -338,6 +359,8 @@ class _RegisterPageState extends State<RegisterPage> {
     name.dispose();
     phone.dispose();
     password.dispose();
+    address.dispose();
+    age.dispose();
     super.dispose();
   }
 
@@ -353,6 +376,8 @@ class _RegisterPageState extends State<RegisterPage> {
           TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'رقم الهاتف')),
           const SizedBox(height: 12),
           TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور')),
+          const SizedBox(height: 12),
+          TextField(controller: address, maxLines: 2, decoration: const InputDecoration(labelText: 'مكان السكن')),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             value: role,
@@ -373,6 +398,8 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
           if (role == 'driver') ...[
             const SizedBox(height: 12),
+            TextField(controller: age, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'العمر')),
+            const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: vehicleType,
               isExpanded: true,
@@ -383,7 +410,14 @@ class _RegisterPageState extends State<RegisterPage> {
               onChanged: (v) => setState(() => vehicleType = v ?? vehicleType),
             ),
           ],
-          const SizedBox(height: 24),
+          CheckboxListTile(
+            value: acceptedPolicies,
+            onChanged: (v) => setState(() => acceptedPolicies = v ?? false),
+            title: const Text('أوافق على سياسة الخصوصية والشروط والأحكام'),
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+          const SizedBox(height: 12),
           FilledButton(
             onPressed: loading ? null : submit,
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54), backgroundColor: kBlack),
