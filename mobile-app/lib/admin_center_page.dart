@@ -197,8 +197,61 @@ class _AdminFinance extends StatelessWidget {
 
 class _AdminSupport extends StatelessWidget {
   const _AdminSupport();
-  @override Widget build(BuildContext context)=>StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('supportMessages').orderBy('createdAt',descending:true).limit(200).snapshots(),builder:(_,s){final docs=s.data?.docs??const[];return ListView.builder(padding:const EdgeInsets.all(12),itemCount:docs.length,itemBuilder:(_,i){final d=docs[i];final x=d.data();final reply='${x['reply']??''}'.trim();return Card(child:ListTile(title:Text('${x['message']??''}',maxLines:3,overflow:TextOverflow.ellipsis),subtitle:Text(reply.isEmpty?'بانتظار الرد':'الرد: $reply'),trailing:reply.isEmpty?IconButton(onPressed:()=>_reply(context,d.id),icon:const Icon(Icons.reply)):null));});};
-  static Future<void> _reply(BuildContext c,String id)async{final ctl=TextEditingController();final ok=await showDialog<bool>(context:c,builder:(_)=>AlertDialog(title:const Text('الرد'),content:TextField(controller:ctl,maxLines:5,maxLength:3000),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('إلغاء')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:const Text('إرسال'))]));if(ok==true){try{await FirebaseFirestore.instance.collection('supportMessages').doc(id).update({'reply':ctl.text.trim(),'status':'answered','repliedAt':FieldValue.serverTimestamp(),'repliedBy':FirebaseAuth.instance.currentUser!.uid});if(c.mounted)ScaffoldMessenger.of(c).showSnackBar(const SnackBar(content:Text('تم إرسال الرد')));}catch(e){if(c.mounted)ScaffoldMessenger.of(c).showSnackBar(SnackBar(content:Text('$e')));}}ctl.dispose();}
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('supportMessages').orderBy('createdAt', descending: true).limit(200).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return Center(child: Text(snapshot.error.toString()));
+        final docs = snapshot.data?.docs ?? const [];
+        if (docs.isEmpty) return const Center(child: Text('لا توجد رسائل دعم.'));
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final doc = docs[index];
+            final data = doc.data();
+            final reply = data['reply']?.toString().trim() ?? '';
+            return Card(
+              child: ListTile(
+                title: Text(data['message']?.toString() ?? '', maxLines: 3, overflow: TextOverflow.ellipsis),
+                subtitle: Text(reply.isEmpty ? 'بانتظار الرد' : 'الرد: $reply'),
+                trailing: reply.isEmpty ? IconButton(onPressed: () => _reply(context, doc.id), icon: const Icon(Icons.reply)) : null,
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  static Future<void> _reply(BuildContext context, String id) async {
+    final controller = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('الرد'),
+        content: TextField(controller: controller, maxLines: 5, maxLength: 3000),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('إرسال')),
+        ],
+      ),
+    );
+    if (ok != true) { controller.dispose(); return; }
+    try {
+      final reply = controller.text.trim();
+      if (reply.isEmpty) throw StateError('اكتب الرد');
+      await FirebaseFirestore.instance.collection('supportMessages').doc(id).update({
+        'reply': reply, 'status': 'answered', 'repliedAt': FieldValue.serverTimestamp(), 'repliedBy': FirebaseAuth.instance.currentUser!.uid,
+      });
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إرسال الرد')));
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      controller.dispose();
+    }
+  }
 }
 class _AdminManagers extends StatelessWidget {
   const _AdminManagers();
