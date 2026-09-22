@@ -786,6 +786,31 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /fcmTokens/{tokenId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.token is string
+        && request.resource.data.token.size() > 0
+        && request.resource.data.platform in ['flutter','web']
+        && request.resource.data.keys().hasOnly([
+          'uid','token','platform','userAgent','updatedAt'
+        ]);
+
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.token is string
+        && request.resource.data.token.size() > 0
+        && request.resource.data.platform in ['flutter','web']
+        && request.resource.data.keys().hasOnly([
+          'uid','token','platform','userAgent','updatedAt'
+        ]);
+
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+    }
+
     match /auditLogs/{id} {
       allow read: if isAdmin();
       allow create: if isAdmin()
