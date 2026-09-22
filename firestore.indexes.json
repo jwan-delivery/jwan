@@ -4,58 +4,148 @@
       "collectionGroup": "orders",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath":"state","order":"ASCENDING"},
-        {"fieldPath":"status","order":"ASCENDING"},
-        {"fieldPath":"driverId","order":"ASCENDING"},
-        {"fieldPath":"createdAt","order":"DESCENDING"}
+        {
+          "fieldPath": "state",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "driverId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "orders",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath":"status","order":"ASCENDING"},
-        {"fieldPath":"createdAt","order":"DESCENDING"}
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "orders",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath":"driverId","order":"ASCENDING"},
-        {"fieldPath":"createdAt","order":"DESCENDING"}
+        {
+          "fieldPath": "driverId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "orders",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath":"customerId","order":"ASCENDING"},
-        {"fieldPath":"createdAt","order":"DESCENDING"}
+        {
+          "fieldPath": "customerId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "notifications",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath":"userId","order":"ASCENDING"},
-        {"fieldPath":"createdAt","order":"DESCENDING"}
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "walletTransactions",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath":"userId","order":"ASCENDING"},
-        {"fieldPath":"createdAt","order":"DESCENDING"}
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "driverActivity",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath":"driverId","order":"ASCENDING"},
-        {"fieldPath":"date","order":"DESCENDING"}
+        {
+          "fieldPath": "driverId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "topupRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "driverId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "submittedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "withdrawalRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "driverId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "supportMessages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     }
   ],
