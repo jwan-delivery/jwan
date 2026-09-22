@@ -47,6 +47,9 @@ class AyezHomeGate extends StatelessWidget {
             if (status == 'suspended' || status == 'rejected') {
               return _BlockedPage(status: status);
             }
+            if (data['mustChangePassword'] == true && (data['role'] == 'customer' || data['role'] == 'driver')) {
+              return const AyezForcePasswordChangePage();
+            }
 
             return AyezAppShell(profile: data);
           },
@@ -70,6 +73,49 @@ class _LoadingPage extends StatelessWidget {
   }
 }
 
+class AyezForcePasswordChangePage extends StatefulWidget {
+  const AyezForcePasswordChangePage({super.key});
+  @override State<AyezForcePasswordChangePage> createState() => _AyezForcePasswordChangePageState();
+}
+
+class _AyezForcePasswordChangePageState extends State<AyezForcePasswordChangePage> {
+  final password = TextEditingController();
+  bool busy = false;
+  Future<void> submit() async {
+    final value = password.text;
+    if (value.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('كلمة المرور يجب أن تكون 6 أحرف على الأقل')));
+      return;
+    }
+    try {
+      setState(() => busy = true);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw StateError('الجلسة غير موجودة');
+      await user.updatePassword(value);
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({'mustChangePassword': false, 'lastActiveAt': FieldValue.serverTimestamp()});
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تغيير كلمة المرور')));
+    } on FirebaseAuthException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.code == 'requires-recent-login' ? 'سجّل الدخول مرة أخرى ثم غيّر كلمة المرور.' : 'تعذر تغيير كلمة المرور.')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+  @override void dispose() { password.dispose(); super.dispose(); }
+  @override Widget build(BuildContext context) => Scaffold(
+    backgroundColor: ayezBg,
+    appBar: AppBar(title: const Text('تغيير كلمة المرور'), backgroundColor: ayezBlack, foregroundColor: Colors.white),
+    body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 520), child: Padding(padding: const EdgeInsets.all(20), child: Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(mainAxisSize: MainAxisSize.min, children: [
+      const Text('طلبت الإدارة تغيير كلمة المرور قبل متابعة الحساب.', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+      const SizedBox(height: 14),
+      TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور الجديدة')),
+      const SizedBox(height: 14),
+      FilledButton(onPressed: busy ? null : submit, child: Text(busy ? 'جارٍ التغيير...' : 'تغيير كلمة المرور')),
+      TextButton(onPressed: () => FirebaseAuth.instance.signOut(), child: const Text('تسجيل الخروج')),
+    ]))))),
+  );
+}
 class AyezAppShell extends StatefulWidget {
   final Map<String, dynamic> profile;
 
