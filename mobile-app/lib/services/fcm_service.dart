@@ -14,15 +14,17 @@ class FcmService {
 
   Future<void> initializeForUser(String uid) async {
     await _messaging.requestPermission(alert: true, badge: true, sound: true);
-    await _saveToken(uid, await _messaging.getToken());
+    final token = await _messaging.getToken();
+    await _saveToken(uid, token);
     await _tokenSub?.cancel();
-    _tokenSub = _messaging.onTokenRefresh.listen((token) => _saveToken(uid, token));
+    _tokenSub = _messaging.onTokenRefresh.listen(
+      (token) => _saveToken(uid, token),
+    );
   }
 
   Future<void> _saveToken(String uid, String? token) async {
     if (token == null || token.isEmpty) return;
-    final id = token.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '').substring(0, token.length > 120 ? 120 : token.length);
-    await _db.collection('fcmTokens').doc(id).set({
+    await _db.collection('fcmTokens').doc(token).set({
       'uid': uid,
       'token': token,
       'platform': 'flutter',
