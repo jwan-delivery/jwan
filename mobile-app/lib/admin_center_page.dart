@@ -22,7 +22,7 @@ class AyezAdminCenterPage extends StatelessWidget {
     if (hasManagers) { tabs.add(const Tab(text: 'المدراء')); views.add(const _AdminManagers()); }
     return DefaultTabController(
       length: tabCount,
-      initialIndex: initialSection.clamp(0, tabCount - 1),
+      initialIndex: initialSection.clamp(0, tabCount - 1).toInt(),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('إدارة عايز', style: TextStyle(fontWeight: FontWeight.w900)),
