@@ -297,18 +297,7 @@ class _AyezAuthPageState extends State<AyezAuthPage> {
           age: int.tryParse(_age.text),
           vehicleType: _driver ? _vehicle : null,
         );
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
-            {
-              'privacyAccepted': true,
-              'termsAccepted': true,
-              'privacyAcceptedAt': FieldValue.serverTimestamp(),
-              'termsAcceptedAt': FieldValue.serverTimestamp(),
-            },
-            SetOptions(merge: true),
-          );
-        }
+
       }
     } catch (e) {
       if (mounted) showError(legacy.cleanError(e));
@@ -339,16 +328,15 @@ class _AyezAuthPageState extends State<AyezAuthPage> {
       if (!snap.exists) {
         await ref.set({
           'role': 'customer',
-          'name': googleUser.displayName ?? 'مستخدم عايز',
+          'name': (googleUser.displayName ?? 'مستخدم عايز').trim(),
           'phone': '',
-          'email': googleUser.email,
           'address': '',
           'state': _state,
+          'age': null,
+          'vehicleType': null,
           'status': 'active',
           'privacyAccepted': true,
           'termsAccepted': true,
-          'privacyAcceptedAt': FieldValue.serverTimestamp(),
-          'termsAcceptedAt': FieldValue.serverTimestamp(),
           'createdAt': FieldValue.serverTimestamp(),
           'lastActiveAt': FieldValue.serverTimestamp(),
         });
