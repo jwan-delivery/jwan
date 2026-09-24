@@ -5,7 +5,7 @@ class DefaultFirebaseOptions {
   // override these values through --dart-define when needed.
   static const _apiKey = String.fromEnvironment(
     'JAWAN_FIREBASE_API_KEY',
-    defaultValue: 'AIzaSyDQKVdQ7laLfNyZyIdtHbS91wVtSd1QeuM',
+    defaultValue: 'AIzaSyAgeRWaSWLBVv35M9ddXx6OcisNAuT1L-4',
   );
   static const _appId = String.fromEnvironment(
     'JAWAN_FIREBASE_APP_ID',
