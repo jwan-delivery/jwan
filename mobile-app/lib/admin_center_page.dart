@@ -120,7 +120,8 @@ class _AdminUsersState extends State<_AdminUsers> {
                         if (status != 'active') _action('تفعيل', () => _approve(context, doc.id, user)),
                         if (status != 'suspended') _action('إيقاف', () => _setStatus(context, doc.id, 'suspended')),
                         if (status != 'rejected') _action('رفض', () => _setStatus(context, doc.id, 'rejected')),
-                        if (status == 'active' && role == 'driver') _action('شحن يدوي', () => _manualTopup(context, doc.id, user['name']?.toString() ?? 'السائق')),\n                        if (role == 'customer' || role == 'driver') _action('طلب تغيير كلمة المرور', () => _requestPasswordChange(context, doc.id)),
+                        if (status == 'active' && role == 'driver') _action('شحن يدوي', () => _manualTopup(context, doc.id, user['name']?.toString() ?? 'السائق')),
+                        if (role == 'customer' || role == 'driver') _action('طلب تغيير كلمة المرور', () => _requestPasswordChange(context, doc.id)),
                         if (widget.superAdmin && !isSelf && user['role'] != 'super_admin') _action('حذف', () => _delete(context, doc.id), danger: true),
                       ]),
                     ]),
@@ -185,7 +186,7 @@ class _AdminUsersState extends State<_AdminUsers> {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
-}
+  
   static Future<void> _manualTopup(BuildContext context, String driverId, String name) async {
     final amount = TextEditingController();
     final note = TextEditingController();
