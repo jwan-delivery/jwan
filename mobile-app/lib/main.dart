@@ -170,6 +170,7 @@ class AuthService {
   }
 
   Future<void> logout() => auth.signOut();
+}
 
 class OrderService {
   final db = FirebaseFirestore.instance;
