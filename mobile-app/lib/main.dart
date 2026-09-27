@@ -69,7 +69,107 @@ class AuthService {
 
   Future<void> login(String phone, String password) async {
     final cleanPhone = phone.trim();
-    if (!RegExp(r'^\\d{10}}
+    if (!RegExp(r'^\d{10}$').hasMatch(cleanPhone)) {
+      throw Exception('رقم الهاتف يجب أن يكون 10 أرقام فقط');
+    }
+    if (password.length < 6) {
+      throw Exception('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+    }
+
+    final credential = await auth.signInWithEmailAndPassword(
+      email: phoneAlias(cleanPhone),
+      password: password,
+    );
+    await db.collection('users').doc(credential.user!.uid).set({
+      'lastActiveAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> register({
+    required String name,
+    required String phone,
+    required String password,
+    required String role,
+    required String state,
+    required String address,
+    int? age,
+    String? vehicleType,
+  }) async {
+    final cleanName = name.trim();
+    final cleanPhone = phone.trim();
+    final cleanState = state.trim();
+    final cleanAddress = address.trim();
+
+    if (cleanName.isEmpty || cleanName.length > 500) {
+      throw Exception('الاسم الكامل غير صحيح');
+    }
+    if (!RegExp(r'^\d{10}$').hasMatch(cleanPhone)) {
+      throw Exception('رقم الهاتف يجب أن يكون 10 أرقام فقط');
+    }
+    if (password.length < 6) {
+      throw Exception('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+    }
+    if (!['customer', 'driver'].contains(role)) {
+      throw Exception('نوع الحساب غير صحيح');
+    }
+
+    const states = [
+      'الخرطوم','الجزيرة','القضارف','كسلا','البحر الأحمر','نهر النيل',
+      'الشمالية','النيل الأبيض','النيل الأزرق','سنار','شمال كردفان',
+      'جنوب كردفان','غرب كردفان','شمال دارفور','جنوب دارفور',
+      'غرب دارفور','وسط دارفور','شرق دارفور'
+    ];
+    if (!states.contains(cleanState)) {
+      throw Exception('اختر ولاية صحيحة');
+    }
+    if (cleanAddress.isEmpty || cleanAddress.length > 250) {
+      throw Exception('مكان السكن غير صحيح');
+    }
+
+    if (role == 'customer') {
+      age = null;
+      vehicleType = null;
+    } else {
+      if (age == null || age < 18 || age > 100) {
+        throw Exception('يجب أن يكون عمر السائق بين 18 و100 سنة');
+      }
+      if (vehicleType == null ||
+          (!OrderService.passenger.contains(vehicleType) &&
+              !OrderService.cargo.contains(vehicleType))) {
+        throw Exception('اختر نوع المركبة');
+      }
+    }
+
+    UserCredential? credential;
+    try {
+      credential = await auth.createUserWithEmailAndPassword(
+        email: phoneAlias(cleanPhone),
+        password: password,
+      );
+
+      await db.collection('users').doc(credential.user!.uid).set({
+        'role': role,
+        'name': cleanName,
+        'phone': cleanPhone,
+        'address': cleanAddress,
+        'state': cleanState,
+        'age': role == 'driver' ? age : null,
+        'vehicleType': role == 'driver' ? vehicleType : null,
+        'status': role == 'customer' ? 'active' : 'pending',
+        'privacyAccepted': true,
+        'termsAccepted': true,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastActiveAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {
+      try {
+        await credential?.user?.delete();
+      } catch (_) {}
+      rethrow;
+    }
+  }
+
+  Future<void> logout() => auth.signOut();
 
 class OrderService {
   final db = FirebaseFirestore.instance;
