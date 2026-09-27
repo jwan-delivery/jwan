@@ -232,6 +232,8 @@ class _AdminUsersState extends State<_AdminUsers> {
       note.dispose();
     }
   }
+}
+
 class _AdminFinance extends StatelessWidget {
   const _AdminFinance();
   @override Widget build(BuildContext context)=>DefaultTabController(length:2,child:Column(children:[const TabBar(tabs:[Tab(text:'الشحن'),Tab(text:'السحب')]),Expanded(child:TabBarView(children:[_topups(),_withdrawals()]))]));
