@@ -810,7 +810,7 @@ class _AyezSupportPageState extends State<AyezSupportPage> {
   }
   @override void dispose(){message.dispose();super.dispose();}
   @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:const Text('الدعم')),body:ListView(padding:const EdgeInsets.all(18),children:[
-    TextField(controller:message,maxLines:6,maxLength:3000,decoration:const InputDecoration(labelText:'اكتب رسالتك')),
+    TextField(controller:message,maxLines:6,maxLength:2000,decoration:const InputDecoration(labelText:'اكتب رسالتك')),
     const SizedBox(height:10),
     FilledButton(onPressed:busy?null:send,child:Text(busy?'جارٍ الإرسال...':'إرسال للدعم')),
     const SizedBox(height:18),
