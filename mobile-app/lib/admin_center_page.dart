@@ -16,9 +16,9 @@ class AyezAdminCenterPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasManagers = profile['role'] == 'super_admin';
-    final tabCount = hasManagers ? 6 : 5;
-    final tabs = <Tab>[const Tab(text: 'الملخص'), const Tab(text: 'الطلبات'), const Tab(text: 'المستخدمون'), const Tab(text: 'الماليات'), const Tab(text: 'الدعم')];
-    final views = <Widget>[const _AdminSummary(), const _AdminOrders(), _AdminUsers(superAdmin: hasManagers), const _AdminFinance(), const _AdminSupport()];
+    final tabCount = hasManagers ? 7 : 6;
+    final tabs = <Tab>[const Tab(text: 'الملخص'), const Tab(text: 'الطلبات'), const Tab(text: 'المستخدمون'), const Tab(text: 'الماليات'), const Tab(text: 'التحليلات'), const Tab(text: 'الدعم')];
+    final views = <Widget>[const _AdminSummary(), const _AdminOrders(), _AdminUsers(superAdmin: hasManagers), const _AdminFinance(), const AyezAdminAnalyticsPage(), const _AdminSupport()];
     if (hasManagers) { tabs.add(const Tab(text: 'المدراء')); views.add(const _AdminManagers()); }
     return DefaultTabController(
       length: tabCount,
