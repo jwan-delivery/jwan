@@ -1,150 +1,234 @@
 # عايز — Ayez
 
-منصة توصيل وطلبات سودانية تعمل عبر الويب وتطبيق Android مبني بـ Flutter.
+منصة توصيل ونقل سودانية، لها نسخة Web/PWA ونسخة Android مبنية بـ Flutter داخل `mobile-app/`.
 
-## الهدف الحالي للمشروع
+## الهدف الحالي
 
-الهدف ليس إنشاء تطبيق Flutter جديد. يوجد تطبيق Flutter فعلي داخل `mobile-app/`، والاسم/الهوية الحالية للتطبيق هي **عايز (Ayez)**.
+المطلوب ليس إنشاء تطبيق جديد من الصفر.
 
-الهدف هو جعل تطبيق Flutter نسخة متكاملة من وظائف الويب، مع اتصال مباشر بنفس Firebase/Firestore والبيانات والحسابات والإشعارات، ثم إخراج APK/AAB صالح للإنتاج.
+المطلوب هو **إكمال تطبيق Flutter الموجود حاليًا** ليصبح نسخة Android كاملة من وظائف الويب، باستخدام نفس Firebase/Firestore والحسابات والطلبات والمحافظ والإشعارات والقواعد، ثم إخراجه كنسخة Release قابلة للاستخدام.
+
+المبدأ الأساسي:
 
 ```text
-                  ┌──────────────────┐
-                  │ Web / PWA        │
-                  └────────┬─────────┘
-                           │
-                           ▼
-               ┌──────────────────────┐
-               │ Firebase              │
-               │ Auth / Firestore     │
-               │ Storage / FCM        │
-               └─────────┬────────────┘
-                         │
-                         ▼
-                  ┌───────────────┐
-                  │ عايز / Flutter│
-                  │ Android APK   │
-                  └───────────────┘
+Web / PWA ───────┐
+                 ├── Firebase / Firestore / Auth / FCM / Functions
+Flutter Android ─┘
 ```
 
-## مراجع العمل للـAgents والفريق
+## قبل أن تبدأ
 
-قبل تعديل المشروع اقرأ:
+أي Agent أو مطور جديد يجب أن يقرأ بهذا الترتيب:
 
-1. `AGENTS.md` — قواعد العمل والتطوير الإلزامية.
-2. `AYEZ_FLUTTER_STATUS_AR.md` — حالة Flutter الحالية والمهام المتبقية.
-3. `firestore.rules` و`firestore.indexes.json` — مصدر الحقيقة للصلاحيات والبيانات.
-4. `DATA_MODEL.md` و`MIGRATION_CONTRACT.md` عند العمل على schema أو تدفقات الطلب.
+1. `AGENTS.md`
+2. `DEVELOPMENT_PLAYBOOK_AR.md`
+3. `AYEZ_FLUTTER_STATUS_AR.md`
+4. `firestore.rules` و `firestore.indexes.json`
+5. ملفات الويب المرتبطة بالميزة
+6. ملفات Flutter داخل `mobile-app/`
+7. الاختبارات وGitHub Actions
 
-لا تعتمد على وثيقة قديمة إذا تعارضت مع الكود الحالي.
+**لا تعتبر أي تقرير قديم مصدرًا نهائيًا إذا تعارض مع الكود الحالي أو الاختبار الحالي.**
 
-## ما هو موجود في المنصة
+## مصدر الحقيقة
 
-الويب الحالي يحتوي على وظائف العميل والسائق والإدارة، ومنها:
+عند تنفيذ أو مراجعة أي ميزة، استخدم هذا الترتيب:
 
-- واجهة عربية RTL ومتجاوبة.
-- تسجيل ودخول برقم الهاتف وكلمة المرور باستخدام alias داخلي بصيغة `phone@jawan.app`.
-- أدوار وصلاحيات للعملاء والسائقين والإدارة.
-- إنشاء الطلب وتتبع دورة حالته.
-- قبول الطلب والتفاوض على السعر.
-- محفظة السائق والشحن والسحب والمراجعة الإدارية.
-- عمولة جوان 5% والغرامات وفق قواعد Firestore الحالية.
+### 1) Security Rules والعقد الأمني
+المصدر الأعلى للصلاحيات وشروط الكتابة والعمليات الحساسة هو:
+
+- `firestore.rules`
+- `firestore.indexes.json`
+- Cloud Functions المرتبطة بالعملية
+
+### 2) سلوك الويب الحالي
+الويب هو المرجع الوظيفي لما يجب أن تفعله المنصة، خاصة:
+
+- `pages/`
+- `js/`
+- `functions/`
+- `css/`
+
+لا تنسخ الواجهة حرفيًا؛ انقل **السلوك والعقود وحالات العمل** إلى تجربة Mobile مناسبة.
+
+### 3) نموذج البيانات والتوثيق
+استخدم:
+
+- `DATA_MODEL.md`
+- `MIGRATION_CONTRACT.md`
+- أي توثيق أحدث في المستودع
+
+### 4) Flutter الحالي
+تطبيق Flutter موجود فعليًا داخل `mobile-app/` ويحتوي حاليًا على Firebase وبعض الخدمات والشاشات والتدفقات.
+
+من الملفات الموجودة حاليًا مثل:
+
+- `mobile-app/lib/main.dart`
+- `mobile-app/lib/main_native.dart`
+- `mobile-app/lib/native_entry.dart`
+- `mobile-app/lib/ayez_app_shell.dart`
+- `mobile-app/lib/admin_center_page.dart`
+- `mobile-app/lib/services/`
+- `mobile-app/lib/firebase_options.dart`
+
+و`pubspec.yaml` يتضمن Firebase Core/Auth/Firestore/Messaging/App Check وCloud Functions وغيرها.
+
+**لا تعيد بناء هذه الأجزاء من الصفر قبل فحصها.**
+
+## كيف يجب أن يعمل التطوير
+
+كل ميزة يجب أن تمر بهذه الحلقة:
+
+```text
+افهم ميزة الويب
+      ↓
+افحص Rules + Data Model
+      ↓
+افحص Flutter الحالي
+      ↓
+شغّل التطبيق/الاختبارات
+      ↓
+لاحظ السلوك الفعلي والمشكلة
+      ↓
+عدّل الكود
+      ↓
+flutter analyze + flutter test
+      ↓
+Integration / Emulator / Android test عند الحاجة
+      ↓
+أعد التجربة
+      ↓
+حدّث التوثيق وسجّل ما تم التحقق منه
+```
+
+**لا تعتبر المهمة منتهية لأن الكود "يبدو صحيحًا".**
+
+## مبدأ Runtime First
+
+عندما يكون السؤال عن واجهة أو تدفق أو مشكلة تظهر عند التشغيل، يجب أن يكون القرار مبنيًا على:
+
+1. ما يحدث فعليًا عند التشغيل.
+2. Logs / test output / screenshots إن توفرت.
+3. قواعد Firestore والـbackend.
+4. الكود.
+5. التوثيق.
+
+ولا تستخدم التوثيق وحده لإثبات أن ميزة تعمل.
+
+## ما الذي يجب إكماله
+
+### P0 — Feature Parity
+
+- Authentication والـsession وحالات المستخدم.
+- واجهات العميل كاملة.
+- واجهات السائق كاملة.
+- دورة الطلب من الإنشاء حتى الإغلاق.
+- التفاوض والمهل والحالات.
+- المحفظة والشحن والسحب والسجل والعمولات والغرامات.
 - التقييمات.
-- الإشعارات والدعم وسجل التدقيق.
-- Firebase/Firestore وواجهة PWA.
-
-### Flutter / عايز
-
-يوجد بالفعل أساس Flutter حقيقي داخل `mobile-app/`، ويتضمن تكامل Firebase وخدمات المستخدم والطلبات وMessaging وApp Check وبعض تدفقات الطلب والتفاوض.
-
-**وجود الخدمة لا يعني اكتمال الميزة.** قبل إعلان أي وظيفة مكتملة يجب مطابقتها مع الويب والقواعد واختبارها على Android حقيقي.
-
-## أهم الأعمال المتبقية
-
-### P0 — إكمال الوظائف
-
-- مطابقة جميع شاشات العميل مع الويب.
-- مطابقة جميع شاشات السائق مع الويب.
-- إكمال دورة الطلب بالكامل بجميع الحالات والإلغاءات وعدم التسليم.
-- إكمال واجهة التفاوض ومهلة العرض وحالات القبول/الرد/الانتهاء.
-- إكمال المحفظة والشحن والسحب والسجل والعمولات والغرامات.
-- إكمال التقييمات.
-- إكمال إشعارات Firestore وFCM في foreground/background.
-- إكمال الدعم.
-- تطبيق RBAC الكامل في Flutter.
-- معالجة loading/empty/error/offline لكل التدفقات الأساسية.
+- الإشعارات داخل التطبيق وFCM foreground/background.
+- الدعم.
+- RBAC وguards.
+- loading / empty / error / offline states.
 
 ### P1 — Production Quality
 
-- فصل UI عن services/repositories/models.
-- إدارة streams وlifecycle بشكل صحيح.
-- offline/cache بدون تعارضات غير مقصودة.
-- pagination وتحسين الاستعلامات عند الحاجة.
-- Unit/Widget/Integration tests.
-- اختبارات Firestore Rules/Emulator حيثما أمكن.
+- services/repositories/models/state management بشكل منظم.
+- lifecycle وstreams بدون تسريبات.
+- pagination والاستعلامات المناسبة.
+- offline/cache بسلوك واضح.
+- Unit / Widget / Integration tests.
+- Firestore Rules / Emulator tests.
 - crash/error reporting.
+- GitHub Actions للتحقق والبناء.
 
 ### P2 — Release
 
-- تثبيت اسم التطبيق النهائي: `عايز`.
-- تثبيت application ID النهائي.
-- تسجيل Android app في Firebase وربط App ID الحقيقي.
+- الاسم النهائي: `عايز`.
+- تثبيت application ID.
+- Firebase Android configuration الصحيحة.
 - FCM native configuration.
-- release signing عبر GitHub Secrets.
+- Release signing عبر GitHub Secrets.
 - APK للاختبار وAAB للإصدار.
 - versioning وCHANGELOG.
 
-## Firebase
+## تعريف "مكتمل"
 
-المشروع الحالي يستخدم Firebase project:
-
-`jwan-delivery-c930d-72911`
-
-راجع `FIREBASE_SETUP_AR.md` وملفات Firebase قبل إجراء أي تغيير في البنية.
-
-## قواعد الأمان
-
-- لا تضع secrets أو keystore أو كلمات مرور داخل Git.
-- لا تعطل Firestore Rules لحل مشكلة في Flutter.
-- لا تغيّر schema أو أسماء الحقول عشوائياً.
-- لا تنشئ backend أو database منفصلة لمجرد دعم Flutter.
-- العمليات المالية والحالات الحساسة يجب أن تبقى متوافقة مع القواعد والـtransactions الحالية.
-
-## بناء Android
-
-داخل `mobile-app/` يجب استخدام Flutter SDK والاعتماديات المثبتة للمشروع.
-
-للبناء المحلي بعد اكتمال إعداد Firebase:
+لا يكفي أن:
 
 ```bash
-cd mobile-app
-flutter pub get
-flutter analyze
-flutter test
 flutter build apk --release
 ```
 
-لإصدار المتجر:
+يمر بنجاح.
+
+الميزة أو الإصدار يعتبر مكتملًا عندما:
+
+- يعمل على Android.
+- يتعامل مع Firebase الحقيقي.
+- يطابق سلوك الويب والعقد الحالي.
+- يحترم Firestore Rules.
+- يغطي الحالات الطبيعية وحالات الخطأ.
+- ينجح في الاختبارات المناسبة.
+- لا يكسر تدفقًا آخر.
+- تم توثيق ما تم اختباره وما لم يتم اختباره.
+
+## بناء Flutter
+
+من داخل `mobile-app/`:
 
 ```bash
-flutter build appbundle --release
+flutter pub get
+flutter analyze
+flutter test
+flutter build apk --release --target lib/main_native.dart
+flutter build appbundle --release --target lib/main_native.dart
 ```
 
-قد تتطلب builds الإنتاجية إعدادات Firebase وsigning غير موجودة داخل Git.
+GitHub Actions الموجودة في `.github/workflows/` هي المرجع العملي لعملية CI الحالية.
 
-## تعريف اكتمال عايز
+## Firebase
 
-لا يعتبر التطبيق كاملاً لمجرد أن APK تم بناؤه بنجاح.
+المشروع الحالي:
 
-الإكمال يعني أن وظائف Flutter الأساسية تطابق الويب، وتعمل مع Firebase الحقيقي، وتحترم Security Rules، وتنجح تدفقات العميل والسائق من البداية للنهاية، وتعمل الإشعارات، وتكون المحفظة والعمولات والصلاحيات متوافقة، وتوجد اختبارات ونسخة Release قابلة للإصدار.
+```text
+jwan-delivery-c930d-72911
+```
 
-## تحديثات المشروع
+لا تنشئ Firebase project جديدًا لمجرد إصلاح مشكلة في Flutter.
 
-عند إنهاء مرحلة مهمة، حدّث `AYEZ_FLUTTER_STATUS_AR.md` وسجّل:
+## الأمان
+
+- لا تضع secrets أو keystore داخل Git.
+- لا تغيّر Firestore Rules لتجاوز فشل Flutter.
+- لا تعدّل البيانات المالية مباشرة من العميل إذا كان العقد يمنع ذلك.
+- لا تنشئ collections بديلة لنفس الكيانات دون سبب موثق.
+- لا تستخدم mock data لإخفاء عدم اكتمال التدفق.
+
+## سجل العمل
+
+بعد أي تغيير جوهري، حدّث:
+
+`AYEZ_FLUTTER_STATUS_AR.md`
+
+وسجّل:
 
 - التاريخ.
-- ما تم إنجازه.
+- المشكلة أو الميزة.
+- ما تم تغييره.
 - الملفات المتأثرة.
-- الاختبارات.
+- الاختبارات التي شُغّلت.
+- ما تم التحقق منه فعليًا.
 - ما بقي.
-- ما يحتاج إلى إجراء خارج GitHub.
+- أي خطوة خارج GitHub مطلوبة.
+
+## ملاحظة للـAgents
+
+إذا وجدت تعارضًا بين:
+
+- تقرير قديم،
+- الكود الحالي،
+- قواعد Firestore،
+- أو نتيجة تشغيل فعلية،
+
+فلا تتجاهله. **تحقق منه أولًا، ثم حدّث التوثيق ليعكس الحالة الحالية.**
