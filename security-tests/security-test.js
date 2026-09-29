@@ -159,7 +159,7 @@ describe('JWΑN Firestore Security Rules', function () {
   it('7. customer cannot directly change delivery fee on an order', async () => {
     const customerDb = db(USERS.customer);
 
-    await assertRejects(
+    await assert.rejects(
       updateDoc(doc(customerDb, 'orders', 'nonexistent-security-order-001'), {
         deliveryFee: 999999
       })
@@ -169,7 +169,7 @@ describe('JWΑN Firestore Security Rules', function () {
   it('8. driver cannot change the agreed delivery fee directly', async () => {
     const driverDb = db(USERS.driver);
 
-    await assertRejects(
+    await assert.rejects(
       updateDoc(doc(driverDb, 'orders', 'nonexistent-security-order-002'), {
         deliveryFee: 1
       })
@@ -179,7 +179,7 @@ describe('JWΑN Firestore Security Rules', function () {
   it('9. driver cannot forge commission transaction balanceBefore', async () => {
     const driverDb = db(USERS.driver);
 
-    await assertRejects(
+    await assert.rejects(
       setDoc(doc(driverDb, 'walletTransactions', 'security-fake-commission-001'), {
         driverId: USERS.driver,
         userId: USERS.driver,
@@ -197,7 +197,7 @@ describe('JWΑN Firestore Security Rules', function () {
   it('10. driver cannot forge commission transaction balanceAfter', async () => {
     const driverDb = db(USERS.driver);
 
-    await assertRejects(
+    await assert.rejects(
       setDoc(doc(driverDb, 'walletTransactions', 'security-fake-commission-002'), {
         driverId: USERS.driver,
         userId: USERS.driver,
@@ -215,7 +215,7 @@ describe('JWΑN Firestore Security Rules', function () {
   it('11. driver cannot create a topup transaction without an approved request', async () => {
     const driverDb = db(USERS.driver);
 
-    await assertRejects(
+    await assert.rejects(
       setDoc(doc(driverDb, 'walletTransactions', 'security-fake-topup-002'), {
         driverId: USERS.driver,
         userId: USERS.driver,
@@ -233,7 +233,7 @@ describe('JWΑN Firestore Security Rules', function () {
   it('12. driver cannot create a withdrawal transaction by itself', async () => {
     const driverDb = db(USERS.driver);
 
-    await assertRejects(
+    await assert.rejects(
       setDoc(doc(driverDb, 'walletTransactions', 'security-fake-withdrawal-001'), {
         driverId: USERS.driver,
         userId: USERS.driver,
@@ -262,6 +262,46 @@ describe('JWΑN Firestore Security Rules', function () {
         balanceAfter: 1000999,
         createdAt: new Date(),
       })
+    );
+  });
+  it('13. authenticated user can register their own Flutter FCM token', async () => {
+    const customerDb = db(USERS.customer);
+    await assertSucceeds(
+      setDoc(doc(customerDb, 'fcmTokens', 'token-customer-001'), {
+        uid: USERS.customer,
+        token: 'token-customer-001',
+        platform: 'flutter',
+        updatedAt: new Date(),
+      })
+    );
+  });
+
+  it('14. user cannot register an FCM token for another user', async () => {
+    const customerDb = db(USERS.customer);
+    await assertFails(
+      setDoc(doc(customerDb, 'fcmTokens', 'token-driver-001'), {
+        uid: USERS.driver,
+        token: 'token-driver-001',
+        platform: 'flutter',
+        updatedAt: new Date(),
+      })
+    );
+  });
+
+  it('15. user cannot read another user\'s FCM token', async () => {
+    const customerDb = db(USERS.customer);
+    await setDoc(
+      doc(customerDb, 'fcmTokens', 'token-customer-002'),
+      {
+        uid: USERS.customer,
+        token: 'token-customer-002',
+        platform: 'flutter',
+        updatedAt: new Date(),
+      }
+    );
+    const driverDb = db(USERS.driver);
+    await assertFails(
+      getDoc(doc(driverDb, 'fcmTokens', 'token-customer-002'))
     );
   });
 });
