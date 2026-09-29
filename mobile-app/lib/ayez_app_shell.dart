@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'admin_center_page.dart';
 import 'analytics_pages.dart';
+import 'ai_page.dart';
 import 'services/ayez_mobile_service.dart';
 import 'main.dart' as legacy;
 
@@ -501,6 +502,15 @@ class AyezDrawer extends StatelessWidget {
                         },
                       ),
                     ListTile(
+                leading: const Icon(Icons.auto_awesome_rounded, color: ayezYellow),
+                title: const Text('مساعد عايز', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                subtitle: const Text('اسأل عن الطلبات والمحفظة والتفاوض', style: TextStyle(color: Color(0xFF858585), fontSize: 11)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const AyezAiPage()));
+                },
+              ),
+              ListTile(
                       leading: const Icon(
                         Icons.support_agent_rounded,
                         color: ayezYellow,
