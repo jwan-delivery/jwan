@@ -135,6 +135,14 @@ class _AdminUsersState extends State<_AdminUsers> {
     ]);
   }
 
+  Widget _action(String label, VoidCallback onPressed, {bool danger = false}) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(foregroundColor: danger ? Colors.red.shade700 : adminBlack),
+      child: Text(label),
+    );
+  }
+
   static Future<void> _setStatus(BuildContext context, String id, String status) async {
     try {
       await FirebaseFirestore.instance.collection('users').doc(id).update({'status': status});
