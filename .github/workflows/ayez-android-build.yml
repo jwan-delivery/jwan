@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: ayez-android-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
