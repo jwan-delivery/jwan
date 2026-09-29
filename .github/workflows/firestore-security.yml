@@ -52,4 +52,4 @@ jobs:
 
       - name: Run Firestore rules tests
         working-directory: security-tests
-        run: firebase emulators:exec --only firestore "node security-test.js"
+        run: firebase emulators:exec --only firestore "npx mocha security-test.js --exit"
