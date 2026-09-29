@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
+import 'analytics_pages.dart';
 
 const adminBlack = Color(0xFF0A0A0A);
 const adminYellow = Color(0xFFF5C400);
