@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'admin_center_page.dart';
+import 'analytics_pages.dart';
 import 'services/ayez_mobile_service.dart';
 import 'main.dart' as legacy;
 
@@ -184,6 +185,7 @@ class _AyezAppShellState extends State<AyezAppShell> {
         _NavItem(Icons.home_rounded, 'الرئيسية'),
         _NavItem(Icons.receipt_long_rounded, 'الطلبات'),
         _NavItem(Icons.account_balance_wallet_rounded, 'المحفظة'),
+        _NavItem(Icons.analytics_outlined, 'التحليلات'),
         _NavItem(Icons.notifications_none_rounded, 'الإشعارات'),
       ];
     }
@@ -194,6 +196,7 @@ class _AyezAppShellState extends State<AyezAppShell> {
         _NavItem(Icons.receipt_long_rounded, 'الطلبات'),
         _NavItem(Icons.people_alt_outlined, 'المستخدمون'),
         _NavItem(Icons.account_balance_wallet_rounded, 'الماليات'),
+        _NavItem(Icons.analytics_outlined, 'التحليلات'),
         _NavItem(Icons.support_agent_rounded, 'الدعم'),
         _NavItem(Icons.notifications_none_rounded, 'الإشعارات'),
       ];
@@ -217,6 +220,8 @@ class _AyezAppShellState extends State<AyezAppShell> {
         case 2:
           return const AyezWalletPage();
         case 3:
+          return const AyezDriverAnalyticsPage();
+        case 4:
           return const AyezNotificationsPage();
         default:
           return AyezDriverHome(profile: widget.profile);
@@ -224,7 +229,7 @@ class _AyezAppShellState extends State<AyezAppShell> {
     }
 
     if (_isAdminRole(role)) {
-      if (selected == 5) return const AyezNotificationsPage();
+      if (selected == 6) return const AyezNotificationsPage();
       return AyezAdminCenterPage(
         profile: widget.profile,
         initialSection: selected,
