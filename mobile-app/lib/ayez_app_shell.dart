@@ -883,7 +883,7 @@ class _AyezWalletPageState extends State<AyezWalletPage> {
             content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
               TextField(controller: amount, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'المبلغ')),
               const SizedBox(height: 10),
-              DropdownButtonFormField<String>(value: method, items: methods.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(), onChanged: (v) => setDialogState(() => method = v ?? method), decoration: const InputDecoration(labelText: 'طريقة التحويل')),
+              DropdownButtonFormField<String>(initialValue: method, items: methods.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(), onChanged: (v) => setDialogState(() => method = v ?? method), decoration: const InputDecoration(labelText: 'طريقة التحويل')),
               if (!topup) ...[
                 const SizedBox(height: 10),
                 TextField(controller: account, decoration: const InputDecoration(labelText: 'رقم الحساب/المحفظة المستلمة')),
