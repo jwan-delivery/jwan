@@ -487,7 +487,10 @@ class OrderService {
       throw Exception('يمكن تقييم الطلب بعد اكتماله وبواسطة العميل فقط');
     }
     final driverId = orderData['driverId'];
-    await db.collection('ratings').doc('${orderId}_$customerId').create({
+    final ratingRef = db.collection('ratings').doc('${orderId}_$customerId');
+    final existing = await ratingRef.get();
+    if (existing.exists) throw Exception('تم تقييم هذا الطلب مسبقًا');
+    await ratingRef.set({
       'orderId': orderId, 'customerId': customerId, 'driverId': driverId,
       'rating': stars, 'comment': comment.trim().length > 500 ? comment.trim().substring(0, 500) : comment.trim(),
       'createdAt': FieldValue.serverTimestamp(),
