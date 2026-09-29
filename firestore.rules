@@ -690,6 +690,29 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    match /fcmTokens/{tokenId} {
+      allow read: if signedIn()
+        && (isAdmin() || resource.data.uid == request.auth.uid);
+
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.token == tokenId
+        && request.resource.data.platform == 'flutter'
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.keys().hasOnly(['uid','token','platform','updatedAt']);
+
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.token == tokenId
+        && request.resource.data.platform == 'flutter'
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.keys().hasOnly(['uid','token','platform','updatedAt']);
+
+      allow delete: if signedIn()
+        && (isAdmin() || resource.data.uid == request.auth.uid);
+    }
+
     match /states/{id} {
       allow read: if signedIn();
       allow create, update, delete: if isSuperAdmin();
