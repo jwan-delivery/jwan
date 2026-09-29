@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'admin_center_page.dart';
 import 'analytics_pages.dart';
@@ -858,6 +859,12 @@ class AyezAccountPage extends StatelessWidget {
           icon: Icons.verified_user_outlined,
         ),
         const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () => _linkGoogleAccount(context),
+          icon: const Icon(Icons.account_circle_outlined),
+          label: const Text('ربط حساب Google'),
+        ),
+        const SizedBox(height: 8),
         FilledButton.icon(
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AyezSupportPage(role: '${profile['role'] ?? 'customer'}'))),
           icon: const Icon(Icons.support_agent_rounded),
@@ -1366,6 +1373,42 @@ class _BlockedPage extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+
+Future<void> _linkGoogleAccount(BuildContext context) async {
+  try {
+    final current = FirebaseAuth.instance.currentUser;
+    if (current == null) throw StateError('لا توجد جلسة مستخدم.');
+    final googleUser = await GoogleSignIn(scopes: const ['email']).signIn();
+    if (googleUser == null) return;
+    final auth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: auth.accessToken,
+      idToken: auth.idToken,
+    );
+    await current.linkWithCredential(credential);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم ربط حساب Google بنجاح.')),
+      );
+    }
+  } on FirebaseAuthException catch (e) {
+    if (!context.mounted) return;
+    final message = switch (e.code) {
+      'credential-already-in-use' => 'حساب Google مرتبط بحساب آخر.',
+      'provider-already-linked' => 'حساب Google مرتبط بالفعل.',
+      'email-already-in-use' => 'هذا البريد مستخدم بحساب آخر.',
+      _ => 'تعذر ربط حساب Google.',
+    };
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذر ربط Google: $e')),
+      );
+    }
   }
 }
 
