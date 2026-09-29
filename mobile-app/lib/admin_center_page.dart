@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -187,9 +188,9 @@ class _AdminUsersState extends State<_AdminUsers> {
     ));
     if (ok != true) return;
     try {
-      await FirebaseFirestore.instance.collection('users').doc(id).delete();
-      await FirebaseFirestore.instance.collection('wallets').doc(id).delete().catchError((_) {});
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حذف ملف الحساب')));
+      final callable = FirebaseFunctions.instance.httpsCallable('adminDeleteUser');
+      await callable.call(<String, dynamic>{'uid': id});
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حذف الحساب بالكامل')));
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
