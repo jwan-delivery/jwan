@@ -193,16 +193,21 @@ class _AyezAppShellState extends State<AyezAppShell> {
     }
 
     if (_isAdminRole(role)) {
-      return const [
-        _NavItem(Icons.dashboard_rounded, 'الإدارة'),
-        _NavItem(Icons.receipt_long_rounded, 'الطلبات'),
-        _NavItem(Icons.people_alt_outlined, 'المستخدمون'),
-        _NavItem(Icons.account_balance_wallet_rounded, 'الماليات'),
-        _NavItem(Icons.analytics_outlined, 'التحليلات'),
-        _NavItem(Icons.support_agent_rounded, 'الدعم'),
-        _NavItem(Icons.notifications_none_rounded, 'الإشعارات'),
+      final nav = <_NavItem>[
+        const _NavItem(Icons.dashboard_rounded, 'الإدارة'),
+        const _NavItem(Icons.receipt_long_rounded, 'الطلبات'),
+        const _NavItem(Icons.people_alt_outlined, 'المستخدمون'),
+        const _NavItem(Icons.account_balance_wallet_rounded, 'الماليات'),
+        const _NavItem(Icons.analytics_outlined, 'التحليلات'),
+        const _NavItem(Icons.support_agent_rounded, 'الدعم'),
       ];
+      if (role == 'super_admin') {
+        nav.add(const _NavItem(Icons.admin_panel_settings_rounded, 'المدراء'));
+      }
+      nav.add(const _NavItem(Icons.notifications_none_rounded, 'الإشعارات'));
+      return nav;
     }
+
     return const [
       _NavItem(Icons.home_rounded, 'الرئيسية'),
       _NavItem(Icons.receipt_long_rounded, 'طلباتي'),
@@ -210,7 +215,6 @@ class _AyezAppShellState extends State<AyezAppShell> {
       _NavItem(Icons.person_outline_rounded, 'حسابي'),
     ];
   }
-
   static bool _isAdminRole(String value) =>
       value == 'admin' || value == 'super_admin';
 
@@ -231,7 +235,8 @@ class _AyezAppShellState extends State<AyezAppShell> {
     }
 
     if (_isAdminRole(role)) {
-      if (selected == 6) return const AyezNotificationsPage();
+      final notificationIndex = role == 'super_admin' ? 7 : 6;
+      if (selected == notificationIndex) return const AyezNotificationsPage();
       return AyezAdminCenterPage(
         profile: widget.profile,
         initialSection: selected,
