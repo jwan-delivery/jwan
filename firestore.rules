@@ -697,17 +697,17 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.token == tokenId
-        && request.resource.data.platform == 'flutter'
+        && request.resource.data.platform in ['flutter','web','android','ios']
         && request.resource.data.updatedAt is timestamp
-        && request.resource.data.keys().hasOnly(['uid','token','platform','updatedAt']);
+        && request.resource.data.keys().hasOnly(['uid','token','platform','userAgent','deviceInfo','createdAt','updatedAt']);
 
       allow update: if signedIn()
         && resource.data.uid == request.auth.uid
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.token == tokenId
-        && request.resource.data.platform == 'flutter'
+        && request.resource.data.platform in ['flutter','web','android','ios']
         && request.resource.data.updatedAt is timestamp
-        && request.resource.data.keys().hasOnly(['uid','token','platform','updatedAt']);
+        && request.resource.data.keys().hasOnly(['uid','token','platform','userAgent','deviceInfo','createdAt','updatedAt']);
 
       allow delete: if signedIn()
         && (isAdmin() || resource.data.uid == request.auth.uid);
