@@ -116,7 +116,7 @@ class AyezAdminAnalyticsPage extends StatelessWidget {
               final times = e.value.where((o) => o['acceptedAt'] is Timestamp && o['completedAt'] is Timestamp).map((o) => (o['completedAt'] as Timestamp).toDate().difference((o['acceptedAt'] as Timestamp).toDate()).inSeconds / 60).where((m) => m >= 0).toList();
               if (times.isEmpty) continue;
               final avg = times.reduce((a, b) => a + b) / times.length;
-              if (fastestMinutes == null || avg < fastestMinutes!) { fastestMinutes = avg; fastestDriver = e.key; }
+              if (fastestMinutes == null || avg < fastestMinutes) { fastestMinutes = avg; fastestDriver = e.key; }
             }
             String? topCustomerOrders;
             String? topCustomerSpend;
