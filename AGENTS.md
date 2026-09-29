@@ -1,185 +1,281 @@
-# AGENTS.md — عايز (Ayez) Flutter Project
+# AGENTS.md — عايز (Ayez)
 
-> هذا الملف هو تعليمات العمل الحالية لأي Agent أو مطور يعمل على المستودع. اقرأه قبل تعديل كود Flutter أو Firebase.
+هذا الملف هو دستور العمل لأي Agent أو مطور يعمل على المستودع.
 
-## 1. الهدف الحالي
+## 1. المهمة
 
-المطلوب ليس إنشاء تطبيق جديد من الصفر.
+أكمل **تطبيق Flutter الموجود** داخل `mobile-app/` حتى يصبح تطبيق Android كاملًا ومتوافقًا مع وظائف Web/PWA.
 
-المشروع يحتوي على تطبيق Flutter موجود داخل `mobile-app/` وتم تغيير هويته/اسمه إلى **عايز (Ayez)**. الهدف هو إكمال هذا التطبيق ليكون تطبيق Android إنتاجياً، مع تكامل كامل مع تطبيق الويب الحالي عبر نفس Firebase/Firestore.
+لا تبدأ من الصفر ولا تنشئ Backend أو Firebase project جديدًا إلا إذا وجدت حاجة معمارية موثقة.
 
-المعمارية المستهدفة:
-
-```text
-        ┌──────────────────────┐
-        │   Web / PWA          │
-        └──────────┬───────────┘
-                   │
-                   ▼
-        ┌──────────────────────┐
-        │ Firebase / Firestore │
-        │ Auth / Storage / FCM │
-        └──────────┬───────────┘
-                   │
-                   ▼
-        ┌──────────────────────┐
-        │ Flutter Android      │
-        │ عايز / Ayez          │
-        └──────────────────────┘
-```
-
-لا تنشئ Backend جديداً أو قاعدة بيانات جديدة لمجرد دعم Flutter.
-
-## 2. مصدر الحقيقة
-
-عند تنفيذ أي ميزة، افحص بالترتيب:
-
-1. `firestore.rules` و`firestore.indexes.json`.
-2. كود الويب في `pages/` و`js/`.
-3. عقود البيانات مثل `DATA_MODEL.md` و`MIGRATION_CONTRACT.md` وأي توثيق أحدث.
-4. كود Flutter الحالي في `mobile-app/lib/`.
-5. الاختبارات وملفات CI.
-
-لا تفترض أن التوثيق القديم يصف الحالة الحالية. إذا وجدت تعارضاً، تحقق من الكود والقواعد أولاً ثم حدّث التوثيق.
-
-## 3. قاعدة مهمة جداً: Feature Parity
-
-قبل اعتبار أي ميزة مكتملة في Flutter، يجب أن تسأل:
-
-- هل الميزة موجودة في الويب؟
-- ما هي البيانات التي تقرأها/تكتبها؟
-- ما شروط Firestore Rules؟
-- ما حالات الخطأ والصلاحيات؟
-- هل تتصرف بنفس دورة العمل الموجودة في الويب؟
-- هل تظهر التغييرات لحظياً في الطرف الآخر؟
-
-لا تنشئ نسخة مبسطة من منطق الويب إذا كان العقد الحالي أكثر تفصيلاً.
-
-## 4. الحالة الحالية المعروفة في Flutter
-
-يوجد بالفعل أساس Firebase في Flutter، لذلك لا تعِد بناء هذه الأجزاء من الصفر:
-
-- Firebase Core
-- Firebase Authentication
-- Firestore
-- Firebase Messaging
-- Firebase App Check
-- التسجيل/الدخول بصيغة `phone@jawan.app`
-- نموذج المستخدم والأدوار الأساسية
-- إنشاء الطلب
-- قبول الطلب
-- التفاوض على السعر
-- جزء من دورة حالة الطلب
-
-لكن وجود كود للخدمة لا يعني أن الميزة مكتملة من ناحية UI أو parity أو اختبارات. يجب التحقق من الشاشات والتدفقات كاملة.
-
-## 5. قائمة العمل ذات الأولوية
-
-### P0 — قبل اعتبار APK إنتاجياً
-
-- مطابقة جميع شاشات Flutter مع وظائف الويب.
-- إكمال دورة الطلب كاملة: إنشاء → قبول → تفاوض → اتفاق → استلام → بدء التوصيل → تم التسليم → تأكيد العميل → الإغلاق النهائي.
-- تنفيذ وإكمال كل عمليات إلغاء الطلب وحالات عدم التسليم المتوافقة مع القواعد.
-- إكمال المحفظة: الرصيد، الشحن، السحب، السجل، العمولات والغرامات.
-- إكمال التقييمات.
-- إكمال الإشعارات داخل التطبيق + FCM device token handling + foreground/background behavior.
-- إكمال الدعم وسجل/عرض الإشعارات للمستخدم.
-- تطبيق RBAC الكامل على الواجهات: customer / driver / admin / super_admin حسب نطاق الهاتف.
-- اختبار جميع عمليات القراءة والكتابة ضد Firestore Rules.
-- منع أي تعديل مباشر من Flutter على حقول مالية أو حساسة إذا كان العقد يمنع ذلك.
-- معالجة loading/error/empty/offline states لكل شاشة رئيسية.
-
-### P1 — جودة الإنتاج
-
-- State management واضح وقابل للاختبار.
-- فصل UI عن services/repositories/models.
-- Local cache/offline behavior بدون التسبب في تعارضات أو بيانات مضللة.
-- منع الاستعلامات المكلفة أو غير الضرورية.
-- Pagination حيث يلزم.
-- إدارة lifecycle وstreams وإلغاء listeners.
-- Crash/error logging مناسب للإنتاج.
-- اختبار Unit + Widget + Integration للتدفقات الأساسية.
-- تحديث GitHub Actions للبناء والتحقق الآلي.
-
-### P2 — Release
-
-- اسم التطبيق النهائي: `عايز` (Ayez).
-- package/application ID ثابت ولا يتم تغييره بدون سبب موثق.
-- إعداد release signing بشكل آمن عبر GitHub Secrets، وليس داخل Git.
-- إعداد Firebase Android app الرسمي وربط App ID الحقيقي.
-- التأكد من FCM native configuration.
-- نسخة APK للاختبار وAAB للإصدار.
-- versioning واضح وCHANGELOG.
-
-## 6. لا تفعل هذه الأشياء
-
-- لا تنشئ Firebase project جديداً.
-- لا تنشئ collection بديلة لنفس البيانات دون سبب معماري موثق.
-- لا تغيّر أسماء الحقول الحالية عشوائياً.
-- لا تغيّر Firestore Rules لتجاوز فشل Flutter؛ أصلح منطق العميل أو العقد أولاً.
-- لا تضع مفاتيح/أسرار داخل Git.
-- لا تستخدم بيانات وهمية وتعتبر الميزة مكتملة.
-- لا تحذف منطق الويب لمجرد أن Flutter لا يستخدمه بعد.
-- لا تعتبر `flutter build apk` نجاحاً كافياً؛ يجب أن تكون وظائف التطبيق متوافقة أيضاً.
-
-## 7. عند تعديل Firestore
-
-أي تغيير في schema أو rules يجب أن يتضمن:
-
-1. تحديث التوثيق.
-2. فحص تأثيره على Web وFlutter.
-3. تحديث الفهارس عند الحاجة.
-4. اختبارات Rules/Emulator عندما يكون ذلك ممكناً.
-5. وصف migration/compatibility إذا كان هناك بيانات قائمة.
-
-## 8. عند تعديل Flutter
-
-يفضل تنظيم الكود بهذا الشكل أو ما يقاربه:
+الهدف:
 
 ```text
-mobile-app/lib/
-  models/
-  services/
-  repositories/
-  screens/
-  widgets/
-  state/
-  utils/
+Web/PWA ───────┐
+               ├── نفس Firebase/Firestore/Functions/FCM
+Flutter ───────┘
 ```
 
-لا تنقل منطق Firebase الحساس إلى Widgets إذا كان يمكن وضعه في service/repository.
+## 2. ترتيب مصادر الحقيقة
 
-## 9. تعريف "مكتمل"
+عند وجود تعارض، اتبع هذا الترتيب:
 
-الميزة لا تكون مكتملة حتى:
+1. **Runtime evidence**: تشغيل فعلي، logs، test output، screenshots، integration tests.
+2. **Security/Backend contract**: `firestore.rules`, `firestore.indexes.json`, Cloud Functions.
+3. **Web behavior**: `pages/`, `js/`, `functions/`.
+4. **Data contracts**: `DATA_MODEL.md`, `MIGRATION_CONTRACT.md`.
+5. **Flutter implementation**: `mobile-app/lib/` و`pubspec.yaml`.
+6. **CI configuration**: `.github/workflows/`.
+7. **Historical reports**: تستخدم للسياق فقط، وليس لإثبات أن الميزة ما زالت كذلك.
 
-- تعمل على Android الحقيقي.
-- تعمل مع بيانات Firebase الحقيقية.
-- تطابق Web behavior المتفق عليه.
-- تمر عبر Firestore Rules.
-- تحتوي على حالات loading/error/empty الأساسية.
-- لا تكسر تدفقاً آخر.
-- يوجد اختبار مناسب لها أو سبب موثق لعدم توفر الاختبار.
-- تم تحديث هذا التوثيق عند حدوث تغيير جوهري.
+### قاعدة
 
-## 10. سجل التحديثات
+**وجود كود ليس دليلًا على أن الميزة تعمل، ووجود تقرير ليس دليلًا على أن الكود ما زال كذلك.**
 
-عند إنهاء مرحلة مهمة، أضف سطراً إلى `AYEZ_FLUTTER_STATUS_AR.md` يتضمن:
+إذا قال تقرير إن ملفًا "فارغ" بينما الملف الحالي يحتوي على implementation، صدّق الحالة الحالية بعد التحقق والاختبار، ثم أصلح التقرير.
 
-- التاريخ.
-- ما تم إنجازه.
-- الملفات الرئيسية المتأثرة.
-- ما بقي.
-- أي إجراء مطلوب من صاحب المشروع.
+## 3. قبل تعديل أي ميزة
 
-## 11. قاعدة التعاون
+لأي Feature:
 
-اعمل على الكود الموجود ولا تعيد إنشاء مشروع Flutter من الصفر.
+### A. افهم الهدف من الويب
 
-أي Agent يبدأ جلسة جديدة يجب أن يقرأ:
+حدد:
 
-- `AGENTS.md`
-- `AYEZ_FLUTTER_STATUS_AR.md`
-- `README.md`
-- `firestore.rules`
-- وأي عقود بيانات مرتبطة بالميزة التي يعدلها.
+- أين تبدأ الميزة في الويب.
+- ما الحالات التي تمر بها.
+- ما collections / fields التي تستخدمها.
+- ما الأخطاء والصلاحيات.
+- ما الذي يراه العميل.
+- ما الذي يراه السائق أو الإدارة.
+- ما الذي يحدث لحظيًا.
+
+### B. افحص Security Rules
+
+تحقق من:
+
+- من يستطيع القراءة.
+- من يستطيع الكتابة.
+- الحقول المسموح تغييرها.
+- التغييرات المالية.
+- الـtransactions.
+- الشروط الخاصة بالحالات.
+
+لا تفترض صلاحية عملية لمجرد أنها موجودة في واجهة الويب.
+
+### C. افحص Flutter الحالي
+
+ابحث أولًا عن implementation موجود:
+
+- `mobile-app/lib/`
+- `mobile-app/pubspec.yaml`
+- الخدمات
+- models
+- routing
+- state
+- widgets
+- native configuration
+
+ثم وسّع الموجود بدل إنشاء نسخة ثانية متعارضة.
+
+## 4. حلقة التطوير المطلوبة
+
+لكل تغيير مهم:
+
+```text
+1. Reproduce
+2. Observe
+3. Compare
+4. Patch
+5. Analyze/Test
+6. Run again
+7. Record evidence
+```
+
+### Reproduce
+
+أعد إنتاج المشكلة أو التدفق بدل التخمين.
+
+### Observe
+
+اجمع ما يمكن من:
+
+- شاشة التطبيق.
+- logs.
+- Firestore changes.
+- exceptions.
+- FCM events.
+- test output.
+
+### Compare
+
+قارن السلوك مع الويب والعقد الأمني.
+
+### Patch
+
+غيّر أقل قدر لازم، ولا تكسر منطقًا موجودًا.
+
+### Verify
+
+شغّل:
+
+```bash
+flutter analyze
+flutter test
+```
+
+وللتغييرات الكبيرة استخدم Integration/Emulator/Android runtime tests عندما تكون متاحة.
+
+### Record
+
+سجّل ما تم التحقق منه في `AYEZ_FLUTTER_STATUS_AR.md`.
+
+## 5. Runtime testing
+
+عند توفر Android emulator أو جهاز حقيقي أو CI emulator، اختبر التدفقات حرِفيًا، مثل:
+
+### Customer
+- فتح التطبيق.
+- إنشاء حساب/تسجيل الدخول.
+- إنشاء طلب.
+- مشاهدة حالة الطلب.
+- استلام/التفاعل مع التفاوض.
+- الإشعارات.
+- التأكيد بعد التسليم.
+- التقييم.
+
+### Driver
+- تسجيل الدخول.
+- ظهور الطلبات المناسبة.
+- قبول الطلب.
+- التفاوض.
+- تحديث الحالات.
+- رؤية المحفظة.
+- طلب الشحن/السحب.
+- تلقي الإشعارات.
+
+### Admin
+- فتح مركز الإدارة.
+- مراجعة المستخدمين.
+- مراجعة طلبات المحفظة.
+- متابعة الطلبات/السجلات حسب صلاحيات الويب.
+
+**لا تستخدم نجاح build كبديل عن اختبار هذه التدفقات.**
+
+## 6. عندما لا تتوفر بيئة تشغيل تفاعلية
+
+إذا لم يتوفر جهاز أو emulator:
+
+- لا تدّعِ أنك اختبرت واجهة التطبيق.
+- استخدم `flutter analyze`, `flutter test`, Rules Emulator، وCI build.
+- ضع الحالة في التقرير على أنها **غير متحققة runtime**.
+- لا تغيّر UI بناءً على التخمين وحده عندما يكون السؤال بصريًا أو تفاعليًا.
+
+## 7. Firestore
+
+أي تغيير في Rules أو schema يجب أن يتبعه:
+
+1. مراجعة أثره على Web وFlutter.
+2. تحديث `DATA_MODEL.md` عند تغيّر العقد.
+3. تحديث `firestore.indexes.json` إذا لزم.
+4. اختبار Rules/Emulator.
+5. توثيق migration إذا كانت هناك بيانات قديمة.
+
+لا تضع bypass خاصًا بالتطبيق المحمول.
+
+## 8. Flutter architecture
+
+يفضل، كلما كان ذلك مناسبًا:
+
+```text
+screens/widgets
+      ↓
+state/controller
+      ↓
+repository/service
+      ↓
+Firebase / platform
+```
+
+لا تضع منطق Firebase الحساس داخل Widgets عندما يمكن عزله.
+
+## 9. الأمان والبيانات
+
+لا:
+
+- تضع secrets داخل Git.
+- تضيف keystore إلى المستودع.
+- تسجل كلمات المرور أو tokens في logs.
+- تعدل حقول الرصيد مباشرة إذا كان العقد يمنع ذلك.
+- تستخدم mock data وتعتبرها نجاحًا.
+- تغيّر Rules فقط لكي ينجح الاختبار.
+
+## 10. Definition of Done
+
+أي Feature مكتملة يجب أن تحقق:
+
+- behavior مطابق للعقد.
+- UI مناسب للـmobile.
+- success path يعمل.
+- error/empty/loading/offline states موجودة عند الحاجة.
+- Rules تسمح بالعملية وتمنع العمليات غير المسموح بها.
+- اختبار مناسب مرّ، أو سبب موثق لعدم إمكانية اختباره.
+- لا regression معروف في تدفق آخر.
+- التوثيق محدث.
+
+## 11. Release gate
+
+قبل اعتبار Android Release جاهزًا:
+
+```bash
+cd mobile-app
+flutter pub get
+flutter analyze
+flutter test
+flutter build apk --release --target lib/main_native.dart
+flutter build appbundle --release --target lib/main_native.dart
+```
+
+ثم تحقّق من:
+
+- package/application ID.
+- Firebase Android app.
+- FCM.
+- signing.
+- versioning.
+- artifact checksums.
+- GitHub Actions status.
+
+## 12. سياسة Git
+
+يفضل أن تكون تغييرات كبيرة في branch منفصل مع PR واضح.
+
+صيغة commit مقترحة:
+
+```text
+feat(flutter): complete driver wallet flow
+fix(flutter): handle negotiation expiry
+test(firebase): cover wallet rule regression
+docs(ayez): update runtime verification status
+```
+
+## 13. ما يجب أن يقرأه Agent عند بداية جلسة جديدة
+
+ابدأ دائمًا بـ:
+
+1. `AGENTS.md`
+2. `DEVELOPMENT_PLAYBOOK_AR.md`
+3. `README.md`
+4. `AYEZ_FLUTTER_STATUS_AR.md`
+5. Rules/Data Model للميزة
+6. Web implementation
+7. Flutter implementation
+8. CI/tests
+
+ثم حدّد بوضوح:
+
+- ما الموجود.
+- ما المفقود.
+- ما الذي تم اختباره.
+- ما الذي يحتاج runtime verification.
+- ما الذي ستغيّره ولماذا.
