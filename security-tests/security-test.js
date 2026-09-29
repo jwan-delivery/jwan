@@ -304,4 +304,16 @@ describe('JWΑN Firestore Security Rules', function () {
       getDoc(doc(driverDb, 'fcmTokens', 'token-customer-002'))
     );
   });
+  it('16. authenticated user can register their own web FCM token', async () => {
+    const customerDb = db(USERS.customer);
+    await assertSucceeds(
+      setDoc(doc(customerDb, 'fcmTokens', 'token-web-customer-001'), {
+        uid: USERS.customer,
+        token: 'token-web-customer-001',
+        platform: 'web',
+        userAgent: 'security-test',
+        updatedAt: new Date(),
+      })
+    );
+  });
 });
