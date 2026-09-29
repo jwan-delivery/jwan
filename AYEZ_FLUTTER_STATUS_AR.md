@@ -157,6 +157,11 @@ Flutter ───┘
 - تمت إضافة GitHub Actions مخصص لاختبارات Firestore Rules عبر Emulator عند تغيير القواعد أو اختبارات الأمان.
 - تم الإبقاء على إعداد Firebase Android الموجود وحزمة Android الحالية.
 - ما يزال إصدار Store signed يتطلب أسرار التوقيع المناسبة؛ لا يتم وضع keystore أو الأسرار داخل Git.
+### 2026-09-29 — تصحيح توافق FCM والاختبار الآلي
+
+- تم تعديل قواعد fcmTokens لتدعم Web وFlutter مع الحفاظ على ملكية token ومنع القراءة/الكتابة نيابة عن مستخدم آخر.
+- تمت إضافة اختبار تسجيل Web FCM token.
+- تم إصلاح GitHub Actions لاستخدام Firebase CLI الفعلي قبل تشغيل Firestore Emulator.
 ### تحديثات لاحقة
 
 أضف كل تحديث جوهري بهذا الشكل:
