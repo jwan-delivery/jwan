@@ -47,6 +47,9 @@ jobs:
         working-directory: security-tests
         run: npm ci
 
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools@latest
+
       - name: Run Firestore rules tests
         working-directory: security-tests
-        run: npx firebase emulators:exec --only firestore "node security-test.js"
+        run: firebase emulators:exec --only firestore "node security-test.js"
