@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'analytics_pages.dart';
+import 'audit_logs_page.dart';
+import 'services/audit_log_service.dart';
 
 const adminBlack = Color(0xFF0A0A0A);
 const adminYellow = Color(0xFFF5C400);
@@ -18,9 +20,9 @@ class AyezAdminCenterPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasManagers = profile['role'] == 'super_admin';
-    final tabCount = hasManagers ? 7 : 6;
-    final tabs = <Tab>[const Tab(text: 'الملخص'), const Tab(text: 'الطلبات'), const Tab(text: 'المستخدمون'), const Tab(text: 'الماليات'), const Tab(text: 'التحليلات'), const Tab(text: 'الدعم')];
-    final views = <Widget>[const _AdminSummary(), const _AdminOrders(), _AdminUsers(superAdmin: hasManagers), const _AdminFinance(), const AyezAdminAnalyticsPage(), const _AdminSupport()];
+    final tabCount = hasManagers ? 8 : 7;
+    final tabs = <Tab>[const Tab(text: 'الملخص'), const Tab(text: 'الطلبات'), const Tab(text: 'المستخدمون'), const Tab(text: 'الماليات'), const Tab(text: 'التحليلات'), const Tab(text: 'التدقيق'), const Tab(text: 'الدعم')];
+    final views = <Widget>[const _AdminSummary(), const _AdminOrders(), _AdminUsers(superAdmin: hasManagers), const _AdminFinance(), const AyezAdminAnalyticsPage(), const AyezAdminAuditLogsPage(), const _AdminSupport()];
     if (hasManagers) { tabs.add(const Tab(text: 'المدراء')); views.add(const _AdminManagers()); }
     return DefaultTabController(
       length: tabCount,
@@ -63,7 +65,7 @@ class _AdminOrders extends StatelessWidget {
     },
   );
   static Future<void> _cancel(BuildContext context,String id) async {
-    try { await FirebaseFirestore.instance.collection('orders').doc(id).update({'status':'cancelled','cancelledAt':FieldValue.serverTimestamp(),'cancelReason':'إلغاء بواسطة الإدارة'}); if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تم إلغاء الطلب'))); } catch(e) { if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('$e'))); }
+    try { await FirebaseFirestore.instance.collection('orders').doc(id).update({'status':'cancelled','cancelledAt':FieldValue.serverTimestamp(),'cancelReason':'إلغاء بواسطة الإدارة'}); await writeAdminAuditLog(action:'cancel_order',targetType:'order',targetId:id,metadata:{'reason':'admin_cancel'}); if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تم إلغاء الطلب'))); } catch(e) { if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('$e'))); }
   }
 }
 
@@ -147,7 +149,7 @@ class _AdminUsersState extends State<_AdminUsers> {
 
   static Future<void> _setStatus(BuildContext context, String id, String status) async {
     try {
-      await FirebaseFirestore.instance.collection('users').doc(id).update({'status': status});
+      await FirebaseFirestore.instance.collection('users').doc(id).update({'status': status}); await writeAdminAuditLog(action:'change_user_status',targetType:'user',targetId:id,metadata:{'status':status});
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث الحالة')));
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
@@ -156,7 +158,7 @@ class _AdminUsersState extends State<_AdminUsers> {
 
   static Future<void> _approve(BuildContext context, String id, Map<String,dynamic> user) async {
     try {
-      await FirebaseFirestore.instance.collection('users').doc(id).update({'status':'active'});
+      await FirebaseFirestore.instance.collection('users').doc(id).update({'status':'active'}); await writeAdminAuditLog(action:'activate_user',targetType:'user',targetId:id,metadata:{'role':user['role']});
       if (user['role'] == 'driver') {
         final wallet = FirebaseFirestore.instance.collection('wallets').doc(id);
         final snap = await wallet.get();
@@ -171,7 +173,7 @@ class _AdminUsersState extends State<_AdminUsers> {
   static Future<void> _requestPasswordChange(BuildContext context, String id) async {
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      await FirebaseFirestore.instance.collection('users').doc(id).update({'mustChangePassword':true,'passwordChangeRequestedAt':FieldValue.serverTimestamp(),'passwordChangeRequestedBy':uid});
+      await FirebaseFirestore.instance.collection('users').doc(id).update({'mustChangePassword':true,'passwordChangeRequestedAt':FieldValue.serverTimestamp(),'passwordChangeRequestedBy':uid}); await writeAdminAuditLog(action:'request_password_change',targetType:'user',targetId:id);
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم طلب تغيير كلمة المرور')));
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
@@ -249,8 +251,8 @@ class _AdminFinance extends StatelessWidget {
   @override Widget build(BuildContext context)=>DefaultTabController(length:2,child:Column(children:[const TabBar(tabs:[Tab(text:'الشحن'),Tab(text:'السحب')]),Expanded(child:TabBarView(children:[_topups(context),_withdrawals(context)]))]));
   Widget _topups(BuildContext context)=>StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('topupRequests').orderBy('submittedAt',descending:true).limit(200).snapshots(),builder:(_,s){final docs=s.data?.docs??const[];return ListView.builder(itemCount:docs.length,itemBuilder:(_,i){final d=docs[i];final x=d.data();final st='${x['status']??''}';return ListTile(title:Text('${x['amount']??0} ج.س'),subtitle:Text('${x['driverId']??'-'} • ${x['paymentMethod']??'-'} • $st'),trailing:st=='pending'?Row(mainAxisSize:MainAxisSize.min,children:[IconButton(onPressed:()=>_reviewTopup(context,d.id,true),icon:const Icon(Icons.check)),IconButton(onPressed:()=>_reviewTopup(context,d.id,false),icon:const Icon(Icons.close))]):null);});});
   Widget _withdrawals(BuildContext context)=>StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('withdrawalRequests').orderBy('createdAt',descending:true).limit(200).snapshots(),builder:(_,s){final docs=s.data?.docs??const[];return ListView.builder(itemCount:docs.length,itemBuilder:(_,i){final d=docs[i];final x=d.data();final st='${x['status']??''}';return ListTile(title:Text('${x['amount']??0} ج.س'),subtitle:Text('${x['driverId']??'-'} • ${x['paymentMethod']??'-'} • $st'),trailing:st=='pending'?Row(mainAxisSize:MainAxisSize.min,children:[IconButton(onPressed:()=>_reviewWithdrawal(context,d.id,'paid'),icon:const Icon(Icons.paid)),IconButton(onPressed:()=>_reviewWithdrawal(context,d.id,'rejected'),icon:const Icon(Icons.close))]):null);});});
-  static Future<void> _reviewTopup(BuildContext c,String id,bool approve) async { final admin=FirebaseAuth.instance.currentUser!.uid; try{await FirebaseFirestore.instance.runTransaction((tx)async{final rr=FirebaseFirestore.instance.collection('topupRequests').doc(id);final rs=await tx.get(rr);if(!rs.exists)throw StateError('طلب الشحن غير موجود');final r=rs.data()!;if(r['status']!='pending')throw StateError('تمت المراجعة');tx.update(rr,{'status':approve?'approved':'rejected','reviewedAt':FieldValue.serverTimestamp(),'reviewedBy':admin});if(!approve)return;final wid=r['driverId'];final amount=(r['amount']as num?)?.toDouble()??0;final wr=FirebaseFirestore.instance.collection('wallets').doc(wid);final ws=await tx.get(wr);if(!ws.exists)throw StateError('المحفظة غير موجودة');final w=ws.data()!;final before=(w['balance']as num?)?.toDouble()??0;final tr=FirebaseFirestore.instance.collection('walletTransactions').doc();tx.update(wr,{'balance':before+amount,'totalTopups':((w['totalTopups']as num?)?.toDouble()??0)+amount,'updatedAt':FieldValue.serverTimestamp(),'lastTopupRequestId':id});tx.set(tr,{'userId':wid,'type':'topup','amount':amount,'balanceBefore':before,'balanceAfter':before+amount,'orderId':null,'topupRequestId':id,'withdrawalRequestId':null,'createdAt':FieldValue.serverTimestamp(),'createdBy':admin});});if(c.mounted)ScaffoldMessenger.of(c).showSnackBar(const SnackBar(content:Text('تمت مراجعة الشحن')));}catch(e){if(c.mounted)ScaffoldMessenger.of(c).showSnackBar(SnackBar(content:Text('$e')));}}
-  static Future<void> _reviewWithdrawal(BuildContext c,String id,String status) async { final admin=FirebaseAuth.instance.currentUser!.uid; try{await FirebaseFirestore.instance.runTransaction((tx)async{final rr=FirebaseFirestore.instance.collection('withdrawalRequests').doc(id);final rs=await tx.get(rr);if(!rs.exists)throw StateError('طلب السحب غير موجود');final r=rs.data()!;if(r['status']!='pending')throw StateError('تمت المراجعة');tx.update(rr,{'status':status,'reviewedAt':FieldValue.serverTimestamp(),'reviewedBy':admin});if(status!='paid')return;final wid=r['driverId'];final amount=(r['amount']as num?)?.toDouble()??0;final wr=FirebaseFirestore.instance.collection('wallets').doc(wid);final ws=await tx.get(wr);if(!ws.exists)throw StateError('المحفظة غير موجودة');final w=ws.data()!;final before=(w['balance']as num?)?.toDouble()??0;if(before<amount)throw StateError('الرصيد غير كافٍ');final tr=FirebaseFirestore.instance.collection('walletTransactions').doc();tx.update(wr,{'balance':before-amount,'totalWithdrawals':((w['totalWithdrawals']as num?)?.toDouble()??0)+amount,'updatedAt':FieldValue.serverTimestamp(),'lastWithdrawalRequestId':id});tx.set(tr,{'userId':wid,'type':'withdrawal','amount':-amount,'balanceBefore':before,'balanceAfter':before-amount,'orderId':null,'topupRequestId':null,'withdrawalRequestId':id,'createdAt':FieldValue.serverTimestamp(),'createdBy':admin});});if(c.mounted)ScaffoldMessenger.of(c).showSnackBar(const SnackBar(content:Text('تمت مراجعة السحب')));}catch(e){if(c.mounted)ScaffoldMessenger.of(c).showSnackBar(SnackBar(content:Text('$e')));}}
+  static Future<void> _reviewTopup(BuildContext c,String id,bool approve) async { final admin=FirebaseAuth.instance.currentUser!.uid; try{await FirebaseFirestore.instance.runTransaction((tx)async{final rr=FirebaseFirestore.instance.collection('topupRequests').doc(id);final rs=await tx.get(rr);if(!rs.exists)throw StateError('طلب الشحن غير موجود');final r=rs.data()!;if(r['status']!='pending')throw StateError('تمت المراجعة');tx.update(rr,{'status':approve?'approved':'rejected','reviewedAt':FieldValue.serverTimestamp(),'reviewedBy':admin});if(!approve)return;final wid=r['driverId'];final amount=(r['amount']as num?)?.toDouble()??0;final wr=FirebaseFirestore.instance.collection('wallets').doc(wid);final ws=await tx.get(wr);if(!ws.exists)throw StateError('المحفظة غير موجودة');final w=ws.data()!;final before=(w['balance']as num?)?.toDouble()??0;final tr=FirebaseFirestore.instance.collection('walletTransactions').doc();tx.update(wr,{'balance':before+amount,'totalTopups':((w['totalTopups']as num?)?.toDouble()??0)+amount,'updatedAt':FieldValue.serverTimestamp(),'lastTopupRequestId':id});tx.set(tr,{'userId':wid,'type':'topup','amount':amount,'balanceBefore':before,'balanceAfter':before+amount,'orderId':null,'topupRequestId':id,'withdrawalRequestId':null,'createdAt':FieldValue.serverTimestamp(),'createdBy':admin});});await writeAdminAuditLog(action:approve?'approve_topup':'reject_topup',targetType:'topupRequest',targetId:id); if(c.mounted)ScaffoldMessenger.of(c).showSnackBar(const SnackBar(content:Text('تمت مراجعة الشحن')));}catch(e){if(c.mounted)ScaffoldMessenger.of(c).showSnackBar(SnackBar(content:Text('$e')));}}
+  static Future<void> _reviewWithdrawal(BuildContext c,String id,String status) async { final admin=FirebaseAuth.instance.currentUser!.uid; try{await FirebaseFirestore.instance.runTransaction((tx)async{final rr=FirebaseFirestore.instance.collection('withdrawalRequests').doc(id);final rs=await tx.get(rr);if(!rs.exists)throw StateError('طلب السحب غير موجود');final r=rs.data()!;if(r['status']!='pending')throw StateError('تمت المراجعة');tx.update(rr,{'status':status,'reviewedAt':FieldValue.serverTimestamp(),'reviewedBy':admin});if(status!='paid')return;final wid=r['driverId'];final amount=(r['amount']as num?)?.toDouble()??0;final wr=FirebaseFirestore.instance.collection('wallets').doc(wid);final ws=await tx.get(wr);if(!ws.exists)throw StateError('المحفظة غير موجودة');final w=ws.data()!;final before=(w['balance']as num?)?.toDouble()??0;if(before<amount)throw StateError('الرصيد غير كافٍ');final tr=FirebaseFirestore.instance.collection('walletTransactions').doc();tx.update(wr,{'balance':before-amount,'totalWithdrawals':((w['totalWithdrawals']as num?)?.toDouble()??0)+amount,'updatedAt':FieldValue.serverTimestamp(),'lastWithdrawalRequestId':id});tx.set(tr,{'userId':wid,'type':'withdrawal','amount':-amount,'balanceBefore':before,'balanceAfter':before-amount,'orderId':null,'topupRequestId':null,'withdrawalRequestId':id,'createdAt':FieldValue.serverTimestamp(),'createdBy':admin});});await writeAdminAuditLog(action:status == 'paid'?'pay_withdrawal':'reject_withdrawal',targetType:'withdrawalRequest',targetId:id); if(c.mounted)ScaffoldMessenger.of(c).showSnackBar(const SnackBar(content:Text('تمت مراجعة السحب')));}catch(e){if(c.mounted)ScaffoldMessenger.of(c).showSnackBar(SnackBar(content:Text('$e')));}}
 }
 
 class _AdminSupport extends StatelessWidget {
@@ -303,6 +305,7 @@ class _AdminSupport extends StatelessWidget {
       await FirebaseFirestore.instance.collection('supportMessages').doc(id).update({
         'reply': reply, 'status': 'answered', 'repliedAt': FieldValue.serverTimestamp(), 'repliedBy': FirebaseAuth.instance.currentUser!.uid,
       });
+      await writeAdminAuditLog(action:'reply_support',targetType:'supportMessage',targetId:id);
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إرسال الرد')));
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
@@ -347,9 +350,9 @@ class _AdminManagers extends StatelessWidget {
   static Future<void> _setManager(BuildContext context, String id, String value) async {
     try {
       if (value == 'active' || value == 'suspended') {
-        await FirebaseFirestore.instance.collection('users').doc(id).update({'status': value});
+        await FirebaseFirestore.instance.collection('users').doc(id).update({'status': value}); await writeAdminAuditLog(action:'change_manager_status',targetType:'user',targetId:id,metadata:{'status':value});
       } else {
-        await FirebaseFirestore.instance.collection('users').doc(id).update({'role': value});
+        await FirebaseFirestore.instance.collection('users').doc(id).update({'role': value}); await writeAdminAuditLog(action:'change_manager_role',targetType:'user',targetId:id,metadata:{'role':value});
       }
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث المدير')));
     } catch (e) {
