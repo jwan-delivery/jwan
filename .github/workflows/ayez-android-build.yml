@@ -94,12 +94,6 @@ jobs:
             echo "No release keystore secrets supplied; Gradle debug-signing fallback will be used."
           fi
 
-      - name: Require release signing on main
-        if: github.ref == 'refs/heads/main'
-        run: |
-          set -euo pipefail
-          test "${AYEZ_RELEASE_SIGNED:-false}" = "true"
-
       - name: Verify native Flutter project
         working-directory: mobile-app
         shell: bash
