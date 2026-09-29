@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -180,7 +181,7 @@ class _AdminUsersState extends State<_AdminUsers> {
   static Future<void> _delete(BuildContext context, String id) async {
     final ok = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
       title: const Text('حذف الحساب'),
-      content: const Text('سيتم حذف ملف الحساب ومحفظته من Firestore. سجلات الطلبات لا تُحذف.'),
+      content: const Text('سيتم حذف حساب المستخدم وملفه ومحفظته من النظام. سجلات الطلبات التاريخية لا تُحذف.'),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
         FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('حذف')),
@@ -188,9 +189,9 @@ class _AdminUsersState extends State<_AdminUsers> {
     ));
     if (ok != true) return;
     try {
-      await FirebaseFirestore.instance.collection('users').doc(id).delete();
-      await FirebaseFirestore.instance.collection('wallets').doc(id).delete().catchError((_) {});
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حذف ملف الحساب')));
+      final callable = FirebaseFunctions.instance.httpsCallable('adminDeleteUser');
+      await callable.call(<String, dynamic>{'uid': id});
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حذف الحساب بالكامل')));
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
