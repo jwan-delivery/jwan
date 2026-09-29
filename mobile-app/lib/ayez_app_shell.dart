@@ -207,7 +207,7 @@ class _AyezAppShellState extends State<AyezAppShell> {
   }
 
   static bool _isAdminRole(String value) =>
-      value == 'admin' || value == 'super_admin' || value == 'office_manager';
+      value == 'admin' || value == 'super_admin';
 
   Widget pageFor(int selected) {
     if (role == 'driver') {
@@ -377,8 +377,7 @@ class AyezDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final elevated = profile['role'] == 'admin' ||
-        profile['role'] == 'super_admin' ||
-        profile['role'] == 'office_manager';
+        profile['role'] == 'super_admin';
 
     return Drawer(
       backgroundColor: ayezBlack,
