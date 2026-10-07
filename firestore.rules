@@ -743,3 +743,16 @@ service cloud.firestore {
     }
   }
 }
+
+
+    match /accountDeletionRequests/{requestId} {
+      allow create: if request.resource.data.keys().hasOnly(['phone','email','reason','source','status','createdAt'])
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() >= 9
+        && request.resource.data.phone.size() <= 20
+        && request.resource.data.email is string
+        && request.resource.data.reason is string
+        && request.resource.data.source == 'web'
+        && request.resource.data.status == 'pending';
+      allow read, update, delete: if isAdmin();
+    }
