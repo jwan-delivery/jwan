@@ -893,7 +893,7 @@ class AyezWalletPage extends StatefulWidget {
 
 class _AyezWalletPageState extends State<AyezWalletPage> {
   final mobile = AyezMobileService();
-  final methods = const ['بنكك','فوري','أوكاش','ماي كاشي'];
+  final methods = const ['بنكك (بنك الخرطوم)', 'أوكاش (بنك أم درمان الوطني)', 'فوري (بنك فيصل الإسلامي)'];
 
   String get uid => FirebaseAuth.instance.currentUser!.uid;
 
