@@ -10,7 +10,7 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
-export const PAYMENT_METHODS = ["بنكك", "فوري", "أوكاش", "ماي كاشي"];
+export const PAYMENT_METHODS = ["بنكك (بنك الخرطوم)", "أوكاش (بنك أم درمان الوطني)", "فوري (بنك فيصل الإسلامي)"];
 
 export function driverCommission(deliveryFee) {
   return Math.round(Number(deliveryFee || 0) * 0.05);

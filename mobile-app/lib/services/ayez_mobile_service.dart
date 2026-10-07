@@ -39,7 +39,7 @@ class AyezMobileService {
   Future<void> createTopupRequest({required String driverId, required num amount, required String paymentMethod}) async {
     final value = amount.toDouble();
     if (value <= 0) throw ArgumentError('أدخل مبلغًا صحيحًا');
-    const methods = ['بنكك', 'فوري', 'أوكاش', 'ماي كاشي'];
+    const methods = ['بنكك (بنك الخرطوم)', 'أوكاش (بنك أم درمان الوطني)', 'فوري (بنك فيصل الإسلامي)'];
     if (!methods.contains(paymentMethod)) throw ArgumentError('اختر طريقة تحويل صحيحة');
     await db.collection('topupRequests').add({
       'driverId': driverId, 'amount': value, 'paymentMethod': paymentMethod, 'status': 'pending',

@@ -593,7 +593,7 @@ service cloud.firestore {
       allow create: if isDriver()
         && request.auth.uid == request.resource.data.driverId
         && positiveNumber(request.resource.data.amount)
-        && request.resource.data.paymentMethod in ['بنكك','فوري','أوكاش','ماي كاشي']
+        && request.resource.data.paymentMethod in ['بنكك','أوكاش','فوري','بنكك (بنك الخرطوم)','أوكاش (بنك أم درمان الوطني)','فوري (بنك فيصل الإسلامي)']
         && request.resource.data.status == 'pending'
         && request.resource.data.keys().hasOnly(['driverId','amount','paymentMethod','status','submittedAt','reviewedAt','reviewedBy','reviewNote','whatsappVerified']);
 
@@ -612,7 +612,7 @@ service cloud.firestore {
       allow create: if isDriver()
         && request.auth.uid == request.resource.data.driverId
         && positiveNumber(request.resource.data.amount)
-        && request.resource.data.paymentMethod in ['بنكك','فوري','أوكاش','ماي كاشي']
+        && request.resource.data.paymentMethod in ['بنكك','أوكاش','فوري','بنكك (بنك الخرطوم)','أوكاش (بنك أم درمان الوطني)','فوري (بنك فيصل الإسلامي)']
         && request.resource.data.status == 'pending'
         && request.resource.data.accountReference is string
         && request.resource.data.accountReference.size() > 0
