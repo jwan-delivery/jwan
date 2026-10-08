@@ -144,6 +144,7 @@ describe('JWΑN Firestore Security Rules', function () {
       driverId: USERS.driver,
       amount: 5000,
       paymentMethod: 'بنكك',
+      transactionNumber: 'BANK-SECURITY-001',
       status: 'pending',
       submittedAt: new Date(),
     });
@@ -172,6 +173,54 @@ describe('JWΑN Firestore Security Rules', function () {
     await assert.rejects(
       updateDoc(doc(driverDb, 'orders', 'nonexistent-security-order-002'), {
         deliveryFee: 1
+      })
+    );
+  });
+
+  it('8b. customer and driver cannot directly modify negotiation state', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const database = context.firestore();
+      await setDoc(doc(database, 'orders', 'security-negotiation-order'), {
+        customerId: USERS.customer,
+        driverId: USERS.driver,
+        state: 'البحر الأحمر (بورتسودان)',
+        status: 'accepted',
+        negotiationStatus: 'open',
+        commissionCharged: false
+      });
+      await setDoc(doc(database, 'priceNegotiations', 'security-negotiation-order'), {
+        orderId: 'security-negotiation-order',
+        customerId: USERS.customer,
+        driverId: USERS.driver,
+        customerName: 'Test Customer',
+        driverName: 'Test Driver',
+        currentOffer: null,
+        offeredBy: null,
+        status: 'open',
+        expiresAt: null,
+        updatedAt: new Date(),
+        lastAction: 'accepted',
+        lastMessageId: null,
+        turnRole: 'customer',
+        customerOffers: 0,
+        driverOffers: 0
+      });
+    });
+
+    const customerDb = db(USERS.customer);
+    const driverDb = db(USERS.driver);
+
+    await assertFails(
+      updateDoc(doc(customerDb, 'priceNegotiations', 'security-negotiation-order'), {
+        currentOffer: 5000,
+        offeredBy: USERS.customer
+      })
+    );
+
+    await assertFails(
+      updateDoc(doc(driverDb, 'priceNegotiations', 'security-negotiation-order'), {
+        currentOffer: 5000,
+        offeredBy: USERS.driver
       })
     );
   });
