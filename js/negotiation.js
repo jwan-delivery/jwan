@@ -81,8 +81,8 @@ export function listenNegotiation(orderId, callback) {
 }
 
 export async function startNegotiation({ orderId, userId, role, name, amount }) {
-  if (role !== "driver") {
-    throw new Error("العرض الأول يرسله السائق فقط.");
+  if (role !== "customer") {
+    throw new Error("العرض الأول يرسله العميل فقط.");
   }
   const value = cleanAmount(amount);
 
@@ -128,11 +128,17 @@ export async function startNegotiation({ orderId, userId, role, name, amount }) 
       lastMessageId: messageId
     };
 
-    if (role === "driver") {
-      patch.driverName = String(name || "السائق").slice(0, 120);
-    } else {
+    if (role === "customer") {
       patch.customerName = String(name || "العميل").slice(0, 120);
     }
+
+    const customerOffers = Number(neg.customerOffers || 0);
+    const driverOffers = Number(neg.driverOffers || 0);
+    if (customerOffers >= 4) {
+      throw new Error("وصل العميل إلى الحد الأقصى من 4 عروض.");
+    }
+    patch.customerOffers = customerOffers + 1;
+    patch.driverOffers = driverOffers;
 
     tx.update(negRef, patch);
     tx.set(messageRef, {
@@ -169,6 +175,15 @@ export async function proposePrice({ orderId, userId, role, name, amount }) {
       throw new Error("انتظر الطرف الآخر للرد على عرضك الحالي.");
     }
 
+    const customerOffers = Number(negotiation.customerOffers || 0);
+    const driverOffers = Number(negotiation.driverOffers || 0);
+    if (role === "customer" && customerOffers >= 4) {
+      throw new Error("وصلت إلى الحد الأقصى من 4 عروض.");
+    }
+    if (role === "driver" && driverOffers >= 4) {
+      throw new Error("وصلت إلى الحد الأقصى من 4 عروض.");
+    }
+
     const messageRef = doc(collection(negRef, "messages"));
     const messageId = messageRef.id;
 
@@ -177,7 +192,9 @@ export async function proposePrice({ orderId, userId, role, name, amount }) {
       offeredBy: userId,
       updatedAt: serverTimestamp(),
       lastAction: "offer",
-      lastMessageId: messageId
+      lastMessageId: messageId,
+      customerOffers: customerOffers + (role === "customer" ? 1 : 0),
+      driverOffers: driverOffers + (role === "driver" ? 1 : 0)
     };
 
     if (role === "driver") patch.driverName = String(name || "السائق").slice(0, 120);
@@ -252,26 +269,21 @@ export async function respondToOffer({ orderId, userId, role, name, action }) {
       customer = customerSnap.data();
       driver = driverSnap.data();
 
-      if (role === "driver") {
-        const walletRef = doc(db, "wallets", order.driverId);
-        const walletSnap = await tx.get(walletRef);
+      const walletRef = doc(db, "wallets", order.driverId);
+      const walletSnap = await tx.get(walletRef);
 
-        if (!walletSnap.exists()) {
-          throw new Error("محفظة السائق غير مهيأة. يجب شحن المحفظة أولًا.");
-        }
+      if (!walletSnap.exists()) {
+        throw new Error("محفظة السائق غير مهيأة. يجب شحن المحفظة أولًا.");
+      }
 
-        const balance = Number(walletSnap.data()?.balance || 0);
-        const commission = Math.round(amount * 0.05);
+      const walletData = walletSnap.data();
+      const balance = Number(walletData?.balance || 0);
+      const commission = Math.round(amount * 0.05);
 
-        if (balance <= 0) {
-          throw new Error("رصيدك صفر حاليًا 😊 اشحن المحفظة أولًا ثم حاول قبول العرض.");
-        }
-
-        if (balance < commission) {
-          throw new Error(
-            `رصيدك لا يكفي لعمولة هذا الطلب (${commission} ج.س). اشحن المحفظة ثم أعد قبول العرض.`
-          );
-        }
+      if (balance < commission) {
+        throw new Error(
+          `رصيد السائق لا يكفي لعمولة هذا الطلب (${commission} ج.س). يجب شحن المحفظة أولًا.`
+        );
       }
     }
 
@@ -293,33 +305,76 @@ export async function respondToOffer({ orderId, userId, role, name, action }) {
     });
 
     if (action === "reject") {
-      // Either side rejecting closes this negotiation and releases the order.
-      tx.update(orderRef, {
-        driverId: null,
-        status: "pending",
-        negotiationStatus: "none"
-      });
+      const rejectingPartyOffers =
+        role === "customer"
+          ? Number(negotiation.customerOffers || 0)
+          : Number(negotiation.driverOffers || 0);
 
-      tx.update(negRef, {
-        currentOffer: null,
-        offeredBy: null,
-        status: "closed",
-        updatedAt: serverTimestamp(),
-        lastAction: "reject",
-        lastMessageId: messageId
-      });
-
+      if (rejectingPartyOffers >= 4) {
+        tx.update(orderRef, {
+          driverId: null,
+          status: "pending",
+          negotiationStatus: "none"
+        });
+        tx.update(negRef, {
+          currentOffer: null,
+          offeredBy: null,
+          status: "closed",
+          updatedAt: serverTimestamp(),
+          lastAction: "republished_after_limit",
+          lastMessageId: messageId
+        });
+      } else {
+        tx.update(negRef, {
+          currentOffer: null,
+          offeredBy: null,
+          updatedAt: serverTimestamp(),
+          lastAction: "counter_required",
+          lastMessageId: messageId
+        });
+      }
       return;
     }
 
     const contactRef = doc(db, "orderContacts", orderId);
 
+    const commission = Math.round(amount * 0.05);
+    const walletData = walletSnap.data();
+    const balanceBefore = Number(walletData?.balance || 0);
+    const balanceAfter = balanceBefore - commission;
+    const walletTransactionRef = doc(collection(db, "walletTransactions"));
+
     tx.update(orderRef, {
       deliveryFee: amount,
       agreedFee: amount,
+      commissionCharged: true,
+      commissionRate: 0.05,
+      commissionAmount: commission,
+      driverNetAmount: Math.max(0, amount - commission),
       negotiationStatus: "agreed",
       agreedAt: serverTimestamp(),
       agreedBy: userId
+    });
+
+    tx.update(walletRef, {
+      balance: balanceAfter,
+      totalCommissions: Number(walletData?.totalCommissions || 0) + commission,
+      updatedAt: serverTimestamp(),
+      lastCommissionOrderId: orderId
+    });
+
+    tx.set(walletTransactionRef, {
+      userId: order.driverId,
+      type: "commission",
+      amount: -commission,
+      balanceBefore,
+      balanceAfter,
+      orderId,
+      topupRequestId: null,
+      withdrawalRequestId: null,
+      commissionRate: 0.05,
+      createdAt: serverTimestamp(),
+      createdBy: "system"
     });
 
     tx.update(negRef, {
