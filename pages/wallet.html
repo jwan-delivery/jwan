@@ -24,8 +24,9 @@
     <form id="topupForm">
       <div class="form-group"><label>المبلغ</label><input name="amount" type="number" min="1" required></div>
       <div class="form-group"><label>طريقة التحويل</label>
-        <select name="method" required><option>بنكك</option><option>فوري</option><option>أوكاش</option><option>ماي كاشي</option></select>
+        <select name="method" required><option>بنكك</option><option>فوري</option><option>أوكاش</option></select>
       </div>
+      <div class="form-group"><label>رقم المعاملة</label><input name="transactionNumber" type="text" minlength="3" maxlength="100" required placeholder="رقم العملية من تطبيق التحويل"></div>
       <p class="alert alert-success">
         بعد التحويل، أرسل إشعار التحويل إلى
         <a
@@ -80,7 +81,7 @@ document.getElementById("topupForm").addEventListener("submit", async (e) => {
   const btn = form.querySelector("button");
   btn.disabled = true;
   try {
-    await createTopupRequest(user.uid, form.amount.value, form.method.value);
+    await createTopupRequest(user.uid, form.amount.value, form.method.value, form.transactionNumber.value);
     showToast("تم إرسال طلب الشحن، بانتظار مراجعة الإدارة.");
     form.reset();
   } catch (err) {
