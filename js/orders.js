@@ -275,7 +275,10 @@ export async function acceptOrder(orderId, driverId) {
       expiresAt: null,
       updatedAt: serverTimestamp(),
       lastAction: "accepted",
-      lastMessageId: null
+      lastMessageId: null,
+      turnRole: "customer",
+      customerOffers: 0,
+      driverOffers: 0
     });
   });
 }
@@ -353,13 +356,10 @@ export async function customerReportNotDelivered(orderId, customerId) {
 export async function driverFinalizeOrder(orderId, driverId) {
   await runTransaction(db, async (tx) => {
     const orderRef = doc(db, "orders", orderId);
-    const walletRef = doc(db, "wallets", driverId);
-
     const orderSnap = await tx.get(orderRef);
     if (!orderSnap.exists()) throw new Error("الطلب غير موجود");
 
     const order = orderSnap.data();
-
     if (order.driverId !== driverId) throw new Error("هذا الطلب ليس لديك");
     if (order.status !== ORDER_STATUSES.AWAITING_CONFIRMATION) {
       throw new Error("الطلب ليس جاهزًا للإغلاق");
@@ -368,47 +368,15 @@ export async function driverFinalizeOrder(orderId, driverId) {
       throw new Error("سعر الطلب المتفق عليه غير موجود");
     }
     if (!order.customerConfirmedAt) throw new Error("بانتظار تأكيد العميل أولًا");
-    if (order.commissionCharged === true) throw new Error("تم احتساب عمولة هذا الطلب مسبقًا");
-
-    const walletSnap = await tx.get(walletRef);
-    if (!walletSnap.exists()) throw new Error("محفظتك غير مهيأة، تواصل مع الإدارة");
-
-    const wallet = walletSnap.data();
-    const commission = driverCommission(order.deliveryFee);
-    const balanceBefore = Number(wallet.balance || 0);
-
-    if (balanceBefore < commission) {
-      throw new Error("رصيد المحفظة لا يكفي للعمولة");
+    if (order.commissionCharged !== true) {
+      throw new Error("لم يتم احتساب عمولة عايز عند الاتفاق؛ لا يمكن إغلاق الطلب.");
     }
-
-    const balanceAfter = balanceBefore - commission;
 
     tx.update(orderRef, {
       status: ORDER_STATUSES.COMPLETED,
       driverConfirmedAt: serverTimestamp(),
       completedAt: serverTimestamp(),
       commissionCharged: true
-    });
-
-    tx.update(walletRef, {
-      balance: balanceAfter,
-      totalCommission: Number(wallet.totalCommission || 0) + commission,
-      updatedAt: serverTimestamp(),
-      lastCommissionOrderId: orderId
-    });
-
-    const txRef = doc(collection(db, "walletTransactions"));
-    tx.set(txRef, {
-      userId: driverId,
-      type: "commission",
-      amount: -commission,
-      balanceBefore,
-      balanceAfter,
-      orderId,
-      topupRequestId: null,
-      withdrawalRequestId: null,
-      createdAt: serverTimestamp(),
-      createdBy: driverId
     });
   });
 }
