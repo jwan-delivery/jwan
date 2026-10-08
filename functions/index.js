@@ -442,6 +442,9 @@ exports.negotiationAction = onCall(async (request) => {
       const offererCount = offererRole === "customer"
         ? Number(negotiation.customerOffers || 0)
         : Number(negotiation.driverOffers || 0);
+      const rejectingPartyOffers = role === "customer"
+        ? Number(negotiation.customerOffers || 0)
+        : Number(negotiation.driverOffers || 0);
 
       tx.set(messageRef, {
         orderId,
@@ -454,7 +457,7 @@ exports.negotiationAction = onCall(async (request) => {
         expiresAt: negotiation.expiresAt || null
       });
 
-      if (offererCount >= 4) {
+      if (offererCount >= 4 || rejectingPartyOffers >= 4) {
         tx.update(orderRef, {
           driverId: null,
           status: "pending",
