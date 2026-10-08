@@ -893,13 +893,14 @@ class AyezWalletPage extends StatefulWidget {
 
 class _AyezWalletPageState extends State<AyezWalletPage> {
   final mobile = AyezMobileService();
-  final methods = const ['بنكك','فوري','أوكاش','ماي كاشي'];
+  final methods = const ['بنكك','فوري','أوكاش'];
 
   String get uid => FirebaseAuth.instance.currentUser!.uid;
 
   Future<void> requestMoney({required bool topup}) async {
     final amount = TextEditingController();
     final account = TextEditingController();
+    final transactionNumber = TextEditingController();
     String method = methods.first;
     try {
       final ok = await showDialog<bool>(
@@ -911,6 +912,10 @@ class _AyezWalletPageState extends State<AyezWalletPage> {
               TextField(controller: amount, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'المبلغ')),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(initialValue: method, items: methods.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(), onChanged: (v) => setDialogState(() => method = v ?? method), decoration: const InputDecoration(labelText: 'طريقة التحويل')),
+              if (topup) ...[
+                const SizedBox(height: 10),
+                TextField(controller: transactionNumber, decoration: const InputDecoration(labelText: 'رقم المعاملة')),
+              ],
               if (!topup) ...[
                 const SizedBox(height: 10),
                 TextField(controller: account, decoration: const InputDecoration(labelText: 'رقم الحساب/المحفظة المستلمة')),
@@ -926,7 +931,7 @@ class _AyezWalletPageState extends State<AyezWalletPage> {
       if (ok != true) return;
       final value = num.tryParse(amount.text.trim()) ?? 0;
       if (topup) {
-        await mobile.createTopupRequest(driverId: uid, amount: value, paymentMethod: method);
+        await mobile.createTopupRequest(driverId: uid, amount: value, paymentMethod: method, transactionNumber: transactionNumber.text);
       } else {
         await mobile.createWithdrawalRequest(driverId: uid, amount: value, paymentMethod: method, accountReference: account.text);
       }
@@ -936,6 +941,7 @@ class _AyezWalletPageState extends State<AyezWalletPage> {
     } finally {
       amount.dispose();
       account.dispose();
+      transactionNumber.dispose();
     }
   }
 
