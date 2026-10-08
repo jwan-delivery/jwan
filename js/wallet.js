@@ -10,7 +10,7 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
-export const PAYMENT_METHODS = ["بنكك", "فوري", "أوكاش", "ماي كاشي"];
+export const PAYMENT_METHODS = ["بنكك", "فوري", "أوكاش"];
 
 export function driverCommission(deliveryFee) {
   return Math.round(Number(deliveryFee || 0) * 0.05);
@@ -41,15 +41,18 @@ export function listenWalletTransactions(uid, callback) {
   });
 }
 
-export async function createTopupRequest(driverId, amount, paymentMethod) {
+export async function createTopupRequest(driverId, amount, paymentMethod, transactionNumber) {
   const value = topUpAmount(amount);
   if (value <= 0) throw new Error("أدخل مبلغًا صحيحًا");
   if (!PAYMENT_METHODS.includes(paymentMethod)) throw new Error("اختر طريقة تحويل صحيحة");
+  const txNumber = String(transactionNumber || "").trim();
+  if (txNumber.length < 3 || txNumber.length > 100) throw new Error("أدخل رقم المعاملة كما ظهر في تطبيق التحويل");
 
   await addDoc(collection(db, "topupRequests"), {
     driverId,
     amount: value,
     paymentMethod,
+    transactionNumber: txNumber,
     status: "pending",
     submittedAt: serverTimestamp(),
     reviewedAt: null,
