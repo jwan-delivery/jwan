@@ -36,13 +36,15 @@ class AyezMobileService {
     }, SetOptions(merge: true));
   });
 
-  Future<void> createTopupRequest({required String driverId, required num amount, required String paymentMethod}) async {
+  Future<void> createTopupRequest({required String driverId, required num amount, required String paymentMethod, required String transactionNumber}) async {
     final value = amount.toDouble();
     if (value <= 0) throw ArgumentError('أدخل مبلغًا صحيحًا');
-    const methods = ['بنكك', 'فوري', 'أوكاش', 'ماي كاشي'];
+    const methods = ['بنكك', 'فوري', 'أوكاش'];
     if (!methods.contains(paymentMethod)) throw ArgumentError('اختر طريقة تحويل صحيحة');
+    final txNumber = transactionNumber.trim();
+    if (txNumber.length < 3 || txNumber.length > 100) throw ArgumentError('أدخل رقم المعاملة');
     await db.collection('topupRequests').add({
-      'driverId': driverId, 'amount': value, 'paymentMethod': paymentMethod, 'status': 'pending',
+      'driverId': driverId, 'amount': value, 'paymentMethod': paymentMethod, 'transactionNumber': txNumber, 'status': 'pending',
       'submittedAt': FieldValue.serverTimestamp(), 'reviewedAt': null, 'reviewedBy': null,
       'reviewNote': null, 'whatsappVerified': false,
     });
