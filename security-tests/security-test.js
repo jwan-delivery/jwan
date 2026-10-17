@@ -15,7 +15,7 @@ const {
   getDoc,
 } = require('firebase/firestore');
 
-const PROJECT_ID = 'jwan-delivery-c930d-72911';
+const PROJECT_ID = process.env.GCLOUD_PROJECT || 'demo-jwan-delivery-c930d';
 const RULES_PATH = path.resolve(__dirname, '..', 'firestore.rules');
 
 let testEnv;
