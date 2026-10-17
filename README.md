@@ -121,7 +121,7 @@ cd mobile-app
 flutter pub get
 flutter analyze
 flutter test
-flutter build apk --debug --target lib/main_native.dart
+flutter build apk --debug --target lib/main_native.dart --dart-define=JAWAN_APPCHECK_DEBUG=true
 ```
 
 لإصدار المتجر:
