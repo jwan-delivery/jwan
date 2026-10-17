@@ -84,6 +84,10 @@
       {
         "source": "/pages/terms",
         "destination": "/pages/terms.html"
+      },
+      {
+        "source": "/pages/delete-account",
+        "destination": "/pages/delete-account.html"
       }
     ]
   },
