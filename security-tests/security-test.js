@@ -13,6 +13,7 @@ const {
   setDoc,
   updateDoc,
   getDoc,
+  serverTimestamp,
 } = require('firebase/firestore');
 
 const PROJECT_ID = 'jwan-delivery-c930d-72911';
@@ -32,6 +33,10 @@ function ctx(uid) {
 
 function db(uid) {
   return ctx(uid).firestore();
+}
+
+function anonDb() {
+  return testEnv.unauthenticatedContext().firestore();
 }
 
 async function seed() {
@@ -316,4 +321,77 @@ describe('JWΑN Firestore Security Rules', function () {
       })
     );
   });
+
+  it('17. anonymous user can submit a valid web account deletion request', async () => {
+    const anonymousDb = anonDb();
+    await assertSucceeds(
+      setDoc(doc(anonymousDb, 'accountDeletionRequests', 'valid-anonymous-request'), {
+        phone: '0912345678',
+        email: '',
+        reason: 'Please delete my account',
+        source: 'web',
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      })
+    );
+  });
+
+  it('18. anonymous account deletion requests must respect the schema and size limits', async () => {
+    const anonymousDb = anonDb();
+
+    await assertFails(
+      setDoc(doc(anonymousDb, 'accountDeletionRequests', 'forged-status-request'), {
+        phone: '0912345678',
+        email: '',
+        reason: '',
+        source: 'web',
+        status: 'approved',
+        createdAt: serverTimestamp(),
+      })
+    );
+
+    await assertFails(
+      setDoc(doc(anonymousDb, 'accountDeletionRequests', 'oversized-reason-request'), {
+        phone: '0912345678',
+        email: '',
+        reason: 'x'.repeat(2001),
+        source: 'web',
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      })
+    );
+
+    await assertFails(
+      setDoc(doc(anonymousDb, 'accountDeletionRequests', 'client-timestamp-request'), {
+        phone: '0912345678',
+        email: '',
+        reason: '',
+        source: 'web',
+        status: 'pending',
+        createdAt: new Date(0),
+      })
+    );
+  });
+
+  it('19. only an administrator can read an account deletion request', async () => {
+    const anonymousDb = anonDb();
+    const requestRef = doc(anonymousDb, 'accountDeletionRequests', 'private-review-request');
+
+    await assertSucceeds(
+      setDoc(requestRef, {
+        phone: '0912345678',
+        email: '',
+        reason: '',
+        source: 'web',
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      })
+    );
+
+    await assertFails(getDoc(requestRef));
+    await assertSucceeds(
+      getDoc(doc(db(USERS.admin), 'accountDeletionRequests', 'private-review-request'))
+    );
+  });
+
 });
