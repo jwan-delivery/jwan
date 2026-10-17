@@ -10,6 +10,11 @@ if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.withInputStream { stream -> keystoreProperties.load(stream) }
 }
 
+def releaseBuildRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }
+if (releaseBuildRequested && !keystorePropertiesFile.exists()) {
+    throw new GradleException("Release builds require android/key.properties and a production keystore. Never sign a distributable release with the debug key.")
+}
+
 android {
     namespace = "sd.jawan.delivery"
     compileSdk = flutter.compileSdkVersion
@@ -38,7 +43,7 @@ android {
         release {
             minifyEnabled false
             shrinkResources false
-            signingConfig = keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
+            signingConfig = signingConfigs.release
         }
     }
 }

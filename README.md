@@ -121,16 +121,16 @@ cd mobile-app
 flutter pub get
 flutter analyze
 flutter test
-flutter build apk --release
+flutter build apk --debug --target lib/main_native.dart --dart-define=JAWAN_APPCHECK_DEBUG=true
 ```
 
 لإصدار المتجر:
 
 ```bash
-flutter build appbundle --release
+flutter build appbundle --release --target lib/main_native.dart
 ```
 
-قد تتطلب builds الإنتاجية إعدادات Firebase وsigning غير موجودة داخل Git.
+استخدم نقطة الدخول الحالية صراحةً: `lib/main_native.dart`؛ أما `lib/main.dart` فهو مسار قديم. الـ APK أعلاه للتجربة فقط. قبل Release/AAB، جهّز توقيعاً إنتاجياً آمناً وراجع إعداد Firebase. لا توجد حالياً GitHub Actions workflows في المستودع، لذلك البناء الآلي غير مفعل.
 
 ## تعريف اكتمال عايز
 

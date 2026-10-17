@@ -21,6 +21,7 @@ firestore-debug.log
 ui-debug.log
 
 # Environment / secrets
+mobile-app/android/key.properties
 .env
 .env.*
 !.env.example
