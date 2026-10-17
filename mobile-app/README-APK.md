@@ -12,7 +12,7 @@ flutter --version
 flutter pub get
 flutter analyze
 flutter test
-flutter build apk --debug --target lib/main_native.dart
+flutter build apk --debug --target lib/main_native.dart --dart-define=JAWAN_APPCHECK_DEBUG=true
 ```
 
 سيكون ملف APK الناتج هنا:
@@ -21,7 +21,7 @@ flutter build apk --debug --target lib/main_native.dart
 mobile-app/build/app/outputs/flutter-apk/app-debug.apk
 ```
 
-يمكن تثبيت هذا الملف على هاتف Android للاختبار. اختبر تسجيل العميل والسائق، إنشاء الطلب، التفاوض، حالات الطلب، المحفظة والإشعارات قبل الاعتماد عليه.
+يمكن تثبيت هذا الملف على هاتف Android للاختبار. هذا الأمر يستخدم مزوّد App Check التجريبي. إذا كان App Check مفروضاً على خدمات Firebase، أضف رمز Debug الذي يظهر في السجلات إلى Firebase Console → App Check → Debug tokens. لا تشارك هذا الرمز ولا تستخدمه في إصدار Release. اختبر تسجيل العميل والسائق، إنشاء الطلب، التفاوض، حالات الطلب، المحفظة والإشعارات قبل الاعتماد عليه.
 
 ## بناء إصدار Release
 
