@@ -68,7 +68,7 @@ class AyezWelcomePage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(15),
                         ),
                         child: Image.asset(
-                          'assets/branding/jawan-logo.png',
+                          'assets/branding/new_logo_3ayez.png',
                           fit: BoxFit.contain,
                         ),
                       ),
@@ -105,7 +105,7 @@ class AyezWelcomePage extends StatelessWidget {
                               border: Border.all(color: const Color(0x45F5C400)),
                             ),
                             child: Image.asset(
-                              'assets/branding/jawan-logo.png',
+                              'assets/branding/new_logo_3ayez.png',
                               fit: BoxFit.contain,
                             ),
                           ),
