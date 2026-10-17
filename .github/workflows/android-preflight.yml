@@ -87,5 +87,5 @@ jobs:
         run: npm ci
 
       - name: Run Firestore rules tests in emulator
-        run: npx --yes firebase-tools emulators:exec --only firestore --project demo-jwan-delivery-c930d "npm test"
+        run: npx --yes firebase-tools --config ../firebase.json emulators:exec --only firestore --project demo-jwan-delivery-c930d "npm test"
         working-directory: security-tests
